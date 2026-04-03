@@ -1,0 +1,78 @@
+{
+  "entities": {
+    "Booking": {
+      "title": "Booking",
+      "description": "A customer's car detailing booking.",
+      "type": "object",
+      "properties": {
+        "customerName": { "type": "string", "description": "Full name of the customer." },
+        "email": { "type": "string", "format": "email", "description": "Email address." },
+        "phone": { "type": "string", "description": "Phone number." },
+        "service": { "type": "string", "enum": ["Basic", "Premium"], "description": "Selected detailing package." },
+        "date": { "type": "string", "description": "Date of the booking (YYYY-MM-DD)." },
+        "timeSlot": { "type": "string", "description": "Selected time slot (e.g., 09:00)." },
+        "location": { "type": "string", "description": "Customer's location for the mobile service." },
+        "status": { "type": "string", "enum": ["pending", "completed", "cancelled"], "description": "Current status of the booking." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the booking was created." },
+        "uid": { "type": "string", "description": "Optional user ID if logged in, but public bookings might not have this." }
+      },
+      "required": ["customerName", "email", "phone", "service", "date", "timeSlot", "location", "status", "createdAt"]
+    },
+    "Availability": {
+      "title": "Availability",
+      "description": "Available time slots for a specific date.",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "description": "The date (YYYY-MM-DD)." },
+        "slots": { "type": "array", "items": { "type": "string" }, "description": "List of available time slots." }
+      },
+      "required": ["date", "slots"]
+    },
+    "Verification": {
+      "title": "Verification",
+      "description": "Email verification code for booking finalization.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "format": "email", "description": "Email address being verified." },
+        "code": { "type": "string", "description": "6-digit verification code." },
+        "expires": { "type": "number", "description": "Expiration timestamp (ms)." },
+        "used": { "type": "boolean", "description": "Whether the code has been used." }
+      },
+      "required": ["email", "code", "expires", "used"]
+    },
+    "PricingSettings": {
+      "title": "PricingSettings",
+      "description": "Global pricing and sales settings.",
+      "type": "object",
+      "properties": {
+        "basicPrice": { "type": "number", "description": "Price for the Basic package." },
+        "premiumPrice": { "type": "number", "description": "Price for the Premium package." },
+        "salePercentage": { "type": "number", "description": "Sale percentage (e.g., 20 for 20% off)." },
+        "isSaleActive": { "type": "boolean", "description": "Whether the sale is currently active." }
+      },
+      "required": ["basicPrice", "premiumPrice", "salePercentage", "isSaleActive"]
+    }
+  },
+  "firestore": {
+    "/bookings/{bookingId}": {
+      "schema": "Booking",
+      "description": "Collection of all customer bookings."
+    },
+    "/availability/{date}": {
+      "schema": "Availability",
+      "description": "Available slots per date."
+    },
+    "/verifications/{verificationId}": {
+      "schema": "Verification",
+      "description": "Temporary verification codes for email confirmation."
+    },
+    "/settings/pricing": {
+      "schema": "PricingSettings",
+      "description": "Global pricing configuration."
+    },
+    "/taken_slots/{slotId}": {
+      "schema": "object",
+      "description": "Publicly readable record of taken time slots to avoid PII exposure."
+    }
+  }
+}

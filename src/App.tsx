@@ -59,7 +59,7 @@ import L from 'leaflet';
 // Fix Leaflet icon issue
 import icon from 'leaflet/dist/images/marker-icon.png';
 import iconShadow from 'leaflet/dist/images/marker-shadow.png';
-import logo from './lucasautospa.jpeg';
+const logo = "https://i.ibb.co/F4NCrqg1/lucasautospa.jpg";
 
 let DefaultIcon = L.icon({
     iconUrl: icon,

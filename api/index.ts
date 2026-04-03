@@ -65,7 +65,7 @@ app.post('/api/send-verification', async (req, res) => {
     });
 
     const { error } = await resend.emails.send({
-      from: 'AutoSpa Verification <onboarding@resend.dev>',
+      from: 'AutoSpa Verification <hello@lucasautospa.ge>',
       to: [email],
       subject: "თქვენი ვერიფიკაციის კოდი - Luca's AutoSpa",
       html: `
@@ -116,7 +116,7 @@ app.post('/api/send-confirmation', async (req, res) => {
     const serviceName = bookingData.service === 'Premium' ? 'პრემიუმ დითეილინგი' : 'სტანდარტული წმენდა';
     
     const { error } = await resend.emails.send({
-      from: "Luca's AutoSpa <onboarding@resend.dev>",
+      from: "Luca's AutoSpa <hello@lucasautospa.ge>",
       to: [email],
       subject: "ჯავშანი დადასტურებულია - Luca's AutoSpa",
       html: `
@@ -178,7 +178,7 @@ app.post('/api/send-review-request', async (req, res) => {
   try {
     const { email, customerName } = req.body;
     const { error } = await resend.emails.send({
-      from: "Luca's AutoSpa <onboarding@resend.dev>",
+      from: "Luca's AutoSpa <hello@lucasautospa.ge>",
       to: [email],
       subject: "როგორ მოგეწონათ ჩვენი სერვისი? - Luca's AutoSpa",
       html: `

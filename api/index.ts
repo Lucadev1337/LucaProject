@@ -65,17 +65,36 @@ app.post('/api/send-verification', async (req, res) => {
     });
 
     const { error } = await resend.emails.send({
-      from: 'AutoSpa Verification <hello@lucasautospa.ge>',
+      from: "Luca's AutoSpa <hello@lucasautospa.ge>",
       to: [email],
       subject: "თქვენი ვერიფიკაციის კოდი - Luca's AutoSpa",
       html: `
-        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
-          <h2 style="color: #2563eb;">Luca's AutoSpa</h2>
-          <p>მოგესალმებით, თქვენი ჯავშნის დასასრულებლად გამოიყენეთ შემდეგი კოდი:</p>
-          <div style="background: #f1f5f9; padding: 20px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 4px; color: #1e293b; border-radius: 8px;">
-            ${code}
+        <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1e293b; background-color: #f8fafc;">
+          <div style="background-color: #ffffff; border-radius: 24px; padding: 48px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0; text-align: center;">
+            <div style="margin-bottom: 32px;">
+              <h1 style="color: #2563eb; margin: 0; font-size: 32px; font-weight: 800; letter-spacing: -0.025em; text-transform: uppercase;">Luca's <span style="color: #1e293b;">AutoSpa</span></h1>
+              <div style="height: 4px; width: 60px; background-color: #2563eb; margin: 16px auto; border-radius: 2px;"></div>
+            </div>
+            
+            <h2 style="font-size: 22px; font-weight: 700; color: #0f172a; margin-top: 0; margin-bottom: 16px;">ვერიფიკაციის კოდი</h2>
+            <p style="color: #64748b; font-size: 16px; line-height: 1.6; margin-bottom: 32px;">მოგესალმებით, თქვენი ჯავშნის დასასრულებლად გამოიყენეთ შემდეგი კოდი:</p>
+            
+            <div style="background-color: #f1f5f9; border-radius: 16px; padding: 32px; margin-bottom: 24px; text-align: center;">
+              <span style="font-family: 'Courier New', Courier, monospace; font-size: 48px; font-weight: 800; letter-spacing: 8px; color: #2563eb;">${code}</span>
+            </div>
+            
+            <p style="color: #94a3b8; font-size: 14px; margin-bottom: 0;">კოდი ძალაშია 10 წუთის განმავლობაში.</p>
+            
+            <div style="margin-top: 48px; padding-top: 32px; border-top: 1px solid #f1f5f9;">
+              <p style="color: #1e293b; font-weight: 700; margin-bottom: 4px; font-size: 15px;">საუკეთესო სურვილებით,</p>
+              <p style="color: #2563eb; font-weight: 600; margin-top: 0; font-size: 16px;">Luca's AutoSpa-ს გუნდი</p>
+            </div>
           </div>
-          <p style="color: #64748b; font-size: 14px; margin-top: 20px;">კოდი ძალაშია 10 წუთის განმავლობაში.</p>
+          
+          <div style="text-align: center; margin-top: 32px;">
+            <p style="color: #94a3b8; font-size: 12px;">&copy; ${new Date().getFullYear()} Luca's AutoSpa. ყველა უფლება დაცულია.</p>
+            <p style="color: #cbd5e1; font-size: 11px; margin-top: 8px;">ეს არის ავტომატური შეტყობინება, გთხოვთ ნუ უპასუხებთ.</p>
+          </div>
         </div>
       `
     });
@@ -121,48 +140,55 @@ app.post('/api/send-confirmation', async (req, res) => {
       subject: "ჯავშანი დადასტურებულია - Luca's AutoSpa",
       html: `
         <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1e293b; background-color: #f8fafc;">
-          <div style="background-color: #ffffff; border-radius: 24px; padding: 40px; shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0;">
+          <div style="background-color: #ffffff; border-radius: 24px; padding: 48px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0;">
             <div style="text-align: center; margin-bottom: 32px;">
-              <h1 style="color: #2563eb; margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.025em;">Luca's <span style="color: #1e293b;">AutoSpa</span></h1>
-              <div style="height: 4px; width: 40px; background-color: #2563eb; margin: 16px auto; border-radius: 2px;"></div>
-              <h2 style="font-size: 20px; font-weight: 700; color: #0f172a; margin-top: 0;">ჯავშანი დადასტურებულია!</h2>
-              <p style="color: #64748b; font-size: 16px; line-height: 1.5;">გმადლობთ, რომ აირჩიეთ ჩვენი სერვისი. თქვენი ჯავშნის დეტალები მოცემულია ქვემოთ:</p>
+              <h1 style="color: #2563eb; margin: 0; font-size: 32px; font-weight: 800; letter-spacing: -0.025em; text-transform: uppercase;">Luca's <span style="color: #1e293b;">AutoSpa</span></h1>
+              <div style="height: 4px; width: 60px; background-color: #2563eb; margin: 16px auto; border-radius: 2px;"></div>
+              <h2 style="font-size: 22px; font-weight: 700; color: #0f172a; margin-top: 0; margin-bottom: 12px;">ჯავშანი დადასტურებულია!</h2>
+              <p style="color: #64748b; font-size: 16px; line-height: 1.6; margin: 0;">გმადლობთ, რომ აირჩიეთ ჩვენი სერვისი. თქვენი ჯავშნის დეტალები მოცემულია ქვემოთ:</p>
             </div>
 
-            <div style="background-color: #f1f5f9; border-radius: 16px; padding: 24px; margin-bottom: 32px;">
+            <div style="background-color: #f8fafc; border: 1px solid #f1f5f9; border-radius: 20px; padding: 32px; margin-bottom: 32px;">
               <table style="width: 100%; border-collapse: collapse;">
                 <tr>
-                  <td style="padding: 8px 0; color: #64748b; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; width: 40%;">სერვისი</td>
-                  <td style="padding: 8px 0; color: #0f172a; font-size: 15px; font-weight: 700;">${serviceName}</td>
+                  <td style="padding: 12px 0; color: #64748b; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; width: 35%; border-bottom: 1px solid #f1f5f9;">სერვისი</td>
+                  <td style="padding: 12px 0; color: #0f172a; font-size: 15px; font-weight: 700; border-bottom: 1px solid #f1f5f9;">${serviceName}</td>
                 </tr>
                 <tr>
-                  <td style="padding: 8px 0; color: #64748b; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">თარიღი</td>
-                  <td style="padding: 8px 0; color: #0f172a; font-size: 15px; font-weight: 700;">${bookingData.date}</td>
+                  <td style="padding: 12px 0; color: #64748b; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9;">თარიღი</td>
+                  <td style="padding: 12px 0; color: #0f172a; font-size: 15px; font-weight: 700; border-bottom: 1px solid #f1f5f9;">${bookingData.date}</td>
                 </tr>
                 <tr>
-                  <td style="padding: 8px 0; color: #64748b; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">დრო</td>
-                  <td style="padding: 8px 0; color: #0f172a; font-size: 15px; font-weight: 700;">${bookingData.timeSlot} PM</td>
+                  <td style="padding: 12px 0; color: #64748b; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9;">დრო</td>
+                  <td style="padding: 12px 0; color: #0f172a; font-size: 15px; font-weight: 700; border-bottom: 1px solid #f1f5f9;">${bookingData.timeSlot} PM</td>
                 </tr>
                 <tr>
-                  <td style="padding: 8px 0; color: #64748b; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">მისამართი</td>
-                  <td style="padding: 8px 0; color: #0f172a; font-size: 15px; font-weight: 700;">${bookingData.location}</td>
+                  <td style="padding: 12px 0; color: #64748b; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9;">მისამართი</td>
+                  <td style="padding: 12px 0; color: #0f172a; font-size: 14px; font-weight: 600; border-bottom: 1px solid #f1f5f9; line-height: 1.4;">${bookingData.location}</td>
                 </tr>
                 <tr>
-                  <td style="padding: 8px 0; color: #64748b; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">სახელი</td>
-                  <td style="padding: 8px 0; color: #0f172a; font-size: 15px; font-weight: 700;">${bookingData.customerName}</td>
+                  <td style="padding: 12px 0; color: #64748b; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9;">სახელი</td>
+                  <td style="padding: 12px 0; color: #0f172a; font-size: 15px; font-weight: 700; border-bottom: 1px solid #f1f5f9;">${bookingData.customerName}</td>
                 </tr>
                 <tr>
-                  <td style="padding: 8px 0; color: #64748b; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">ტელეფონი</td>
-                  <td style="padding: 8px 0; color: #0f172a; font-size: 15px; font-weight: 700;">${bookingData.phone}</td>
+                  <td style="padding: 12px 0; color: #64748b; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">ტელეფონი</td>
+                  <td style="padding: 12px 0; color: #0f172a; font-size: 15px; font-weight: 700;">${bookingData.phone}</td>
                 </tr>
               </table>
             </div>
 
-            <p style="color: #64748b; font-size: 14px; line-height: 1.6; text-align: center;">თუ გსურთ ჯავშნის შეცვლა ან გაუქმება, გთხოვთ დაგვიკავშირდეთ ნომერზე: <a href="tel:+995591952473" style="color: #2563eb; text-decoration: none; font-weight: 600;">+995 591 952 473</a></p>
+            <div style="text-align: center; padding: 24px; background-color: #f1f5f9; border-radius: 16px;">
+              <p style="color: #475569; font-size: 14px; line-height: 1.6; margin: 0;">
+                თუ გსურთ ჯავშნის შეცვლა ან გაუქმება, გთხოვთ დაგვიკავშირდეთ ნომერზე: 
+                <br />
+                <a href="tel:+995591952473" style="color: #2563eb; text-decoration: none; font-weight: 700; font-size: 16px;">+995 591 952 473</a>
+              </p>
+            </div>
           </div>
           
           <div style="text-align: center; margin-top: 32px;">
             <p style="color: #94a3b8; font-size: 12px;">&copy; ${new Date().getFullYear()} Luca's AutoSpa. ყველა უფლება დაცულია.</p>
+            <p style="color: #cbd5e1; font-size: 11px; margin-top: 8px;">ეს არის ავტომატური შეტყობინება, გთხოვთ ნუ უპასუხებთ.</p>
           </div>
         </div>
       `
@@ -183,33 +209,97 @@ app.post('/api/send-review-request', async (req, res) => {
       subject: "როგორ მოგეწონათ ჩვენი სერვისი? - Luca's AutoSpa",
       html: `
         <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1e293b; background-color: #f8fafc;">
-          <div style="background-color: #ffffff; border-radius: 24px; padding: 40px; shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0; text-align: center;">
-            <h1 style="color: #2563eb; margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.025em;">Luca's <span style="color: #1e293b;">AutoSpa</span></h1>
-            <div style="height: 4px; width: 40px; background-color: #2563eb; margin: 16px auto; border-radius: 2px;"></div>
-            
-            <h2 style="font-size: 24px; font-weight: 700; color: #0f172a; margin-top: 0; margin-bottom: 16px;">დიდი მადლობა, ${customerName}!</h2>
-            
-            <p style="color: #475569; font-size: 16px; line-height: 1.6; margin-bottom: 32px;">
-              იმედი გვაქვს, კმაყოფილი დარჩით ჩვენი სერვისით და თქვენი ავტომობილი ისევ ისე ბზინავს, როგორც ახალი. 
-              თქვენი აზრი ჩვენთვის ძალიან მნიშვნელოვანია.
-            </p>
-
-            <div style="margin-bottom: 40px;">
-              <a href="https://g.page/r/Cc7gXgecIBlIEBM/review" style="background-color: #2563eb; color: #ffffff; padding: 16px 32px; border-radius: 12px; font-weight: 700; text-decoration: none; display: inline-block; font-size: 16px; transition: background-color 0.2s;">დაგვიტოვეთ შეფასება</a>
+          <div style="background-color: #ffffff; border-radius: 24px; padding: 48px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0; text-align: center;">
+            <div style="margin-bottom: 32px;">
+              <h1 style="color: #2563eb; margin: 0; font-size: 32px; font-weight: 800; letter-spacing: -0.025em; text-transform: uppercase;">Luca's <span style="color: #1e293b;">AutoSpa</span></h1>
+              <div style="height: 4px; width: 60px; background-color: #2563eb; margin: 16px auto; border-radius: 2px;"></div>
             </div>
-
-            <p style="color: #64748b; font-size: 14px; line-height: 1.6;">
-              თქვენი გამოხმაურება გვეხმარება გავხდეთ უკეთესები და შევთავაზოთ საუკეთესო სერვისი ჩვენს მომხმარებლებს.
-            </p>
             
-            <div style="margin-top: 40px; padding-top: 32px; border-top: 1px solid #f1f5f9;">
-              <p style="color: #1e293b; font-weight: 700; margin-bottom: 4px;">საუკეთესო სურვილებით,</p>
-              <p style="color: #2563eb; font-weight: 600; margin-top: 0;">Luca's AutoSpa-ს გუნდი</p>
+            <h2 style="font-size: 24px; font-weight: 700; color: #0f172a; margin-top: 0; margin-bottom: 20px;">დიდი მადლობა, ${customerName}!</h2>
+            
+            <p style="color: #475569; font-size: 16px; line-height: 1.7; margin-bottom: 32px; text-align: left;">
+              მოხარულები ვართ, რომ ისარგებლეთ ჩვენი სერვისით. იმედი გვაქვს, თქვენი ავტომობილი ისევ ისე ბზინავს, როგორც ახალი და შედეგით კმაყოფილი ხართ.
+            </p>
+
+            <div style="background-color: #f1f5f9; border-radius: 16px; padding: 24px; margin-bottom: 32px; text-align: left;">
+              <p style="color: #1e293b; font-size: 15px; font-weight: 600; margin-top: 0; margin-bottom: 12px;">თქვენი აზრი ჩვენთვის ძალიან მნიშვნელოვანია!</p>
+              <p style="color: #64748b; font-size: 14px; line-height: 1.6; margin: 0;">
+                თქვენი გამოხმაურება გვეხმარება გავხდეთ უკეთესები და შევთავაზოთ საუკეთესო სერვისი ჩვენს მომხმარებლებს.
+              </p>
+            </div>
+            
+            <div style="margin-bottom: 40px;">
+              <a href="https://g.page/r/Cc7gXgecIBlIEBM/review" style="background-color: #2563eb; color: #ffffff; padding: 18px 36px; border-radius: 14px; font-weight: 700; text-decoration: none; display: inline-block; font-size: 16px; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);">დაგვიტოვეთ შეფასება</a>
+            </div>
+            
+            <div style="margin-top: 48px; padding-top: 32px; border-top: 1px solid #f1f5f9; text-align: center;">
+              <p style="color: #1e293b; font-weight: 700; margin-bottom: 4px; font-size: 15px;">საუკეთესო სურვილებით,</p>
+              <p style="color: #2563eb; font-weight: 600; margin-top: 0; font-size: 16px;">Luca's AutoSpa-ს გუნდი</p>
             </div>
           </div>
           
           <div style="text-align: center; margin-top: 32px;">
             <p style="color: #94a3b8; font-size: 12px;">&copy; ${new Date().getFullYear()} Luca's AutoSpa. ყველა უფლება დაცულია.</p>
+            <p style="color: #cbd5e1; font-size: 11px; margin-top: 8px;">ეს არის ავტომატური შეტყობინება, გთხოვთ ნუ უპასუხებთ.</p>
+          </div>
+        </div>
+      `
+    });
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/send-cancellation', async (req, res) => {
+  try {
+    const { email, bookingData } = req.body;
+    const serviceName = bookingData.service === 'Premium' ? 'პრემიუმ დითეილინგი' : 'სტანდარტული წმენდა';
+    
+    const { error } = await resend.emails.send({
+      from: "Luca's AutoSpa <hello@lucasautospa.ge>",
+      to: [email],
+      subject: "ჯავშანი გაუქმებულია - Luca's AutoSpa",
+      html: `
+        <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1e293b; background-color: #f8fafc;">
+          <div style="background-color: #ffffff; border-radius: 24px; padding: 48px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0;">
+            <div style="text-align: center; margin-bottom: 32px;">
+              <h1 style="color: #ef4444; margin: 0; font-size: 32px; font-weight: 800; letter-spacing: -0.025em; text-transform: uppercase;">Luca's <span style="color: #1e293b;">AutoSpa</span></h1>
+              <div style="height: 4px; width: 60px; background-color: #ef4444; margin: 16px auto; border-radius: 2px;"></div>
+              <h2 style="font-size: 22px; font-weight: 700; color: #0f172a; margin-top: 0; margin-bottom: 12px;">თქვენი ჯავშანი გაუქმებულია</h2>
+              <p style="color: #64748b; font-size: 16px; line-height: 1.6; margin: 0;">გაცნობებთ, რომ თქვენი ჯავშანი გაუქმდა. დეტალები მოცემულია ქვემოთ:</p>
+            </div>
+
+            <div style="background-color: #fef2f2; border: 1px solid #fee2e2; border-radius: 20px; padding: 32px; margin-bottom: 32px;">
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="padding: 12px 0; color: #64748b; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; width: 35%; border-bottom: 1px solid #fee2e2;">სერვისი</td>
+                  <td style="padding: 12px 0; color: #0f172a; font-size: 15px; font-weight: 700; border-bottom: 1px solid #fee2e2;">${serviceName}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 12px 0; color: #64748b; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #fee2e2;">თარიღი</td>
+                  <td style="padding: 12px 0; color: #0f172a; font-size: 15px; font-weight: 700; border-bottom: 1px solid #fee2e2;">${bookingData.date}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 12px 0; color: #64748b; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">დრო</td>
+                  <td style="padding: 12px 0; color: #0f172a; font-size: 15px; font-weight: 700;">${bookingData.timeSlot} PM</td>
+                </tr>
+              </table>
+            </div>
+
+            <div style="text-align: center; padding: 24px; background-color: #f1f5f9; border-radius: 16px;">
+              <p style="color: #475569; font-size: 14px; line-height: 1.6; margin: 0;">
+                თუ ჯავშანი შეცდომით გაუქმდა ან გაქვთ კითხვები, გთხოვთ დაგვიკავშირდეთ ნომერზე: 
+                <br />
+                <a href="tel:+995591952473" style="color: #2563eb; text-decoration: none; font-weight: 700; font-size: 16px;">+995 591 952 473</a>
+              </p>
+            </div>
+          </div>
+          
+          <div style="text-align: center; margin-top: 32px;">
+            <p style="color: #94a3b8; font-size: 12px;">&copy; ${new Date().getFullYear()} Luca's AutoSpa. ყველა უფლება დაცულია.</p>
+            <p style="color: #cbd5e1; font-size: 11px; margin-top: 8px;">ეს არის ავტომატური შეტყობინება, გთხოვთ ნუ უპასუხებთ.</p>
           </div>
         </div>
       `

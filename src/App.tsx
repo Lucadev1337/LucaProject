@@ -52,6 +52,7 @@ import {
   Check
 } from 'lucide-react';
 import { format, addDays, startOfToday, isSameDay, parseISO } from 'date-fns';
+import { ka } from 'date-fns/locale';
 import { cn } from './lib/utils';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -72,6 +73,183 @@ let DefaultIcon = L.icon({
 L.Marker.prototype.options.icon = DefaultIcon;
 
 // --- Types ---
+type Language = 'GE' | 'EN';
+
+const translations = {
+  GE: {
+    heroBadge: "მოძრავი სერვისი - ჩვენ მოვალთ თქვენთან!",
+    heroTitle: "ჩვენ ვაწკრიალებთ, ",
+    heroTitleSpan: "შენ არ კარგავ დროს",
+    heroDesc: "დეტალური ინტერიერის წმენდა შენს კართან. პროფესიონალური ხსნარებით, მისაღებ ფასად.",
+    bookNow: "დაჯავშნე ახლავე",
+    viewServices: "სერვისების ნახვა",
+    lastResult: "ბოლო შედეგი",
+    premiumDetailing: "პრემიუმ დითეილინგი",
+    features: [
+      { title: "სისწრაფე", desc: "სამუშაო სრულდება მაქსიმუმ 2 საათში თქვენს ლოკაციაზე." },
+      { title: "პროფესიონალიზმი", desc: "ვიყენებთ პრემიუმ ქიმიკატებს და ორთქლის ტექნოლოგიას." },
+      { title: "მოქნილობა", desc: "ჩვენ მოვალთ თქვენს ლოკაციაზე. ნებისმიერ ადგილას, ნებისმიერ დროს." }
+    ],
+    pricingTitle: "მარტივი ფასები",
+    pricingDesc: "აირჩიეთ თქვენთვის სასურველი პაკეტი. ფარული ხარჯების გარეშე.",
+    standardClean: "სტანდარტული წმენდა",
+    premiumDeepClean: "პრემიუმ ღრმა წმენდა",
+    perService: "/ სერვისი",
+    sale: "ფასდაკლება",
+    mostPopular: "ყველაზე პოპულარული",
+    selectStandard: "აირჩიეთ სტანდარტული",
+    selectPremium: "აირჩიეთ პრემიუმი",
+    readyForNew: "მზად ხართ ",
+    readyForNewSpan: "სიახლისთვის?",
+    ctaDesc: "ენდეთ Luca's AutoSpa-ს და დაუბრუნეთ თქვენს ავტომობილს პირვანდელი სახე.",
+    fiveStar: "5-ვარსკვლავიანი",
+    mobile: "მოძრავი",
+    footerDesc: "პრემიუმ ინტერიერის წმენდა, სასურველ მისამართზე. თქვენ ზოგავთ დროს და ენერგიას, ჩვენ მოვდივართ თქვენს მისამართზე და ვუბრუნებთ ავტომობილს პირვანდელი იერსახეს.",
+    serviceArea: "მომსახურების არეალი",
+    serviceAreaDesc: "თბილისი. მოძრავი სერვისი თქვენს კართან.",
+    contact: "კონტაქტი",
+    rights: "ყველა უფლება დაცულია.",
+    adminPanel: "ადმინ პანელი",
+    viewSite: "საიტის ნახვა",
+    details: "დეტალები",
+    chooseDate: "აირჩიეთ თარიღი და დრო",
+    availableTimes: "ხელმისაწვდომი დროები",
+    location: "მომსახურების ადგილი",
+    address: "მისამართი",
+    name: "სახელი",
+    phone: "ტელეფონი",
+    email: "ელ-ფოსტა (ვერიფიკაციისთვის)",
+    enterCode: "შეიყვანეთ 6-ნიშნა კოდი",
+    codeSent: "კოდი გაიგზავნა თქვენს ელ-ფოსტაზე. თუ არ მიგიღიათ, შეამოწმეთ სპამი.",
+    changeEmail: "ელ-ფოსტის შეცვლა",
+    total: "ჯამი",
+    confirmBooking: "ჯავშნის დადასტურება",
+    verifyingBtn: "ვერიფიკაცია და დაჯავშნა",
+    bookingConfirmed: "ჯავშანი დადასტურებულია!",
+    successDesc: "გმადლობთ, რომ აირჩიეთ Luca's AutoSpa. ჩვენ მივიღეთ თქვენი მოთხოვნა და მალე დაგიკავშირდებით დეტალების დასადასტურებლად.",
+    backToHome: "მთავარ გვერდზე დაბრუნება",
+    searchAddress: "ჩაწერეთ მისამართი...",
+    search: "ძებნა",
+    clickMap: "დააკლიკეთ რუკაზე ზუსტი ადგილის ასარჩევად",
+    sendCode: "კოდის გაგზავნა",
+    verification: "ვერიფიკაცია",
+    sendingCode: "კოდი იგზავნება...",
+    verifying: "მოწმდება...",
+    processing: "მუშავდება...",
+    noTimes: "ამ დღისთვის ხელმისაწვდომი დროები არ არის.",
+    namePlaceholder: "თქვენი სახელი",
+    emailPlaceholder: "თქვენი@ფოსტა.com",
+    detailsLink: "დეტალები",
+    chooseService: "აირჩიეთ სერვისი",
+    invalidCode: "არასწორი ან ვადაგასული კოდი",
+    verificationError: "შეცდომა ვერიფიკაციისას",
+    sendCodeError: "ვერიფიკაციის კოდის გაგზავნა ვერ მოხერხდა",
+    generalError: "შეცდომა კოდის გაგზავნისას",
+    fillAllFields: "გთხოვთ შეავსოთ ყველა სავალდებულო ველი",
+    standardDetails: [
+      "სრული სალონის მტვერსასრუტით წმენდა",
+      "მტვრის მოცილება და ტილოთი წმენდა",
+      "მინების წმენდა (გარედან და შიგნიდან)",
+      "ხალიჩების წმენდა",
+      "ჰაერის არომატიზაცია"
+    ],
+    premiumDetails: [
+      "სრული სტანდარტული პაკეტი",
+      "ფუნჯით და ქაფით პროფესიონალური წმენდა",
+      "ჭერზე ლაქების მოცილება",
+      "სიდენიების ღრმა წმენდა",
+      "ცხოველის ბეწვის მოცილება",
+      "ანტიწვიმა ყველა მინაზე"
+    ]
+  },
+  EN: {
+    heroBadge: "Mobile Service - We come to you!",
+    heroTitle: "We clean, ",
+    heroTitleSpan: "you don't waste time",
+    heroDesc: "Detailed interior cleaning at your door. With professional solutions, at an affordable price.",
+    bookNow: "Book Now",
+    viewServices: "View Services",
+    lastResult: "Last Result",
+    premiumDetailing: "Premium Detailing",
+    features: [
+      { title: "Speed", desc: "Work is completed in maximum 2 hours at your location." },
+      { title: "Professionalism", desc: "We use premium chemicals and steam technology." },
+      { title: "Flexibility", desc: "We come to your location. Anywhere, anytime." }
+    ],
+    pricingTitle: "Simple Pricing",
+    pricingDesc: "Choose the package that suits you. No hidden costs.",
+    standardClean: "Standard Clean",
+    premiumDeepClean: "Premium Deep Clean",
+    perService: "/ service",
+    sale: "Sale",
+    mostPopular: "Most Popular",
+    selectStandard: "Select Standard",
+    selectPremium: "Select Premium",
+    readyForNew: "Ready for ",
+    readyForNewSpan: "something new?",
+    ctaDesc: "Trust Luca's AutoSpa and give your car its original look back.",
+    fiveStar: "5-Star",
+    mobile: "Mobile",
+    footerDesc: "Premium interior cleaning at your desired address. You save time and energy, we come to your address and restore your car's original look.",
+    serviceArea: "Service Area",
+    serviceAreaDesc: "Tbilisi. Mobile service at your door.",
+    contact: "Contact",
+    rights: "All rights reserved.",
+    adminPanel: "Admin Panel",
+    viewSite: "View Site",
+    details: "Details",
+    chooseDate: "Choose Date & Time",
+    availableTimes: "Available Times",
+    location: "Service Location",
+    address: "Address",
+    name: "Name",
+    phone: "Phone",
+    email: "Email (for verification)",
+    enterCode: "Enter 6-digit code",
+    codeSent: "Code sent to your email. If not received, check spam.",
+    changeEmail: "Change Email",
+    total: "Total",
+    confirmBooking: "Confirm Booking",
+    verifyingBtn: "Verify & Book",
+    bookingConfirmed: "Booking Confirmed!",
+    successDesc: "Thank you for choosing Luca's AutoSpa. We received your request and will contact you soon to confirm details.",
+    backToHome: "Back to Home",
+    searchAddress: "Enter address...",
+    search: "Search",
+    clickMap: "Click on the map to select exact location",
+    sendCode: "Send Code",
+    verification: "Verification",
+    sendingCode: "Sending code...",
+    verifying: "Verifying...",
+    processing: "Processing...",
+    noTimes: "No available times for this day.",
+    namePlaceholder: "Your Name",
+    emailPlaceholder: "your@email.com",
+    detailsLink: "Details",
+    chooseService: "Choose Service",
+    invalidCode: "Invalid or expired code",
+    verificationError: "Verification error",
+    sendCodeError: "Failed to send verification code",
+    generalError: "Error sending code",
+    fillAllFields: "Please fill all required fields",
+    standardDetails: [
+      "Full interior vacuum cleaning",
+      "Dust removal and wiping",
+      "Glass cleaning (inside and out)",
+      "Mat cleaning",
+      "Air freshening"
+    ],
+    premiumDetails: [
+      "Full standard package",
+      "Professional brush and foam cleaning",
+      "Ceiling stain removal",
+      "Deep seat cleaning",
+      "Pet hair removal",
+      "Rain repellent on all windows"
+    ]
+  }
+};
+
 interface Booking {
   id: string;
   customerName: string;
@@ -167,7 +345,7 @@ function ChangeView({ center, zoom }: { center: [number, number], zoom: number }
   return null;
 }
 
-function MapPicker({ onLocationSelect, initialLocation }: { onLocationSelect: (address: string, lat?: number, lng?: number) => void, initialLocation?: string }) {
+function MapPicker({ onLocationSelect, initialLocation, t }: { onLocationSelect: (address: string, lat?: number, lng?: number) => void, initialLocation?: string, t: any }) {
   const [marker, setMarker] = useState<[number, number] | null>(null);
   const [address, setAddress] = useState(initialLocation || '');
   const [searchQuery, setSearchQuery] = useState('');
@@ -228,7 +406,7 @@ function MapPicker({ onLocationSelect, initialLocation }: { onLocationSelect: (a
             <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
             <input
               type="text"
-              placeholder="ჩაწერეთ მისამართი..."
+              placeholder={t.searchAddress}
               className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 pl-12 focus:border-blue-600 outline-none transition-colors text-white"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -240,7 +418,7 @@ function MapPicker({ onLocationSelect, initialLocation }: { onLocationSelect: (a
             disabled={isSearching}
             className="rounded-2xl px-4"
           >
-            {isSearching ? '...' : 'ძებნა'}
+            {isSearching ? '...' : t.search}
           </Button>
         </div>
       </div>
@@ -260,7 +438,7 @@ function MapPicker({ onLocationSelect, initialLocation }: { onLocationSelect: (a
           {marker && <Marker position={marker} />}
         </MapContainer>
       </div>
-      <p className="text-xs text-gray-500 italic">დააკლიკეთ რუკაზე ზუსტი ადგილის ასარჩევად</p>
+      <p className="text-xs text-gray-500 italic">{t.clickMap}</p>
     </div>
   );
 }
@@ -307,6 +485,8 @@ export default function App() {
   const [view, setView] = useState<'public' | 'admin' | 'booking'>('public');
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [lang, setLang] = useState<Language>('GE');
+  const t = translations[lang];
   const [pricing, setPricing] = useState<PricingSettings>({
     basicPrice: 89,
     premiumPrice: 149,
@@ -371,10 +551,23 @@ export default function App() {
                   <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20 overflow-hidden">
                     <img src={logo} alt="Luca's AutoSpa" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                   </div>
-                  <span className="text-xl font-bold tracking-tight text-white">Luca's <span className="text-blue-500">AutoSpa</span></span>
+                  <span className="text-xl font-bold tracking-tight text-white font-display uppercase">Luca's <span className="text-blue-500">AutoSpa</span></span>
                 </div>
                 
                 <div className="flex items-center gap-4">
+                  {/* Language Switcher */}
+                  <button 
+                    onClick={() => setLang(lang === 'GE' ? 'EN' : 'GE')}
+                    className="p-2 hover:bg-slate-800 rounded-xl transition-all active:scale-90 border border-slate-800"
+                    title={lang === 'GE' ? 'Switch to English' : 'გადართვა ქართულზე'}
+                  >
+                    {lang === 'GE' ? (
+                      <img src="https://flagcdn.com/w40/gb.png" alt="UK Flag" className="w-6 h-4 object-cover rounded-sm" />
+                    ) : (
+                      <img src="https://flagcdn.com/w40/ge.png" alt="Georgia Flag" className="w-6 h-4 object-cover rounded-sm" />
+                    )}
+                  </button>
+
                   {isAdmin && (
                     <Button 
                       variant="ghost" 
@@ -383,7 +576,7 @@ export default function App() {
                       className="flex gap-2 text-slate-300 hover:text-white hover:bg-slate-800"
                     >
                       {view === 'admin' ? <Zap className="w-4 h-4" /> : <LayoutDashboard className="w-4 h-4" />}
-                      <span>{view === 'admin' ? 'საიტის ნახვა' : 'ადმინ პანელი'}</span>
+                      <span>{view === 'admin' ? t.viewSite : t.adminPanel}</span>
                     </Button>
                   )}
                   {user ? (
@@ -412,9 +605,9 @@ export default function App() {
         <main>
           <AnimatePresence mode="wait">
             {view === 'public' ? (
-              <PublicSite key="public" onBookNow={() => setView('booking')} pricing={pricing} />
+              <PublicSite key="public" onBookNow={() => setView('booking')} pricing={pricing} t={t} lang={lang} />
             ) : view === 'booking' ? (
-              <BookingPage key="booking" onBack={() => setView('public')} pricing={pricing} />
+              <BookingPage key="booking" onBack={() => setView('public')} pricing={pricing} t={t} lang={lang} />
             ) : (
               <AdminDashboard key="admin" onBack={() => setView('public')} pricing={pricing} />
             )}
@@ -430,18 +623,18 @@ export default function App() {
                   <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20 overflow-hidden">
                     <img src={logo} alt="Luca's AutoSpa" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                   </div>
-                  <span className="text-white font-bold text-base">Luca's AutoSpa</span>
+                  <span className="text-white font-bold text-base font-display uppercase">Luca's AutoSpa</span>
                 </div>
                 <p className="text-xs leading-relaxed">
-                  პრემიუმ ინტერიერის წმენდა, სასურველ მისამართზე. თქვენ ზოგავთ დროს და ენერგიას, ჩვენ მოვდივართ თქვენს მისამართზე და ვუბრუნებთ ავტომობილს პირვანდელ იერსახეს.
+                  {t.footerDesc}
                 </p>
               </div>
               <div>
-                <h4 className="text-white font-semibold mb-3 text-sm">მომსახურების არეალი</h4>
-                <p className="text-xs">თბილისი. მოძრავი სერვისი თქვენს კართან.</p>
+                <h4 className="text-white font-semibold mb-3 text-sm">{t.serviceArea}</h4>
+                <p className="text-xs">{t.serviceAreaDesc}</p>
               </div>
               <div>
-                <h4 className="text-white font-semibold mb-3 text-sm">კონტაქტი</h4>
+                <h4 className="text-white font-semibold mb-3 text-sm">{t.contact}</h4>
                 <div className="flex flex-col gap-2 text-xs">
                   <a href="tel:+995591952473" className="flex items-center gap-2 hover:text-blue-400">
                     <Phone className="w-3 h-3" /> +995 591 952 473
@@ -453,7 +646,7 @@ export default function App() {
               </div>
             </div>
             <div className="max-w-7xl mx-auto border-t border-slate-800 mt-8 pt-6 text-center text-[10px]">
-              &copy; {new Date().getFullYear()} Luca's AutoSpa. ყველა უფლება დაცულია.
+              &copy; {new Date().getFullYear()} LUCA'S AUTOSPA. {t.rights}
             </div>
           </footer>
         )}
@@ -475,7 +668,7 @@ export default function App() {
 
 // --- Public Site ---
 
-function PublicSite({ onBookNow, pricing }: { onBookNow: () => void, pricing: PricingSettings, key?: string }) {
+function PublicSite({ onBookNow, pricing, t, lang }: { onBookNow: () => void, pricing: PricingSettings, t: any, lang: Language, key?: string }) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const heroImages = [
     "https://s25180.pcdn.co/wp-content/uploads/2022/06/Interior-Detailing-Products.jpg",
@@ -517,26 +710,25 @@ function PublicSite({ onBookNow, pricing }: { onBookNow: () => void, pricing: Pr
           >
             <div className="inline-flex items-center gap-2 bg-blue-600/20 text-blue-400 px-4 py-2 rounded-full text-xs font-bold mb-6 border border-blue-600/30">
               <MapPin className="w-4 h-4" />
-              <span>მოძრავი სერვისი - ჩვენ მოვალთ თქვენთან!</span>
+              <span>{t.heroBadge}</span>
             </div>
-            <h1 className="text-4xl lg:text-6xl font-extrabold tracking-tight text-white mb-6 leading-tight">
-              ჩვენ ვაწკრიალებთ, <span className="text-blue-500">შენ არ კარგავ დროს</span>
+            <h1 className="text-3xl lg:text-5xl font-extrabold tracking-tight text-white mb-6 leading-tight">
+              {t.heroTitle}<span className="text-blue-500">{t.heroTitleSpan}</span>
             </h1>
-            <p className="text-lg text-slate-400 mb-8 leading-relaxed max-w-lg">
-              დეტალური ინტერიერის წმენდა შენს კართან.<br />
-              პროფესიონალური ხსნარებით, მისაღებ ფასად.
+            <p className="text-base text-slate-400 mb-8 leading-relaxed max-w-lg">
+              {t.heroDesc}
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <Button size="lg" className="rounded-2xl shadow-xl shadow-blue-600/20" onClick={scrollToBooking}>
-                დაჯავშნე ახლავე <ArrowRight className="ml-2 w-5 h-5" />
+                {t.bookNow} <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
               <Button variant="outline" size="lg" className="rounded-2xl border-slate-700 text-slate-300 hover:bg-slate-800" onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}>
-                სერვისების ნახვა
+                {t.viewServices}
               </Button>
             </div>
             <div className="mt-12 flex items-center gap-6">
               <div className="flex -space-x-3">
-                {[1, 2, 3, 4].map(i => (
+                {[1, 2, 3].map(i => (
                   <img 
                     key={i} 
                     src={`https://picsum.photos/seed/user${i}/100/100`} 
@@ -550,7 +742,7 @@ function PublicSite({ onBookNow, pricing }: { onBookNow: () => void, pricing: Pr
                 <div className="flex text-yellow-500 mb-1">
                   {[...Array(5)].map((_, i) => <Star key={i} className="w-3 h-3 fill-current" />)}
                 </div>
-                <p className="text-slate-400 font-medium">მომსახურეობა სრული თბილისის მასშტაბით</p>
+                <p className="text-slate-400 font-medium">{t.serviceAreaDesc}</p>
               </div>
             </div>
           </motion.div>
@@ -569,7 +761,13 @@ function PublicSite({ onBookNow, pricing }: { onBookNow: () => void, pricing: Pr
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
                   transition={{ duration: 0.6 }}
-                  className="w-full h-full object-cover opacity-80" 
+                  drag="x"
+                  dragConstraints={{ left: 0, right: 0 }}
+                  onDragEnd={(_, info) => {
+                    if (info.offset.x > 50) prevSlide();
+                    else if (info.offset.x < -50) nextSlide();
+                  }}
+                  className="w-full h-full object-cover opacity-80 cursor-grab active:cursor-grabbing" 
                   referrerPolicy="no-referrer"
                   alt="Car Interior Detailing"
                 />
@@ -612,8 +810,8 @@ function PublicSite({ onBookNow, pricing }: { onBookNow: () => void, pricing: Pr
                     <Zap className="w-6 h-6" />
                   </div>
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-widest opacity-60">ბოლო შედეგი</p>
-                    <p className="text-lg font-bold">პრემიუმ დითეილინგი</p>
+                    <p className="text-xs font-bold uppercase tracking-widest opacity-60">{t.lastResult}</p>
+                    <p className="text-lg font-bold">{t.premiumDetailing}</p>
                   </div>
                 </div>
               </div>
@@ -626,14 +824,10 @@ function PublicSite({ onBookNow, pricing }: { onBookNow: () => void, pricing: Pr
       {/* Features */}
       <section className="py-12 px-4">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
-          {[
-            { icon: Zap, title: "სისწრაფე", desc: "სამუშაო სრულდება მაქსიმუმ 2 საათში თქვენს ლოკაციაზე." },
-            { icon: ShieldCheck, title: "პროფესიონალიზმი", desc: "ვიყენებთ პრემიუმ ქიმიკატებს და ორთქლის ტექნოლოგიას." },
-            { icon: MapPin, title: "მოქნილობა", desc: "ჩვენ მოვალთ თქვენს ლოკაციაზე. ნებისმიერ ადგილას, ნებისმიერ დროს." }
-          ].map((f, i) => (
+          {t.features.map((f: any, i: number) => (
             <div key={i} className="flex flex-col gap-4 p-6 rounded-3xl bg-slate-900 border border-slate-800 hover:border-slate-700 transition-colors">
               <div className="w-12 h-12 bg-blue-600/10 text-blue-500 rounded-2xl flex items-center justify-center">
-                <f.icon className="w-6 h-6" />
+                {i === 0 ? <Zap className="w-6 h-6" /> : i === 1 ? <ShieldCheck className="w-6 h-6" /> : <MapPin className="w-6 h-6" />}
               </div>
               <h3 className="text-lg font-bold text-white">{f.title}</h3>
               <p className="text-sm text-slate-400 leading-relaxed">{f.desc}</p>
@@ -646,15 +840,15 @@ function PublicSite({ onBookNow, pricing }: { onBookNow: () => void, pricing: Pr
       <section id="pricing" className="py-12 px-4 bg-slate-950">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-white mb-4">მარტივი ფასები</h2>
-            <p className="text-sm text-slate-400 max-w-2xl mx-auto">აირჩიეთ თქვენთვის სასურველი პაკეტი. ფარული ხარჯების გარეშე.</p>
+            <h2 className="text-3xl font-bold text-white mb-4">{t.pricingTitle}</h2>
+            <p className="text-sm text-slate-400 max-w-2xl mx-auto">{t.pricingDesc}</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
             {/* Basic Package */}
             <Card className="flex flex-col bg-slate-900 border-slate-800 hover:border-blue-900/50 transition-colors">
               <div className="mb-6">
-                <h3 className="text-xl font-bold mb-2 text-white">სტანდარტული წმენდა</h3>
+                <h3 className="text-xl font-bold mb-2 text-white">{t.standardClean}</h3>
                 <div className="flex items-baseline gap-2">
                   {pricing.isSaleActive ? (
                     <>
@@ -664,22 +858,16 @@ function PublicSite({ onBookNow, pricing }: { onBookNow: () => void, pricing: Pr
                   ) : (
                     <span className="text-3xl font-extrabold text-white">{pricing.basicPrice}₾</span>
                   )}
-                  <span className="text-xs text-slate-500">/ სერვისი</span>
+                  <span className="text-xs text-slate-500">{t.perService}</span>
                 </div>
                 {pricing.isSaleActive && (
                   <div className="mt-2 inline-block bg-red-600/20 text-red-500 text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider">
-                    -{pricing.salePercentage}% ფასდაკლება
+                    -{pricing.salePercentage}% {t.sale}
                   </div>
                 )}
               </div>
               <ul className="flex-1 space-y-3 mb-8">
-                {[
-                  "სრული სალონის მტვერსასრუტით წმენდა",
-                  "მტვრის მოცილება და ტილოთი წმენდა",
-                  "მინების წმენდა (გარედან და შიგნიდან)",
-                  "ხალიჩების წმენდა",
-                  "ჰაერის არომატიზაცია"
-                ].map((item, i) => (
+                {t.standardDetails.map((item, i) => (
                   <li key={i} className="flex items-center gap-3 text-sm text-slate-300">
                     <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
                     {item}
@@ -687,17 +875,17 @@ function PublicSite({ onBookNow, pricing }: { onBookNow: () => void, pricing: Pr
                 ))}
               </ul>
               <Button variant="outline" className="w-full py-3 rounded-xl border-slate-700 text-slate-300 hover:bg-slate-800" onClick={scrollToBooking}>
-                აირჩიეთ სტანდარტული
+                {t.selectStandard}
               </Button>
             </Card>
 
             {/* Premium Package */}
             <Card className="flex flex-col bg-slate-900 border-blue-600/50 ring-4 ring-blue-600/5 relative overflow-hidden">
               <div className="absolute top-0 right-0 bg-blue-600 text-white px-3 py-1 rounded-bl-xl text-[10px] font-bold uppercase tracking-wider">
-                ყველაზე პოპულარული
+                {t.mostPopular}
               </div>
               <div className="mb-6">
-                <h3 className="text-xl font-bold mb-2 text-white">პრემიუმ ღრმა წმენდა</h3>
+                <h3 className="text-xl font-bold mb-2 text-white">{t.premiumDeepClean}</h3>
                 <div className="flex items-baseline gap-2">
                   {pricing.isSaleActive ? (
                     <>
@@ -707,23 +895,16 @@ function PublicSite({ onBookNow, pricing }: { onBookNow: () => void, pricing: Pr
                   ) : (
                     <span className="text-3xl font-extrabold text-white">{pricing.premiumPrice}₾</span>
                   )}
-                  <span className="text-xs text-slate-500">/ სერვისი</span>
+                  <span className="text-xs text-slate-500">{t.perService}</span>
                 </div>
                 {pricing.isSaleActive && (
                   <div className="mt-2 inline-block bg-red-600/20 text-red-500 text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider">
-                    -{pricing.salePercentage}% ფასდაკლება
+                    -{pricing.salePercentage}% {t.sale}
                   </div>
                 )}
               </div>
               <ul className="flex-1 space-y-3 mb-8">
-                {[
-                  "სრული სტანდარტული პაკეტი",
-                  "ფუნჯით და ქაფით პროფესიონალური წმენდა",
-                  "ჭერზე ლაქების მოცილება",
-                  "სიდენიების ღრმა წმენდა",
-                  "ცხოველის ბეწვის მოცილება",
-                  "ანტიწვიმა ყველა მინაზე"
-                ].map((item, i) => (
+                {t.premiumDetails.map((item, i) => (
                   <li key={i} className="flex items-center gap-3 text-sm text-slate-300">
                     <CheckCircle className="w-4 h-4 text-blue-500 flex-shrink-0" />
                     {item}
@@ -731,7 +912,7 @@ function PublicSite({ onBookNow, pricing }: { onBookNow: () => void, pricing: Pr
                 ))}
               </ul>
               <Button className="w-full py-3 rounded-xl shadow-lg shadow-blue-600/20" onClick={scrollToBooking}>
-                აირჩიეთ პრემიუმი
+                {t.selectPremium}
               </Button>
             </Card>
           </div>
@@ -746,21 +927,21 @@ function PublicSite({ onBookNow, pricing }: { onBookNow: () => void, pricing: Pr
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-600/5 blur-[100px] -z-0" />
             
             <div className="relative z-10">
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">მზად ხართ <span className="text-blue-500">სიახლისთვის?</span></h2>
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">{t.readyForNew}<span className="text-blue-500">{t.readyForNewSpan}</span></h2>
               <p className="text-slate-400 text-base mb-10 max-w-xl mx-auto">
-                ენდეთ Luca's AutoSpa-ს და დაუბრუნეთ თქვენს ავტომობილს პირვანდელი სახე.
+                {t.ctaDesc}
               </p>
               <Button size="lg" className="rounded-2xl shadow-2xl shadow-blue-600/20" onClick={scrollToBooking}>
-                დაჯავშნეთ ახლავე
+                {t.bookNow}
               </Button>
               <div className="mt-10 flex flex-wrap justify-center gap-8 opacity-40">
                 <div className="flex items-center gap-2 text-white">
                   <Star className="w-4 h-4" />
-                  <span className="font-bold uppercase tracking-widest text-[10px]">5-ვარსკვლავიანი</span>
+                  <span className="font-bold uppercase tracking-widest text-[10px]">{t.fiveStar}</span>
                 </div>
                 <div className="flex items-center gap-2 text-white">
                   <Zap className="w-4 h-4" />
-                  <span className="font-bold uppercase tracking-widest text-[10px]">მოძრავი</span>
+                  <span className="font-bold uppercase tracking-widest text-[10px]">{t.mobile}</span>
                 </div>
               </div>
             </div>
@@ -774,7 +955,7 @@ function PublicSite({ onBookNow, pricing }: { onBookNow: () => void, pricing: Pr
 
 // --- Booking Page ---
 
-function BookingPage({ onBack, pricing }: { onBack: () => void, pricing: PricingSettings, key?: string }) {
+function BookingPage({ onBack, pricing, t, lang }: { onBack: () => void, pricing: PricingSettings, t: any, lang: Language, key?: string }) {
   const [step, setStep] = useState(1);
   const [bookingData, setBookingData] = useState<Partial<Booking>>({
     service: 'Premium',
@@ -853,7 +1034,7 @@ function BookingPage({ onBack, pricing }: { onBack: () => void, pricing: Pricing
   const sendVerificationCode = async () => {
     setFormError(null);
     if (!bookingData.email) {
-      setFormError('გთხოვთ შეიყვანოთ ელ-ფოსტა ვერიფიკაციისთვის');
+      setFormError(t.email);
       return;
     }
     setIsSendingCode(true);
@@ -870,11 +1051,11 @@ function BookingPage({ onBack, pricing }: { onBack: () => void, pricing: Pricing
         // Track verification event
         track('Verification Code Sent', { email: bookingData.email });
       } else {
-        setFormError('ვერიფიკაციის კოდის გაგზავნა ვერ მოხერხდა');
+        setFormError(t.sendCodeError);
       }
     } catch (error) {
       console.error('Send code error:', error);
-      setFormError('შეცდომა კოდის გაგზავნისას');
+      setFormError(t.generalError);
     } finally {
       setIsSendingCode(false);
     }
@@ -883,7 +1064,7 @@ function BookingPage({ onBack, pricing }: { onBack: () => void, pricing: Pricing
   const handleBookingSubmit = async () => {
     setFormError(null);
     if (!bookingData.service || !bookingData.date || !bookingData.timeSlot || !bookingData.customerName || !bookingData.phone || !bookingData.location || !bookingData.email) {
-      setFormError('გთხოვთ შეავსოთ ყველა სავალდებულო ველი');
+      setFormError(t.fillAllFields);
       return;
     }
 
@@ -941,11 +1122,11 @@ function BookingPage({ onBack, pricing }: { onBack: () => void, pricing: Pricing
 
         setIsSuccess(true);
       } else {
-        setVerificationError(data.error || 'არასწორი ან ვადაგასული კოდი');
+        setVerificationError(data.error || t.invalidCode);
       }
     } catch (error) {
       console.error('Verification error:', error);
-      setVerificationError('შეცდომა ვერიფიკაციისას');
+      setVerificationError(t.verificationError);
     } finally {
       setIsVerifying(false);
       setIsSubmitting(false);
@@ -962,12 +1143,12 @@ function BookingPage({ onBack, pricing }: { onBack: () => void, pricing: Pricing
         >
           <Check className="w-12 h-12 text-white" />
         </motion.div>
-        <h1 className="text-3xl font-bold mb-4 text-white">ჯავშანი დადასტურებულია!</h1>
+        <h1 className="text-3xl font-bold mb-4 text-white">{t.bookingConfirmed}</h1>
         <p className="text-slate-400 mb-12 max-w-md">
-          გმადლობთ, რომ აირჩიეთ Luca's AutoSpa. ჩვენ მივიღეთ თქვენი მოთხოვნა და მალე დაგიკავშირდებით დეტალების დასადასტურებლად.
+          {t.successDesc}
         </p>
         <Button onClick={onBack} className="w-full max-w-xs py-4 bg-blue-600 hover:bg-blue-700">
-          მთავარ გვერდზე დაბრუნება
+          {t.backToHome}
         </Button>
       </div>
     );
@@ -986,7 +1167,7 @@ function BookingPage({ onBack, pricing }: { onBack: () => void, pricing: Pricing
           <button onClick={onBack} className="p-2 hover:bg-slate-800 rounded-full transition-colors text-slate-400">
             <ArrowLeft className="w-6 h-6" />
           </button>
-          <h1 className="text-lg font-bold text-white">დაჯავშნე შენი ავტომობილის სპა დღე</h1>
+          <h1 className="text-lg font-bold text-white uppercase font-display tracking-tight">LUCA'S AUTOSPA</h1>
           <button className="p-2 hover:bg-slate-800 rounded-full transition-colors">
             <HelpCircle className="w-6 h-6 text-slate-500" />
           </button>
@@ -994,51 +1175,28 @@ function BookingPage({ onBack, pricing }: { onBack: () => void, pricing: Pricing
       </header>
 
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-8">
-        {/* Progress Bar */}
-        <div className="flex items-center justify-between px-4">
-          {[
-            { step: 1, label: 'პაკეტი' },
-            { step: 2, label: 'დეტალები' },
-            { step: 3, label: 'დადასტურება' }
-          ].map((s, i) => (
-            <React.Fragment key={s.step}>
-              <div className="flex items-center gap-2">
-                <div className={cn(
-                  "w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors",
-                  step >= s.step ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20" : "bg-slate-900 text-slate-500 border border-slate-800"
-                )}>
-                  {s.step}
-                </div>
-                <span className={cn(
-                  "text-xs font-medium",
-                  step >= s.step ? "text-white" : "text-slate-500"
-                )}>{s.label}</span>
-              </div>
-              {i < 2 && <div className="flex-1 h-[1px] bg-slate-800 mx-4" />}
-            </React.Fragment>
-          ))}
-        </div>
+        {/* Progress Bar Removed */}
 
         {/* Select Service */}
         <section className="space-y-4">
-          <h2 className="text-xl font-bold text-white">აირჩიეთ სერვისი</h2>
+          <h2 className="text-xl font-bold text-white">{t.chooseService}</h2>
           <div className="space-y-3">
             {[
               { 
                 id: 'Basic', 
-                title: 'სტანდარტული წმენდა', 
+                title: t.standardClean, 
                 price: getPrice('Basic'), 
                 originalPrice: pricing.basicPrice,
                 icon: Zap,
-                details: ["სრული სალონის მტვერსასრუტით წმენდა", "მტვრის მოცილება და ტილოთი წმენდა", "მინების წმენდა (გარედან და შიგნიდან)", "ხალიჩების წმენდა", "ჰაერის არომატიზაცია"]
+                details: t.standardDetails
               },
               { 
                 id: 'Premium', 
-                title: 'პრემიუმ დითეილინგი', 
+                title: t.premiumDeepClean, 
                 price: getPrice('Premium'), 
                 originalPrice: pricing.premiumPrice,
                 icon: Star,
-                details: ["სრული სტანდარტული პაკეტი", "ფუნჯით და ქაფით პროფესიონალური წმენდა", "ჭერზე ლაქების მოცილება", "სიდენიების ღრმა წმენდა", "ცხოველის ბეწვის მოცილება", "ანტიწვიმა ყველა მინაზე"]
+                details: t.premiumDetails
               }
             ].map((s) => (
               <div key={s.id} className="space-y-2">
@@ -1077,7 +1235,7 @@ function BookingPage({ onBack, pricing }: { onBack: () => void, pricing: Pricing
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-[10px] text-slate-500 underline">დეტალები</span>
+                    <span className="text-[10px] text-slate-500 underline">{t.detailsLink}</span>
                     <div className={cn(
                       "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
                       bookingData.service === s.id ? "bg-blue-600 border-blue-600" : "border-slate-700"
@@ -1114,7 +1272,7 @@ function BookingPage({ onBack, pricing }: { onBack: () => void, pricing: Pricing
         {/* Choose Date & Time */}
         <section className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-white">აირჩიეთ თარიღი და დრო</h2>
+            <h2 className="text-xl font-bold text-white">{t.chooseDate}</h2>
             <div className="flex items-center gap-3">
               <button 
                 onClick={() => setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
@@ -1123,7 +1281,7 @@ function BookingPage({ onBack, pricing }: { onBack: () => void, pricing: Pricing
               >
                 <ChevronLeft className="w-4 h-4 text-slate-500" />
               </button>
-              <span className="text-xs font-bold uppercase text-white">{format(currentMonth, 'MMMM yyyy')}</span>
+              <span className="text-xs font-bold uppercase text-white">{format(currentMonth, 'MMMM yyyy', { locale: lang === 'GE' ? ka : undefined })}</span>
               <button 
                 onClick={() => setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}
                 disabled={currentMonth.getMonth() === new Date().getMonth() + 1}
@@ -1151,7 +1309,7 @@ function BookingPage({ onBack, pricing }: { onBack: () => void, pricing: Pricing
                     isSelected ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" : "bg-slate-900 text-slate-400 hover:bg-slate-800"
                   )}
                 >
-                  <span className="text-[10px] font-medium uppercase">{format(date, 'EEE')}</span>
+                  <span className="text-[10px] font-medium uppercase">{format(date, 'EEE', { locale: lang === 'GE' ? ka : undefined })}</span>
                   <span className="text-lg font-bold">{format(date, 'd')}</span>
                 </button>
               );
@@ -1163,7 +1321,7 @@ function BookingPage({ onBack, pricing }: { onBack: () => void, pricing: Pricing
             <div className="space-y-4 pt-2">
               <div className="flex items-center justify-center gap-4">
                 <div className="h-[1px] flex-1 bg-slate-800" />
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">ხელმისაწვდომი დროები</span>
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t.availableTimes}</span>
                 <div className="h-[1px] flex-1 bg-slate-800" />
               </div>
 
@@ -1200,7 +1358,7 @@ function BookingPage({ onBack, pricing }: { onBack: () => void, pricing: Pricing
                 </div>
               ) : (
                 <div className="text-center py-6 bg-slate-900 rounded-3xl border border-dashed border-slate-800">
-                  <p className="text-xs text-slate-500">ამ დღისთვის ხელმისაწვდომი დროები არ არის.</p>
+                  <p className="text-xs text-slate-500">{t.noTimes}</p>
                 </div>
               )}
             </div>
@@ -1209,30 +1367,31 @@ function BookingPage({ onBack, pricing }: { onBack: () => void, pricing: Pricing
 
         {/* Service Location */}
         <section className="space-y-6">
-          <h2 className="text-xl font-bold">მომსახურების ადგილი</h2>
+          <h2 className="text-xl font-bold">{t.location}</h2>
           
           <div className="space-y-4">
             <div className="space-y-2">
-              <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">მისამართი</label>
+              <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t.address}</label>
               <MapPicker 
                 initialLocation={bookingData.location}
                 onLocationSelect={(address) => setBookingData({ ...bookingData, location: address })}
+                t={t}
               />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">სახელი</label>
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t.name}</label>
                 <input 
                   type="text" 
-                  placeholder="თქვენი სახელი"
+                  placeholder={t.namePlaceholder}
                   className="w-full bg-slate-900 border border-slate-800 rounded-2xl p-3 focus:border-blue-600 outline-none transition-colors text-white text-sm"
                   value={bookingData.customerName || ''}
                   onChange={(e) => setBookingData({ ...bookingData, customerName: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">ტელეფონი</label>
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t.phone}</label>
                 <div className="relative">
                   <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                   <input 
@@ -1247,10 +1406,10 @@ function BookingPage({ onBack, pricing }: { onBack: () => void, pricing: Pricing
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">ელ-ფოსტა (ვერიფიკაციისთვის)</label>
+              <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t.email}</label>
               <input 
                 type="email" 
-                placeholder="თქვენი@ფოსტა.com"
+                placeholder={t.emailPlaceholder}
                 className="w-full bg-white/5 border border-white/10 rounded-2xl p-3 focus:border-blue-600 outline-none transition-colors text-white text-sm"
                 value={bookingData.email || ''}
                 onChange={(e) => setBookingData({ ...bookingData, email: e.target.value })}
@@ -1265,7 +1424,7 @@ function BookingPage({ onBack, pricing }: { onBack: () => void, pricing: Pricing
                 className="space-y-3 p-6 bg-blue-600/10 border border-blue-600/20 rounded-3xl"
               >
                 <label className="text-sm font-bold text-blue-400 flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4" /> შეიყვანეთ 6-ნიშნა კოდი
+                  <ShieldCheck className="w-4 h-4" /> {t.enterCode}
                 </label>
                 <input 
                   type="text" 
@@ -1291,13 +1450,13 @@ function BookingPage({ onBack, pricing }: { onBack: () => void, pricing: Pricing
                   </motion.p>
                 )}
                 <p className="text-xs text-slate-400 text-center">
-                  კოდი გაიგზავნა თქვენს ელ-ფოსტაზე. თუ არ მიგიღიათ, შეამოწმეთ სპამი.
+                  {t.codeSent}
                 </p>
                 <button 
                   onClick={() => setShowVerification(false)}
                   className="text-xs text-blue-400 hover:underline w-full text-center"
                 >
-                  ელ-ფოსტის შეცვლა
+                  {t.changeEmail}
                 </button>
               </motion.div>
             )}
@@ -1309,7 +1468,7 @@ function BookingPage({ onBack, pricing }: { onBack: () => void, pricing: Pricing
       <div className="fixed bottom-0 left-0 right-0 z-50 bg-slate-950/90 backdrop-blur-xl border-t border-slate-800 p-4 pb-6">
         <div className="max-w-2xl mx-auto flex items-center justify-between gap-6">
           <div>
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">ჯამი</p>
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">{t.total}</p>
             <p className="text-xl font-extrabold text-blue-400">{bookingData.service ? getPrice(bookingData.service as any) : 0}₾</p>
           </div>
           <Button 
@@ -1317,9 +1476,9 @@ function BookingPage({ onBack, pricing }: { onBack: () => void, pricing: Pricing
             disabled={isSubmitting || isSendingCode || isVerifying || !bookingData.timeSlot || !bookingData.location || !bookingData.customerName || !bookingData.email}
             className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-3xl font-bold flex gap-2 shadow-lg shadow-blue-600/20"
           >
-            {isSendingCode ? 'კოდი იგზავნება...' : isVerifying ? 'მოწმდება...' : isSubmitting ? 'მუშავდება...' : (
+            {isSendingCode ? t.sendingCode : isVerifying ? t.verifying : isSubmitting ? t.processing : (
               <>
-                <Zap className="w-4 h-4" /> {showVerification ? 'ვერიფიკაცია და დაჯავშნა' : 'ჯავშნის დადასტურება'}
+                <Zap className="w-4 h-4" /> {showVerification ? t.verifyingBtn : t.confirmBooking}
               </>
             )}
           </Button>
@@ -1414,6 +1573,17 @@ function AdminDashboard({ onBack, pricing }: { onBack: () => void, pricing: Pric
           });
         } catch (e) {
           console.error('Failed to send review request email', e);
+        }
+      } else if (status === 'cancelled' && booking) {
+        // Send cancellation email
+        try {
+          await fetch('/api/send-cancellation', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: booking.email, bookingData: booking })
+          });
+        } catch (e) {
+          console.error('Failed to send cancellation email', e);
         }
       }
     } catch (error) {

@@ -55,6 +55,7 @@ import { format, addDays, startOfToday, isSameDay, parseISO } from 'date-fns';
 import { cn } from './lib/utils';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
+import { track } from '@vercel/analytics';
 
 // Fix Leaflet icon issue
 import icon from 'leaflet/dist/images/marker-icon.png';
@@ -188,6 +189,8 @@ function MapPicker({ onLocationSelect, initialLocation }: { onLocationSelect: (a
         setAddress(formattedAddress);
         setSearchQuery(formattedAddress);
         onLocationSelect(formattedAddress, lat, lng);
+        // Track location selection
+        track('Location Selected', { address: formattedAddress });
       }
     } catch (error) {
       console.error('Reverse geocoding failed', error);
@@ -343,6 +346,8 @@ export default function App() {
     const provider = new GoogleAuthProvider();
     try {
       await signInWithPopup(auth, provider);
+      // Track login event
+      track('Admin Login');
     } catch (error) {
       console.error('Login failed', error);
     }
@@ -862,6 +867,8 @@ function BookingPage({ onBack, pricing }: { onBack: () => void, pricing: Pricing
       if (data.verificationId) {
         setVerificationId(data.verificationId);
         setShowVerification(true);
+        // Track verification event
+        track('Verification Code Sent', { email: bookingData.email });
       } else {
         setFormError('ვერიფიკაციის კოდის გაგზავნა ვერ მოხერხდა');
       }
@@ -906,6 +913,12 @@ function BookingPage({ onBack, pricing }: { onBack: () => void, pricing: Pricing
           ...bookingData,
           status: 'pending',
           createdAt: serverTimestamp()
+        });
+        
+        // Track booking event
+        track('Booking Confirmed', {
+          service: bookingData.service || 'Unknown',
+          price: bookingData.service ? getPrice(bookingData.service as any) : 0
         });
         
         // Also mark slot as taken in public collection
@@ -1033,6 +1046,8 @@ function BookingPage({ onBack, pricing }: { onBack: () => void, pricing: Pricing
                   onClick={() => {
                     setBookingData({ ...bookingData, service: s.id as any });
                     setExpandedService(expandedService === s.id ? null : s.id);
+                    // Track service selection
+                    track('Service Selected', { service: s.id });
                   }}
                   className={cn(
                     "w-full flex items-center justify-between p-4 rounded-3xl border-2 transition-all text-left",
@@ -1126,7 +1141,11 @@ function BookingPage({ onBack, pricing }: { onBack: () => void, pricing: Pricing
               return (
                 <button
                   key={date.toISOString()}
-                  onClick={() => setBookingData({ ...bookingData, date: format(date, 'yyyy-MM-dd'), timeSlot: undefined })}
+                  onClick={() => {
+                    setBookingData({ ...bookingData, date: format(date, 'yyyy-MM-dd'), timeSlot: undefined });
+                    // Track date selection
+                    track('Date Selected', { date: format(date, 'yyyy-MM-dd') });
+                  }}
                   className={cn(
                     "flex-shrink-0 w-14 h-20 rounded-3xl flex flex-col items-center justify-center gap-1 transition-all",
                     isSelected ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" : "bg-slate-900 text-slate-400 hover:bg-slate-800"
@@ -1161,7 +1180,11 @@ function BookingPage({ onBack, pricing }: { onBack: () => void, pricing: Pricing
                     return (
                       <button
                         key={slot}
-                        onClick={() => setBookingData({ ...bookingData, timeSlot: slot })}
+                        onClick={() => {
+                          setBookingData({ ...bookingData, timeSlot: slot });
+                          // Track time slot selection
+                          track('Time Slot Selected', { timeSlot: slot });
+                        }}
                         className={cn(
                           "h-20 rounded-3xl border-2 flex flex-col items-center justify-center gap-1 transition-all",
                           isSelected 
@@ -1377,6 +1400,12 @@ function AdminDashboard({ onBack, pricing }: { onBack: () => void, pricing: Pric
       
       // If completed, send review request email
       if (status === 'completed' && booking) {
+        // Track completion event
+        track('Order Completed', {
+          service: booking.service,
+          bookingId: id
+        });
+        
         try {
           await fetch('/api/send-review-request', {
             method: 'POST',

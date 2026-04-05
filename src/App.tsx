@@ -79,7 +79,7 @@ const translations = {
   GE: {
     heroBadge: "მოძრავი სერვისი - ჩვენ მოვალთ თქვენთან!",
     heroTitle: "ჩვენ ვაწკრიალებთ, ",
-    heroTitleSpan: "შენ არ კარგავ დროს",
+    heroTitleSpan: "შენ ზოგავ დროს",
     heroDesc: "დეტალური ინტერიერის წმენდა შენს მისამართზე. პროფესიონალური ხსნარებით, მისაღებ ფასად.",
     bookNow: "დაჯავშნე ახლავე",
     viewServices: "სერვისების ნახვა",
@@ -167,8 +167,8 @@ const translations = {
   },
   EN: {
     heroBadge: "Mobile Service - We come to you!",
-    heroTitle: "We clean, ",
-    heroTitleSpan: "you don't waste time",
+    heroTitle: "We clean at your location, ",
+    heroTitleSpan: "you save precious time",
     heroDesc: "Detailed interior cleaning at your door. With professional cleaning agents, at an affordable price.",
     bookNow: "Book Now",
     viewServices: "View Services",
@@ -587,7 +587,7 @@ export default function App() {
                     <div className="flex items-center gap-3">
                       {!isAdmin && <span className="hidden lg:inline text-xs text-red-500 font-medium">არაადმინისტრატორი</span>}
                       <span className="hidden md:inline text-xs text-slate-400">{user.email}</span>
-                      <img src={user.photoURL || ''} alt="" className="w-8 h-8 rounded-full border border-slate-700" referrerPolicy="no-referrer" />
+                      <img src={user.photoURL || ''} alt="User Profile" className="w-8 h-8 rounded-full border border-slate-700" referrerPolicy="no-referrer" />
                       <Button variant="ghost" size="sm" onClick={logout} className="p-2 text-slate-400 hover:text-white hover:bg-slate-800">
                         <LogOut className="w-4 h-4" />
                       </Button>
@@ -770,7 +770,7 @@ function PublicSite({ onBookNow, pricing, t, lang }: { onBookNow: (plan?: 'Basic
                     src={`https://picsum.photos/seed/user${i}/100/100`} 
                     className="w-10 h-10 rounded-full border-2 border-slate-900 shadow-sm" 
                     referrerPolicy="no-referrer"
-                    alt=""
+                    alt="Happy Customer"
                   />
                 ))}
               </div>

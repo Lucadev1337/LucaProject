@@ -22,7 +22,7 @@ import {
   User
 } from 'firebase/auth';
 import { db, auth } from './firebase';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, useScroll, useTransform } from 'motion/react';
 import { 
   Calendar, 
   Clock, 
@@ -701,6 +701,8 @@ export default function App() {
 // --- Public Site ---
 
 function PublicSite({ onBookNow, pricing, t, lang }: { onBookNow: (plan?: 'Basic' | 'Premium') => void, pricing: PricingSettings, t: any, lang: Language, key?: string }) {
+  const { scrollY } = useScroll();
+  const y = useTransform(scrollY, [0, 500], [0, 150]);
   const [currentSlide, setCurrentSlide] = useState(0);
   const heroImages = [
     "https://s25180.pcdn.co/wp-content/uploads/2022/06/Interior-Detailing-Products.jpg",
@@ -736,9 +738,22 @@ function PublicSite({ onBookNow, pricing, t, lang }: { onBookNow: (plan?: 'Basic
       exit={{ opacity: 0 }}
     >
       {/* Hero Section */}
-      <section className="relative py-12 px-4 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 to-slate-950 -z-10" />
-        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+      <section className="relative pt-8 pb-24 px-4 overflow-hidden">
+        {/* Parallax Background */}
+        <motion.div 
+          style={{ y }}
+          className="absolute inset-0 z-0"
+        >
+          <div className="absolute inset-0 bg-slate-950/80 z-10" /> {/* Dim overlay */}
+          <img 
+            src="https://gleamworksceramic.ca/wp-content/uploads/2023/08/washing-with-foam-with-a-brush-of-the-interior-le-2023-02-10-10-24-14-utc-1.jpg" 
+            alt="Car Detailing Background" 
+            className="w-full h-[120%] object-cover"
+            referrerPolicy="no-referrer"
+          />
+        </motion.div>
+        
+        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center relative z-20">
           <motion.div 
             initial={{ x: -50, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}

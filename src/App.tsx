@@ -90,11 +90,11 @@ const translations = {
       { title: "პროფესიონალიზმი", desc: "ვიყენებთ პრემიუმ ქიმიკატებს და ორთქლის ტექნოლოგიას." },
       { title: "მოქნილობა", desc: "ჩვენ მოვალთ თქვენს ლოკაციაზე. ნებისმიერ ადგილას, ნებისმიერ დროს." }
     ],
-    pricingTitle: "მარტივი ფასები",
+    pricingTitle: "მისაღები ფასები",
     pricingDesc: "აირჩიეთ თქვენთვის სასურველი პაკეტი. ფარული ხარჯების გარეშე.",
     standardClean: "სტანდარტული წმენდა",
     premiumDeepClean: "პრემიუმ ღრმა წმენდა",
-    perService: "/ სერვისი",
+    perService: "/ სერვისი ადგილზე",
     sale: "ფასდაკლება",
     mostPopular: "ყველაზე პოპულარული",
     selectStandard: "აირჩიეთ სტანდარტული",
@@ -176,11 +176,11 @@ const translations = {
       { title: "Professionalism", desc: "We use premium chemicals and steam technology." },
       { title: "Flexibility", desc: "We come to your location. Anywhere, anytime." }
     ],
-    pricingTitle: "Simple Pricing",
+    pricingTitle: "Affordable Pricing",
     pricingDesc: "Choose the package that suits you. No hidden costs.",
     standardClean: "Standard Clean",
     premiumDeepClean: "Premium Deep Clean",
-    perService: "/ service",
+    perService: "/ on-site service",
     sale: "Sale",
     mostPopular: "Most Popular",
     selectStandard: "Select Standard",
@@ -483,6 +483,7 @@ const Card = ({ children, className, ...props }: { children: React.ReactNode, cl
 
 export default function App() {
   const [view, setView] = useState<'public' | 'admin' | 'booking'>('public');
+  const [selectedPlan, setSelectedPlan] = useState<'Basic' | 'Premium' | undefined>(undefined);
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [lang, setLang] = useState<Language>('GE');
@@ -602,9 +603,25 @@ export default function App() {
         <main>
           <AnimatePresence mode="wait">
             {view === 'public' ? (
-              <PublicSite key="public" onBookNow={() => setView('booking')} pricing={pricing} t={t} lang={lang} />
+              <PublicSite 
+                key="public" 
+                onBookNow={(plan) => {
+                  setSelectedPlan(plan);
+                  setView('booking');
+                }} 
+                pricing={pricing} 
+                t={t} 
+                lang={lang} 
+              />
             ) : view === 'booking' ? (
-              <BookingPage key="booking" onBack={() => setView('public')} pricing={pricing} t={t} lang={lang} />
+              <BookingPage 
+                key="booking" 
+                onBack={() => setView('public')} 
+                pricing={pricing} 
+                t={t} 
+                lang={lang} 
+                initialPlan={selectedPlan}
+              />
             ) : (
               <AdminDashboard key="admin" onBack={() => setView('public')} pricing={pricing} />
             )}
@@ -662,7 +679,7 @@ export default function App() {
 
 // --- Public Site ---
 
-function PublicSite({ onBookNow, pricing, t, lang }: { onBookNow: () => void, pricing: PricingSettings, t: any, lang: Language, key?: string }) {
+function PublicSite({ onBookNow, pricing, t, lang }: { onBookNow: (plan?: 'Basic' | 'Premium') => void, pricing: PricingSettings, t: any, lang: Language, key?: string }) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const heroImages = [
     "https://s25180.pcdn.co/wp-content/uploads/2022/06/Interior-Detailing-Products.jpg",
@@ -676,8 +693,12 @@ function PublicSite({ onBookNow, pricing, t, lang }: { onBookNow: () => void, pr
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % heroImages.length);
   const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + heroImages.length) % heroImages.length);
 
-  const scrollToBooking = () => {
-    onBookNow();
+  const scrollToBooking = (plan?: 'Basic' | 'Premium' | any) => {
+    if (typeof plan === 'string' && (plan === 'Basic' || plan === 'Premium')) {
+      onBookNow(plan);
+    } else {
+      onBookNow(undefined);
+    }
   };
 
   const getPrice = (base: number) => {
@@ -713,7 +734,7 @@ function PublicSite({ onBookNow, pricing, t, lang }: { onBookNow: () => void, pr
               {t.heroDesc}
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button size="lg" className="rounded-2xl shadow-xl shadow-blue-600/20" onClick={scrollToBooking}>
+              <Button size="lg" className="rounded-2xl shadow-xl shadow-blue-600/20" onClick={() => scrollToBooking()}>
                 {t.bookNow} <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
               <Button variant="outline" size="lg" className="rounded-2xl border-slate-700 text-slate-300 hover:bg-slate-800" onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}>
@@ -868,7 +889,7 @@ function PublicSite({ onBookNow, pricing, t, lang }: { onBookNow: () => void, pr
                   </li>
                 ))}
               </ul>
-              <Button variant="outline" className="w-full py-3 rounded-xl border-slate-700 text-slate-300 hover:bg-slate-800" onClick={scrollToBooking}>
+              <Button variant="outline" className="w-full py-3 rounded-xl border-slate-700 text-slate-300 hover:bg-slate-800" onClick={() => scrollToBooking('Basic')}>
                 {t.selectStandard}
               </Button>
             </Card>
@@ -905,7 +926,7 @@ function PublicSite({ onBookNow, pricing, t, lang }: { onBookNow: () => void, pr
                   </li>
                 ))}
               </ul>
-              <Button className="w-full py-3 rounded-xl shadow-lg shadow-blue-600/20" onClick={scrollToBooking}>
+              <Button className="w-full py-3 rounded-xl shadow-lg shadow-blue-600/20" onClick={() => scrollToBooking('Premium')}>
                 {t.selectPremium}
               </Button>
             </Card>
@@ -925,7 +946,7 @@ function PublicSite({ onBookNow, pricing, t, lang }: { onBookNow: () => void, pr
               <p className="text-slate-400 text-base mb-10 max-w-xl mx-auto">
                 {t.ctaDesc}
               </p>
-              <Button size="lg" className="rounded-2xl shadow-2xl shadow-blue-600/20" onClick={scrollToBooking}>
+              <Button size="lg" className="rounded-2xl shadow-2xl shadow-blue-600/20" onClick={() => scrollToBooking()}>
                 {t.bookNow}
               </Button>
               <div className="mt-10 flex flex-wrap justify-center gap-8 opacity-40">
@@ -949,11 +970,12 @@ function PublicSite({ onBookNow, pricing, t, lang }: { onBookNow: () => void, pr
 
 // --- Booking Page ---
 
-function BookingPage({ onBack, pricing, t, lang }: { onBack: () => void, pricing: PricingSettings, t: any, lang: Language, key?: string }) {
+function BookingPage({ onBack, pricing, t, lang, initialPlan }: { onBack: () => void, pricing: PricingSettings, t: any, lang: Language, initialPlan?: 'Basic' | 'Premium', key?: string }) {
   const [step, setStep] = useState(1);
   const [bookingData, setBookingData] = useState<Partial<Booking>>({
-    service: 'Premium',
-    status: 'pending'
+    service: initialPlan,
+    status: 'pending',
+    date: format(startOfToday(), 'yyyy-MM-dd')
   });
 
   const getPrice = (service: 'Basic' | 'Premium') => {
@@ -976,8 +998,63 @@ function BookingPage({ onBack, pricing, t, lang }: { onBack: () => void, pricing
   const [showVerification, setShowVerification] = useState(false);
   const [verificationError, setVerificationError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
-  const [expandedService, setExpandedService] = useState<string | null>(null);
+  const [expandedService, setExpandedService] = useState<string | 'all' | null>(initialPlan ? initialPlan : 'all');
   const [currentMonth, setCurrentMonth] = useState(new Date());
+
+  useEffect(() => {
+    const findSoonestAvailable = async () => {
+      const today = startOfToday();
+      const datePromises = Array.from({ length: 30 }, (_, i) => {
+        const date = addDays(today, i);
+        const dateStr = format(date, 'yyyy-MM-dd');
+        return dateStr;
+      });
+
+      try {
+        for (const dateStr of datePromises) {
+          const docRef = doc(db, 'availability', dateStr);
+          const docSnap = await getDoc(docRef);
+          
+          if (docSnap.exists()) {
+            const slots = (docSnap.data() as Availability).slots;
+            const takenSlotsQuery = query(
+              collection(db, 'taken_slots'), 
+              where('date', '==', dateStr)
+            );
+            const takenSnap = await getDocs(takenSlotsQuery);
+            const takenSlots = takenSnap.docs.map(d => d.data().timeSlot);
+            
+            if (slots.filter(s => !takenSlots.includes(s)).length > 0) {
+              setBookingData(prev => ({ ...prev, date: dateStr }));
+              setCurrentMonth(parseISO(dateStr));
+              return;
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error finding soonest available day:', error);
+      }
+    };
+
+    findSoonestAvailable();
+
+    if (initialPlan) {
+      setTimeout(() => {
+        const element = document.getElementById('date-section');
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    } else {
+      // If no initial plan, scroll to plan section
+      setTimeout(() => {
+        const element = document.getElementById('plan-section');
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    }
+  }, [initialPlan]);
 
   const getDaysInMonth = (date: Date) => {
     const start = startOfToday() > new Date(date.getFullYear(), date.getMonth(), 1) 
@@ -1108,7 +1185,11 @@ function BookingPage({ onBack, pricing, t, lang }: { onBack: () => void, pricing
           await fetch('/api/send-confirmation', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: bookingData.email, bookingData })
+            body: JSON.stringify({ 
+              email: bookingData.email, 
+              bookingData,
+              price: getPrice(bookingData.service as 'Basic' | 'Premium')
+            })
           });
         } catch (e) {
           console.error('Failed to send confirmation email', e);
@@ -1161,7 +1242,7 @@ function BookingPage({ onBack, pricing, t, lang }: { onBack: () => void, pricing
           <button onClick={onBack} className="p-2 hover:bg-slate-800 rounded-full transition-colors text-slate-400">
             <ArrowLeft className="w-6 h-6" />
           </button>
-          <h1 className="text-lg font-bold text-white uppercase font-display tracking-tight">LUCA'S AUTOSPA</h1>
+          <h1 className="text-lg font-bold text-white uppercase font-orbitron tracking-tight">LUCA'S AUTOSPA</h1>
           <button className="p-2 hover:bg-slate-800 rounded-full transition-colors">
             <HelpCircle className="w-6 h-6 text-slate-500" />
           </button>
@@ -1172,7 +1253,7 @@ function BookingPage({ onBack, pricing, t, lang }: { onBack: () => void, pricing
         {/* Progress Bar Removed */}
 
         {/* Select Service */}
-        <section className="space-y-4">
+        <section id="plan-section" className="space-y-4">
           <h2 className="text-xl font-bold text-white">{t.chooseService}</h2>
           <div className="space-y-3">
             {[
@@ -1197,7 +1278,7 @@ function BookingPage({ onBack, pricing, t, lang }: { onBack: () => void, pricing
                 <button
                   onClick={() => {
                     setBookingData({ ...bookingData, service: s.id as any });
-                    setExpandedService(expandedService === s.id ? null : s.id);
+                    setExpandedService(s.id);
                     // Track service selection
                     track('Service Selected', { service: s.id });
                   }}
@@ -1229,7 +1310,6 @@ function BookingPage({ onBack, pricing, t, lang }: { onBack: () => void, pricing
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-[10px] text-slate-500 underline">{t.detailsLink}</span>
                     <div className={cn(
                       "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
                       bookingData.service === s.id ? "bg-blue-600 border-blue-600" : "border-slate-700"
@@ -1240,7 +1320,7 @@ function BookingPage({ onBack, pricing, t, lang }: { onBack: () => void, pricing
                 </button>
                 
                 <AnimatePresence>
-                  {expandedService === s.id && (
+                  {(expandedService === s.id || expandedService === 'all') && (
                     <motion.div
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: 'auto', opacity: 1 }}
@@ -1264,7 +1344,7 @@ function BookingPage({ onBack, pricing, t, lang }: { onBack: () => void, pricing
         </section>
 
         {/* Choose Date & Time */}
-        <section className="space-y-4">
+        <section id="date-section" className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold text-white">{t.chooseDate}</h2>
             <div className="flex items-center gap-3">

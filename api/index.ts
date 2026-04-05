@@ -131,7 +131,7 @@ app.post('/api/verify-code', async (req, res) => {
 
 app.post('/api/send-confirmation', async (req, res) => {
   try {
-    const { email, bookingData } = req.body;
+    const { email, bookingData, price } = req.body;
     const serviceName = bookingData.service === 'Premium' ? 'პრემიუმ დითეილინგი' : 'სტანდარტული წმენდა';
     
     const { error } = await resend.emails.send({
@@ -153,6 +153,10 @@ app.post('/api/send-confirmation', async (req, res) => {
                 <tr>
                   <td style="padding: 12px 0; color: #64748b; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; width: 35%; border-bottom: 1px solid #f1f5f9;">სერვისი</td>
                   <td style="padding: 12px 0; color: #0f172a; font-size: 15px; font-weight: 700; border-bottom: 1px solid #f1f5f9;">${serviceName}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 12px 0; color: #64748b; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9;">ფასი</td>
+                  <td style="padding: 12px 0; color: #0f172a; font-size: 18px; font-weight: 800; border-bottom: 1px solid #f1f5f9;">${price}₾</td>
                 </tr>
                 <tr>
                   <td style="padding: 12px 0; color: #64748b; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9;">თარიღი</td>

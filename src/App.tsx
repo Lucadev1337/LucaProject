@@ -1466,7 +1466,6 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                         )}
                       >
                         <span className="text-base font-bold">{slot}</span>
-                        <span className="text-[9px] font-bold opacity-50 uppercase">PM</span>
                       </button>
                     );
                   })}

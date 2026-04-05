@@ -548,10 +548,7 @@ export default function App() {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex justify-between h-16 items-center">
                 <div className="flex items-center gap-2 cursor-pointer" onClick={() => setView('public')}>
-                  <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20 overflow-hidden">
-                    <img src={logo} alt="Luca's AutoSpa" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                  </div>
-                  <span className="text-xl font-bold tracking-tight text-white font-display uppercase">Luca's <span className="text-blue-500">AutoSpa</span></span>
+                  <span className="text-xl font-bold tracking-tight text-white font-orbitron uppercase">LUCA'S <span className="text-blue-500">AUTOSPA</span></span>
                 </div>
                 
                 <div className="flex items-center gap-4">
@@ -620,10 +617,7 @@ export default function App() {
             <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
                 <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20 overflow-hidden">
-                    <img src={logo} alt="Luca's AutoSpa" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                  </div>
-                  <span className="text-white font-bold text-base font-display uppercase">Luca's AutoSpa</span>
+                  <span className="text-white font-bold text-base font-orbitron uppercase">LUCA'S AUTOSPA</span>
                 </div>
                 <p className="text-xs leading-relaxed">
                   {t.footerDesc}

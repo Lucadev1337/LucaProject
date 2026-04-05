@@ -80,7 +80,7 @@ const translations = {
     heroBadge: "მოძრავი სერვისი - ჩვენ მოვალთ თქვენთან!",
     heroTitle: "ჩვენ ვაწკრიალებთ, ",
     heroTitleSpan: "შენ არ კარგავ დროს",
-    heroDesc: "დეტალური ინტერიერის წმენდა შენს კართან. პროფესიონალური ხსნარებით, მისაღებ ფასად.",
+    heroDesc: "დეტალური ინტერიერის წმენდა შენს მისამართზე. პროფესიონალური ხსნარებით, მისაღებ ფასად.",
     bookNow: "დაჯავშნე ახლავე",
     viewServices: "სერვისების ნახვა",
     lastResult: "ბოლო შედეგი",
@@ -106,7 +106,7 @@ const translations = {
     mobile: "მოძრავი",
     footerDesc: "პრემიუმ ინტერიერის წმენდა, სასურველ მისამართზე. თქვენ ზოგავთ დროს და ენერგიას, ჩვენ მოვდივართ თქვენს მისამართზე და ვუბრუნებთ ავტომობილს პირვანდელი იერსახეს.",
     serviceArea: "მომსახურების არეალი",
-    serviceAreaDesc: "თბილისი. მოძრავი სერვისი თქვენს კართან.",
+    serviceAreaDesc: "თბილისი. მოძრავი სერვისი თქვენს მისამართზე.",
     contact: "კონტაქტი",
     rights: "ყველა უფლება დაცულია.",
     adminPanel: "ადმინ პანელი",
@@ -146,6 +146,9 @@ const translations = {
     sendCodeError: "ვერიფიკაციის კოდის გაგზავნა ვერ მოხერხდა",
     generalError: "შეცდომა კოდის გაგზავნისას",
     fillAllFields: "გთხოვთ შეავსოთ ყველა სავალდებულო ველი",
+    termsOfService: "წესები და პირობები",
+    agreeToTerms: "ვეთანხმები წესებსა და პირობებს",
+    readTerms: "წაიკითხეთ წესები და პირობები",
     standardDetails: [
       "სრული სალონის მტვერსასრუტით წმენდა",
       "მტვრის მოცილება და ტილოთი წმენდა",
@@ -158,7 +161,7 @@ const translations = {
       "ფუნჯით და ქაფით პროფესიონალური წმენდა",
       "ჭერზე ლაქების მოცილება",
       "სიდენიების ღრმა წმენდა",
-      "ცხოველის ბეწვის მოცილება",
+      "ყველა დეტალის დამუშავება",
       "ანტიწვიმა ყველა მინაზე"
     ]
   },
@@ -166,7 +169,7 @@ const translations = {
     heroBadge: "Mobile Service - We come to you!",
     heroTitle: "We clean, ",
     heroTitleSpan: "you don't waste time",
-    heroDesc: "Detailed interior cleaning at your door. With professional solutions, at an affordable price.",
+    heroDesc: "Detailed interior cleaning at your door. With professional cleaning agents, at an affordable price.",
     bookNow: "Book Now",
     viewServices: "View Services",
     lastResult: "Last Result",
@@ -232,6 +235,9 @@ const translations = {
     sendCodeError: "Failed to send verification code",
     generalError: "Error sending code",
     fillAllFields: "Please fill all required fields",
+    termsOfService: "Terms of Service",
+    agreeToTerms: "I agree to the Terms of Service",
+    readTerms: "Read Terms of Service",
     standardDetails: [
       "Full interior vacuum cleaning",
       "Dust removal and wiping",
@@ -244,7 +250,7 @@ const translations = {
       "Professional brush and foam cleaning",
       "Ceiling stain removal",
       "Deep seat cleaning",
-      "Pet hair removal",
+      "Thorough cleaning of all details",
       "Rain repellent on all windows"
     ]
   }
@@ -482,7 +488,7 @@ const Card = ({ children, className, ...props }: { children: React.ReactNode, cl
 // --- Main App ---
 
 export default function App() {
-  const [view, setView] = useState<'public' | 'admin' | 'booking'>('public');
+  const [view, setView] = useState<'public' | 'admin' | 'booking' | 'terms'>('public');
   const [selectedPlan, setSelectedPlan] = useState<'Basic' | 'Premium' | undefined>(undefined);
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -621,7 +627,10 @@ export default function App() {
                 t={t} 
                 lang={lang} 
                 initialPlan={selectedPlan}
+                onViewTerms={() => setView('terms')}
               />
+            ) : view === 'terms' ? (
+              <TermsOfService key="terms" onBack={() => setView('public')} t={t} />
             ) : (
               <AdminDashboard key="admin" onBack={() => setView('public')} pricing={pricing} />
             )}
@@ -654,6 +663,18 @@ export default function App() {
                     <Mail className="w-3 h-3" /> hello@lucasautospa.com
                   </a>
                 </div>
+              </div>
+              <div>
+                <h4 className="text-white font-semibold mb-3 text-sm">{t.termsOfService}</h4>
+                <button 
+                  onClick={() => {
+                    setView('terms');
+                    window.scrollTo(0, 0);
+                  }} 
+                  className="text-xs hover:text-blue-400 transition-colors"
+                >
+                  {t.readTerms}
+                </button>
               </div>
             </div>
             <div className="max-w-7xl mx-auto border-t border-slate-800 mt-8 pt-6 text-center text-[10px]">
@@ -970,7 +991,7 @@ function PublicSite({ onBookNow, pricing, t, lang }: { onBookNow: (plan?: 'Basic
 
 // --- Booking Page ---
 
-function BookingPage({ onBack, pricing, t, lang, initialPlan }: { onBack: () => void, pricing: PricingSettings, t: any, lang: Language, initialPlan?: 'Basic' | 'Premium', key?: string }) {
+function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { onBack: () => void, pricing: PricingSettings, t: any, lang: Language, initialPlan?: 'Basic' | 'Premium', onViewTerms?: () => void, key?: string }) {
   const [step, setStep] = useState(1);
   const [bookingData, setBookingData] = useState<Partial<Booking>>({
     service: initialPlan,
@@ -988,6 +1009,7 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan }: { onBack: () => 
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   
   // Verification states
@@ -1134,6 +1156,10 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan }: { onBack: () => 
 
   const handleBookingSubmit = async () => {
     setFormError(null);
+    if (!termsAccepted) {
+      setFormError(t.agreeToTerms);
+      return;
+    }
     if (!bookingData.service || !bookingData.date || !bookingData.timeSlot || !bookingData.customerName || !bookingData.phone || !bookingData.location || !bookingData.email) {
       setFormError(t.fillAllFields);
       return;
@@ -1538,6 +1564,34 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan }: { onBack: () => 
         </section>
       </div>
 
+      {/* Terms of Service Checkbox */}
+      <div className="max-w-2xl mx-auto px-4 mb-32">
+        <label className="flex items-start gap-3 cursor-pointer group">
+          <div className="relative flex items-center mt-1">
+            <input 
+              type="checkbox" 
+              className="peer sr-only"
+              checked={termsAccepted}
+              onChange={(e) => setTermsAccepted(e.target.checked)}
+            />
+            <div className="w-5 h-5 border-2 border-slate-700 rounded-md bg-slate-900 peer-checked:bg-blue-600 peer-checked:border-blue-600 transition-all" />
+            <Check className="absolute w-3.5 h-3.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity left-0.5" />
+          </div>
+          <span className="text-sm text-slate-400 leading-tight">
+            {t.agreeToTerms}{' '}
+            <button 
+              onClick={(e) => {
+                e.preventDefault();
+                onViewTerms?.();
+              }}
+              className="text-blue-400 hover:underline font-medium"
+            >
+              {t.termsOfService}
+            </button>
+          </span>
+        </label>
+      </div>
+
       {/* Sticky Bottom Bar */}
       <div className="fixed bottom-0 left-0 right-0 z-50 bg-slate-950/90 backdrop-blur-xl border-t border-slate-800 p-4 pb-6">
         <div className="max-w-2xl mx-auto flex items-center justify-between gap-6">
@@ -1582,6 +1636,211 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan }: { onBack: () => 
 }
 
 // --- Admin Dashboard ---
+
+function TermsOfService({ onBack, t }: { onBack: () => void, t: any, key?: string }) {
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="max-w-4xl mx-auto py-16 px-6 text-slate-300"
+    >
+      <Button 
+        variant="ghost" 
+        onClick={onBack}
+        className="mb-8 flex items-center gap-2"
+      >
+        <ArrowLeft className="w-4 h-4" /> {t.backToHome}
+      </Button>
+
+      <div className="prose prose-invert max-w-none">
+        <h1 className="text-4xl font-bold text-white mb-8 font-orbitron">წესები და პირობები</h1>
+        
+        <p className="text-xl font-bold text-white mb-6">Luca’s AutoSpa</p>
+
+        <section className="mb-8">
+          <h2 className="text-2xl font-bold text-white mb-4">1. ზოგადი ინფორმაცია</h2>
+          <p>Luca’s AutoSpa წარმოადგენს მოძრავ სერვისს, რომელიც უზრუნველყოფს ავტომობილის ინტერიერის პროფესიონალურ წმენდას თბილისში. სერვისის გამოყენებით მომხმარებელი ავტომატურად ეთანხმება ქვემოთ ჩამოთვლილ წესებსა და პირობებს.</p>
+        </section>
+
+        <hr className="border-slate-800 my-8" />
+
+        <section className="mb-8">
+          <h2 className="text-2xl font-bold text-white mb-4">2. სერვისის აღწერა</h2>
+          <h3 className="text-xl font-bold text-white mb-2">2.1 სტანდარტული წმენდა</h3>
+          <p>სტანდარტული პაკეტი მოიცავს:</p>
+          <ul className="list-disc pl-6 space-y-2">
+            <li>სრული სალონის მტვერსასრუტით წმენდა</li>
+            <li>მტვრის მოცილება და ზედაპირების წმენდა</li>
+            <li>მინების წმენდა (შიგნიდან და გარედან)</li>
+            <li>ხალიჩების წმენდა</li>
+            <li>ჰაერის არომატიზაცია</li>
+          </ul>
+
+          <h3 className="text-xl font-bold text-white mt-6 mb-2">2.2 პრემიუმ ღრმა წმენდა</h3>
+          <p>პრემიუმ პაკეტი მოიცავს:</p>
+          <ul className="list-disc pl-6 space-y-2">
+            <li>სტანდარტული პაკეტის ყველა სერვისი</li>
+            <li>პროფესიონალური ქაფით და ფუნჯით ღრმა წმენდა</li>
+            <li>ჭერზე ლაქების მოცილება</li>
+            <li>სიდენიების ღრმა წმენდა</li>
+            <li>ანტიწვიმის დატანა ყველა მინაზე</li>
+          </ul>
+        </section>
+
+        <hr className="border-slate-800 my-8" />
+
+        <section className="mb-8">
+          <h2 className="text-2xl font-bold text-white mb-4">3. მომსახურების პირობები</h2>
+          <ul className="list-disc pl-6 space-y-2">
+            <li>სერვისი ხორციელდება მხოლოდ თბილისის ტერიტორიაზე</li>
+            <li>Luca’s AutoSpa უზრუნველყოფს მომსახურებას კლიენტის მიერ მითითებულ ლოკაციაზე</li>
+            <li>კლიენტი ვალდებულია უზრუნველყოს:
+              <ul className="list-disc pl-6 mt-2 space-y-1">
+                <li>ავტომობილის დროებითი დაქოქვის შესაძლებლობა (მტვერსასრუტისთვის) ან</li>
+                <li>საკმარისი ადგილი ჩვენი სერვისის ავტომობილისთვის დენის მიწოდების მიზნით</li>
+              </ul>
+            </li>
+          </ul>
+        </section>
+
+        <hr className="border-slate-800 my-8" />
+
+        <section className="mb-8">
+          <h2 className="text-2xl font-bold text-white mb-4">4. გადახდა</h2>
+          <ul className="list-disc pl-6 space-y-2">
+            <li>გადახდა ხდება ადგილზე:
+              <ul className="list-disc pl-6 mt-2 space-y-1">
+                <li>ნაღდი ანგარიშსწორებით</li>
+                <li>ან საბანკო გადარიცხვით</li>
+              </ul>
+            </li>
+            <li>Luca’s AutoSpa იტოვებს უფლებას შეცვალოს ფასი ადგილზე, თუ ავტომობილის მდგომარეობა მნიშვნელოვნად განსხვავდება წინასწარ აღწერილისგან</li>
+          </ul>
+        </section>
+
+        <hr className="border-slate-800 my-8" />
+
+        <section className="mb-8">
+          <h2 className="text-2xl font-bold text-white mb-4">5. ჯავშნის გაუქმება და გადადება</h2>
+          <ul className="list-disc pl-6 space-y-2">
+            <li>კლიენტმა უნდა გააუქმოს ჯავშანი მინიმუმ 2 საათით ადრე</li>
+            <li>დაგვიანებული გაუქმების შემთხვევაში, კლიენტი ვალდებულია გადაიხადოს სერვისის 50%</li>
+            <li>Luca’s AutoSpa იტოვებს უფლებას გადადოს ან გააუქმოს სერვისი:
+              <ul className="list-disc pl-6 mt-2 space-y-1">
+                <li>ცუდი ამინდის პირობებში</li>
+                <li>ტექნიკური პრობლემების შემთხვევაში</li>
+              </ul>
+            </li>
+          </ul>
+        </section>
+
+        <hr className="border-slate-800 my-8" />
+
+        <section className="mb-8">
+          <h2 className="text-2xl font-bold text-white mb-4">6. დაგვიანება</h2>
+          <ul className="list-disc pl-6 space-y-2">
+            <li>თუ კლიენტი აგვიანებს 15 წუთზე მეტით,
+              <ul className="list-disc pl-6 mt-2 space-y-1">
+                <li>ჯავშანი ავტომატურად გაუქმდება</li>
+                <li>კლიენტს ეკისრება სერვისის 100% გადახდა</li>
+              </ul>
+            </li>
+            <li>თუ Luca’s AutoSpa ვერ ახერხებს დროულად მისვლას,
+              <ul className="list-disc pl-6 mt-2 space-y-1">
+                <li>კლიენტს უფლება აქვს გააუქმოს ჯავშანი ყოველგვარი გადასახადის გარეშე</li>
+              </ul>
+            </li>
+          </ul>
+        </section>
+
+        <hr className="border-slate-800 my-8" />
+
+        <section className="mb-8">
+          <h2 className="text-2xl font-bold text-white mb-4">7. პასუხისმგებლობა</h2>
+          <ul className="list-disc pl-6 space-y-2">
+            <li>კლიენტი ვალდებულია სერვისის დასრულებისთანავე შეამოწმოს ავტომობილი</li>
+            <li>Luca’s AutoSpa არ აგებს პასუხს იმ დაზიანებებზე, რომლებიც დაფიქსირდება თანამშრომლის წასვლის შემდეგ</li>
+            <li>კომპანია არ არის პასუხისმგებელი:
+              <ul className="list-disc pl-6 mt-2 space-y-1">
+                <li>უკვე არსებულ დაზიანებებზე</li>
+                <li>ძველ, ღრმად გამჯდარ ლაქებზე</li>
+                <li>ბუნებრივი ცვეთის შედეგად წარმოქმნილ დეფექტებზე</li>
+                <li>ავტომობილის ელექტრონიკის შესაძლო გაუმართაობაზე, თუ დაზიანება არ არის პირდაპირ გამოწვეული დაუდევრობით</li>
+              </ul>
+            </li>
+          </ul>
+        </section>
+
+        <hr className="border-slate-800 my-8" />
+
+        <section className="mb-8">
+          <h2 className="text-2xl font-bold text-white mb-4">8. ავტომობილში არსებული ნივთები</h2>
+          <ul className="list-disc pl-6 space-y-2">
+            <li>კლიენტი ვალდებულია მომსახურებამდე ამოიღოს ავტომობილიდან ყველა პირადი და ძვირფასი ნივთი</li>
+            <li>Luca’s AutoSpa არ აგებს პასუხს დაკარგულ ან დაზიანებულ ნივთებზე</li>
+          </ul>
+        </section>
+
+        <hr className="border-slate-800 my-8" />
+
+        <section className="mb-8">
+          <h2 className="text-2xl font-bold text-white mb-4">9. მომსახურებაზე უარის თქმის უფლება</h2>
+          <p>Luca’s AutoSpa იტოვებს უფლებას უარი თქვას სერვისის შესრულებაზე, თუ:</p>
+          <ul className="list-disc pl-6 space-y-2">
+            <li>ავტომობილი არის უკიდურესად ბინძური</li>
+            <li>არსებობს ბიოლოგიური ან ჯანმრთელობისთვის საშიში გარემო</li>
+          </ul>
+        </section>
+
+        <hr className="border-slate-800 my-8" />
+
+        <section className="mb-8">
+          <h2 className="text-2xl font-bold text-white mb-4">10. დამატებითი საფასური</h2>
+          <p>განსაკუთრებულად დაბინძურებული ავტომობილის შემთხვევაში, Luca’s AutoSpa-ს აქვს უფლება:</p>
+          <ul className="list-disc pl-6 space-y-2">
+            <li>შესთავაზოს დამატებითი საფასური</li>
+            <li>ან უარი თქვას მომსახურებაზე</li>
+          </ul>
+        </section>
+
+        <hr className="border-slate-800 my-8" />
+
+        <section className="mb-8">
+          <h2 className="text-2xl font-bold text-white mb-4">11. შედეგის შეზღუდვა</h2>
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Luca’s AutoSpa არ იძლევა გარანტიას ყველა ლაქის 100%-იან მოცილებაზე</li>
+            <li>ზოგიერთი ლაქა შეიძლება იყოს მუდმივი და არ ექვემდებარებოდეს სრულად გაწმენდას</li>
+          </ul>
+        </section>
+
+        <hr className="border-slate-800 my-8" />
+
+        <section className="mb-8">
+          <h2 className="text-2xl font-bold text-white mb-4">12. ფოტო და ვიდეო მასალა</h2>
+          <p>სერვისის გამოყენებით, კლიენტი ავტომატურად აძლევს Luca’s AutoSpa-ს უფლებას გადაიღოს ავტომობილის ფოტო და ვიდეო მასალა და გამოიყენოს იგი მარკეტინგული მიზნებისთვის (სოციალური ქსელები, რეკლამა).</p>
+        </section>
+
+        <hr className="border-slate-800 my-8" />
+
+        <section className="mb-8">
+          <h2 className="text-2xl font-bold text-white mb-4">13. ონლაინ ჯავშანი და მონაცემები</h2>
+          <ul className="list-disc pl-6 space-y-2">
+            <li>ვებსაიტზე (www.lucasautospa.ge) (https://lucasautospa.ge)) ჯავშნის გაკეთებით მომხმარებელი ეთანხმება ამ წესებს</li>
+            <li>საიტი შეიძლება იყენებდეს ქუქიებს (Cookies) მომხმარებლისთვის სერვისის გაუმჯობესებისთვის</li>
+            <li>მომხმარებლის მონაცემები გამოიყენება მხოლოდ სერვისის მიწოდების მიზნით და არ გადაეცემა მესამე პირებს</li>
+          </ul>
+        </section>
+
+        <hr className="border-slate-800 my-8" />
+
+        <section className="mb-8">
+          <h2 className="text-2xl font-bold text-white mb-4">14. ცვლილებები</h2>
+          <p>Luca’s AutoSpa იტოვებს უფლებას ნებისმიერ დროს შეცვალოს აღნიშნული წესები და პირობები წინასწარი შეტყობინების გარეშე.</p>
+        </section>
+      </div>
+    </motion.div>
+  );
+}
 
 function AdminDashboard({ onBack, pricing }: { onBack: () => void, pricing: PricingSettings, key?: string }) {
   const [bookings, setBookings] = useState<Booking[]>([]);

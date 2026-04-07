@@ -86,14 +86,14 @@ const translations = {
     lastResult: "ბოლო შედეგი",
     premiumDetailing: "პრემიუმ დითეილინგი",
     features: [
-      { title: "სისწრაფე", desc: "სამუშაო სრულდება მაქსიმუმ 2 საათში თქვენს ლოკაციაზე." },
+      { title: "სისწრაფე", desc: "სამუშაო სრულდება მაქსიმუმ 3 საათში თქვენს ლოკაციაზე." },
       { title: "პროფესიონალიზმი", desc: "ვიყენებთ პრემიუმ ქიმიკატებს და ორთქლის ტექნოლოგიას." },
       { title: "მოქნილობა", desc: "ჩვენ მოვალთ თქვენს ლოკაციაზე. ნებისმიერ ადგილას, ნებისმიერ დროს." }
     ],
     pricingTitle: "მისაღები ფასები",
     pricingDesc: "აირჩიეთ თქვენთვის სასურველი პაკეტი. ფარული ხარჯების გარეშე.",
-    standardClean: "სტანდარტული წმენდა",
-    premiumDeepClean: "პრემიუმ ღრმა წმენდა",
+    standardClean: "ინტერიერის წმენდა",
+    premiumDeepClean: "ინტერიერის პრემიუმ დითეილინგი",
     perService: "/ სერვისი ადგილზე",
     sale: "ფასდაკლება",
     mostPopular: "ყველაზე პოპულარული",
@@ -104,7 +104,7 @@ const translations = {
     ctaDesc: "ენდეთ Luca's AutoSpa-ს და დაუბრუნეთ თქვენს ავტომობილს პირვანდელი სახე.",
     fiveStar: "5-ვარსკვლავიანი",
     mobile: "მოძრავი",
-    footerDesc: "პრემიუმ ინტერიერის წმენდა, სასურველ მისამართზე. თქვენ ზოგავთ დროს და ენერგიას, ჩვენ მოვდივართ თქვენს მისამართზე და ვუბრუნებთ ავტომობილს პირვანდელი იერსახეს.",
+    footerDesc: "ინტერიერის პრემიუმ დითეილინგი, სასურველ მისამართზე. თქვენ ზოგავთ დროს და ენერგიას, ჩვენ მოვდივართ თქვენს მისამართზე და ვუბრუნებთ ავტომობილს პირვანდელი იერსახეს.",
     serviceArea: "მომსახურების არეალი",
     serviceAreaDesc: "თბილისი. მოძრავი სერვისი თქვენს მისამართზე.",
     contact: "კონტაქტი",
@@ -1680,7 +1680,7 @@ function TermsOfService({ onBack, t }: { onBack: () => void, t: any, key?: strin
 
         <section className="mb-8">
           <h2 className="text-2xl font-bold text-white mb-4">2. სერვისის აღწერა</h2>
-          <h3 className="text-xl font-bold text-white mb-2">2.1 სტანდარტული წმენდა</h3>
+          <h3 className="text-xl font-bold text-white mb-2">2.1 ინტერიერის წმენდა</h3>
           <p>სტანდარტული პაკეტი მოიცავს:</p>
           <ul className="list-disc pl-6 space-y-2">
             <li>სრული სალონის მტვერსასრუტით წმენდა</li>
@@ -1690,7 +1690,7 @@ function TermsOfService({ onBack, t }: { onBack: () => void, t: any, key?: strin
             <li>ჰაერის არომატიზაცია</li>
           </ul>
 
-          <h3 className="text-xl font-bold text-white mt-6 mb-2">2.2 პრემიუმ ღრმა წმენდა</h3>
+          <h3 className="text-xl font-bold text-white mt-6 mb-2">2.2 ინტერიერის პრემიუმ დითეილინგი</h3>
           <p>პრემიუმ პაკეტი მოიცავს:</p>
           <ul className="list-disc pl-6 space-y-2">
             <li>სტანდარტული პაკეტის ყველა სერვისი</li>
@@ -2130,7 +2130,7 @@ function PricingManager({ pricing, onBack }: { pricing: PricingSettings, onBack:
             <div className="w-10 h-10 bg-blue-600/10 text-blue-500 rounded-xl flex items-center justify-center">
               <Zap className="w-5 h-5" />
             </div>
-            <h3 className="text-xl font-bold text-white">სტანდარტული წმენდა</h3>
+            <h3 className="text-xl font-bold text-white">ინტერიერის წმენდა</h3>
           </div>
           
           <div className="space-y-2">

@@ -1,17 +1,16 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&family=Orbitron:wght@400..900&family=Noto+Sans+Georgian:wght@100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&family=Orbitron:wght@400..900&display=swap');
 @import "tailwindcss";
 @import "leaflet/dist/leaflet.css";
 
 @theme {
-  --font-sans: "ArchyEDT", "Noto Sans Georgian", "Space Grotesk", sans-serif;
-  --font-display: "Space Grotesk", "Noto Sans Georgian", sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
   --font-orbitron: "Orbitron", sans-serif;
-  --font-archy: "ArchyEDT", "Noto Sans Georgian", sans-serif;
 }
 
-@font-face {
-  font-family: 'ArchyEDT';
-  src: url('https://fonts.ge/fonts/archyedt/ArchyEDT-Regular.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }

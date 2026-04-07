@@ -49,8 +49,7 @@ import {
   ArrowLeft,
   HelpCircle,
   ChevronLeft,
-  Check,
-  RefreshCw
+  Check
 } from 'lucide-react';
 import { format, addDays, startOfToday, isSameDay, parseISO } from 'date-fns';
 import { ka } from 'date-fns/locale';
@@ -573,7 +572,7 @@ export default function App() {
                     )}
                   </button>
 
-                  {isAdmin && (
+                  {isAdmin && view !== 'admin' && (
                     <Button 
                       variant="ghost" 
                       size="sm" 
@@ -588,7 +587,7 @@ export default function App() {
                     <div className="flex items-center gap-3">
                       {!isAdmin && <span className="hidden lg:inline text-xs text-red-500 font-medium">არაადმინისტრატორი</span>}
                       <span className="hidden md:inline text-xs text-slate-400">{user.email}</span>
-                      <img src={user.photoURL || ''} alt="User Profile" className="w-8 h-8 rounded-full border border-slate-700" referrerPolicy="no-referrer" />
+                      {!isAdmin && <img src={user.photoURL || ''} alt="User Profile" className="w-8 h-8 rounded-full border border-slate-700" referrerPolicy="no-referrer" />}
                       <Button variant="ghost" size="sm" onClick={logout} className="p-2 text-slate-400 hover:text-white hover:bg-slate-800">
                         <LogOut className="w-4 h-4" />
                       </Button>
@@ -660,8 +659,8 @@ export default function App() {
                   <a href="tel:+995591952473" className="flex items-center gap-2 hover:text-blue-400">
                     <Phone className="w-3 h-3" /> +995 591 952 473
                   </a>
-                  <a href="mailto:hello@lucasautospa.com" className="flex items-center gap-2 hover:text-blue-400">
-                    <Mail className="w-3 h-3" /> hello@lucasautospa.com
+                  <a href="mailto:hello@lucasautospa.ge" className="flex items-center gap-2 hover:text-blue-400">
+                    <Mail className="w-3 h-3" /> hello@lucasautospa.ge
                   </a>
                 </div>
               </div>
@@ -1230,8 +1229,7 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
             body: JSON.stringify({ 
               email: bookingData.email, 
               bookingData,
-              price: getPrice(bookingData.service as 'Basic' | 'Premium'),
-              bookingId: bookingRef.id
+              price: getPrice(bookingData.service as 'Basic' | 'Premium')
             })
           });
         } catch (e) {
@@ -1863,38 +1861,6 @@ function AdminDashboard({ onBack, pricing }: { onBack: () => void, pricing: Pric
   const [activeTab, setActiveTab] = useState<'bookings' | 'availability' | 'pricing'>('bookings');
   const [isLoading, setIsLoading] = useState(true);
   const [sortBy, setSortBy] = useState<'date' | 'createdAt'>('createdAt');
-  const [showCalendarInfo, setShowCalendarInfo] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
-
-  const calendarUrl = `${window.location.origin}/api/calendar.ics`;
-
-  const syncCalendar = async () => {
-    setIsSyncing(true);
-    try {
-      // We'll just call send-confirmation for each booking to add the secret
-      // This is a bit hacky but it works without adding a new API endpoint
-      for (const booking of bookings) {
-        if (booking.status !== 'cancelled') {
-          await fetch('/api/send-confirmation', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              email: booking.email, 
-              bookingData: booking,
-              price: 0, // Not needed for sync
-              bookingId: booking.id
-            })
-          });
-        }
-      }
-      alert('კალენდარი წარმატებით დაინქრონიზდა!');
-    } catch (e) {
-      console.error('Sync failed', e);
-      alert('სინქრონიზაცია ვერ მოხერხდა');
-    } finally {
-      setIsSyncing(false);
-    }
-  };
 
   useEffect(() => {
     const q = query(collection(db, 'bookings'), orderBy(sortBy, 'desc'));
@@ -1991,122 +1957,50 @@ function AdminDashboard({ onBack, pricing }: { onBack: () => void, pricing: Pric
       exit={{ opacity: 0, y: 20 }}
       className="max-w-7xl mx-auto px-4 py-8"
     >
-      {/* Calendar Info Modal */}
-      <AnimatePresence>
-        {showCalendarInfo && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-slate-900 border border-slate-800 p-8 rounded-3xl max-w-md w-full shadow-2xl relative"
-            >
-              <button 
-                onClick={() => setShowCalendarInfo(false)}
-                className="absolute top-4 right-4 p-2 hover:bg-slate-800 rounded-full text-slate-500"
-              >
-                <X className="w-5 h-5" />
-              </button>
-              
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-12 h-12 bg-blue-600/20 text-blue-500 rounded-2xl flex items-center justify-center">
-                  <Calendar className="w-6 h-6" />
-                </div>
-                <h2 className="text-xl font-bold text-white">iOS კალენდართან დაკავშირება</h2>
-              </div>
-              
-              <div className="space-y-6">
-                <p className="text-sm text-slate-400 leading-relaxed">
-                  თქვენ შეგიძლიათ დაამატოთ ჯავშნები თქვენს iPhone-ის კალენდარში. კალენდარი ავტომატურად განახლდება ყოველ ჯერზე, როდესაც ახალი ჯავშანი დაემატება.
-                </p>
-                
-                <div className="space-y-3">
-                  <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">ინსტრუქცია iPhone-ისთვის:</h3>
-                  <ol className="text-sm text-slate-300 space-y-3 list-decimal pl-4">
-                    <li>გახსენით <strong>Settings</strong> აპლიკაცია</li>
-                    <li>გადადით <strong>Calendar</strong> &rarr; <strong>Accounts</strong></li>
-                    <li>აირჩიეთ <strong>Add Account</strong> &rarr; <strong>Other</strong></li>
-                    <li>აირჩიეთ <strong>Add Subscribed Calendar</strong></li>
-                    <li>ჩაწერეთ ქვემოთ მოცემული ბმული:</li>
-                  </ol>
-                </div>
-                
-                <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 break-all">
-                  <code className="text-xs text-blue-400 font-mono">{calendarUrl}</code>
-                </div>
-                
-                <button 
-                  onClick={() => {
-                    navigator.clipboard.writeText(calendarUrl);
-                    alert('ბმული დაკოპირებულია!');
-                  }}
-                  className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold transition-all shadow-lg shadow-blue-600/20"
-                >
-                  ბმულის დაკოპირება
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">
         <div>
-          <h1 className="text-3xl font-bold mb-2 text-white">ადმინ პანელი</h1>
-          <p className="text-sm text-slate-400">მართეთ თქვენი ჯავშნები და ხელმისაწვდომობა.</p>
+          <h1 className="text-2xl md:text-3xl font-bold mb-2 text-white">ადმინ პანელი</h1>
+          <p className="text-xs md:text-sm text-slate-400">მართეთ თქვენი ჯავშნები და ხელმისაწვდომობა.</p>
         </div>
-        <div className="flex flex-wrap items-center gap-4">
-          <button 
-            onClick={() => setShowCalendarInfo(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-blue-400 rounded-xl border border-slate-800 transition-all text-sm font-medium"
-          >
-            <Calendar className="w-4 h-4" />
-            კალენდართან დაკავშირება (iOS)
-          </button>
-          <button 
-            onClick={syncCalendar}
-            disabled={isSyncing}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-green-400 rounded-xl border border-slate-800 transition-all text-sm font-medium disabled:opacity-50"
-          >
-            <RefreshCw className={cn("w-4 h-4", isSyncing && "animate-spin")} />
-            სინქრონიზაცია
-          </button>
-          <div className="flex bg-slate-900 p-1 rounded-xl border border-slate-800 shadow-sm">
-          <select 
-            value={sortBy} 
-            onChange={(e) => setSortBy(e.target.value as any)}
-            className="bg-transparent text-slate-400 text-sm px-4 outline-none border-r border-slate-800"
-          >
-            <option value="createdAt">ბოლო დამატებული</option>
-            <option value="date">თარიღით</option>
-          </select>
-          <button 
-            onClick={() => setActiveTab('bookings')}
-            className={cn(
-              "px-6 py-2 rounded-lg text-sm font-medium transition-all",
-              activeTab === 'bookings' ? "bg-blue-600 text-white shadow-md" : "text-slate-400 hover:bg-slate-800"
-            )}
-          >
-            ჯავშნები
-          </button>
-          <button 
-            onClick={() => setActiveTab('availability')}
-            className={cn(
-              "px-6 py-2 rounded-lg text-sm font-medium transition-all",
-              activeTab === 'availability' ? "bg-blue-600 text-white shadow-md" : "text-slate-400 hover:bg-slate-800"
-            )}
-          >
-            ხელმისაწვდომობა
-          </button>
-          <button 
-            onClick={() => setActiveTab('pricing')}
-            className={cn(
-              "px-6 py-2 rounded-lg text-sm font-medium transition-all",
-              activeTab === 'pricing' ? "bg-blue-600 text-white shadow-md" : "text-slate-400 hover:bg-slate-800"
-            )}
-          >
-            ფასები
-          </button>
+        <div className="w-full lg:w-auto flex flex-col sm:flex-row gap-4 items-stretch sm:items-center">
+          <div className="flex bg-slate-900 p-1 rounded-xl border border-slate-800 shadow-sm overflow-x-auto no-scrollbar">
+            <select 
+              value={sortBy} 
+              onChange={(e) => setSortBy(e.target.value as any)}
+              className="bg-transparent text-slate-400 text-xs md:text-sm px-3 md:px-4 outline-none border-r border-slate-800 cursor-pointer"
+            >
+              <option value="createdAt">ბოლო დამატებული</option>
+              <option value="date">თარიღით</option>
+            </select>
+            <div className="flex flex-nowrap">
+              <button 
+                onClick={() => setActiveTab('bookings')}
+                className={cn(
+                  "px-4 md:px-6 py-2 rounded-lg text-xs md:text-sm font-medium transition-all whitespace-nowrap",
+                  activeTab === 'bookings' ? "bg-blue-600 text-white shadow-md" : "text-slate-400 hover:bg-slate-800"
+                )}
+              >
+                ჯავშნები
+              </button>
+              <button 
+                onClick={() => setActiveTab('availability')}
+                className={cn(
+                  "px-4 md:px-6 py-2 rounded-lg text-xs md:text-sm font-medium transition-all whitespace-nowrap",
+                  activeTab === 'availability' ? "bg-blue-600 text-white shadow-md" : "text-slate-400 hover:bg-slate-800"
+                )}
+              >
+                ხელმისაწვდომობა
+              </button>
+              <button 
+                onClick={() => setActiveTab('pricing')}
+                className={cn(
+                  "px-4 md:px-6 py-2 rounded-lg text-xs md:text-sm font-medium transition-all whitespace-nowrap",
+                  activeTab === 'pricing' ? "bg-blue-600 text-white shadow-md" : "text-slate-400 hover:bg-slate-800"
+                )}
+              >
+                ფასები
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -2137,15 +2031,19 @@ function AdminDashboard({ onBack, pricing }: { onBack: () => void, pricing: Pric
                       booking.status === 'completed' && "bg-green-500",
                       booking.status === 'cancelled' && "bg-red-500"
                     )} />
-                    <div className="flex-1 p-5 grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div className="flex-1 p-4 md:p-5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
                       <div className="space-y-1">
                         <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">
                           <UserIcon className="w-3 h-3" /> კლიენტი
                         </div>
                         <p className="font-bold text-base text-white">{booking.customerName}</p>
-                        <div className="flex flex-col text-xs text-slate-400">
-                          <span className="flex items-center gap-1"><Phone className="w-3 h-3" /> {booking.phone}</span>
-                          <span className="flex items-center gap-1"><Mail className="w-3 h-3" /> {booking.email}</span>
+                        <div className="flex flex-col text-xs text-slate-400 gap-1 mt-1">
+                          <a href={`tel:${booking.phone}`} className="flex items-center gap-2 hover:text-blue-400 transition-colors py-1">
+                            <Phone className="w-3 h-3" /> {booking.phone}
+                          </a>
+                          <a href={`mailto:${booking.email}`} className="flex items-center gap-2 hover:text-blue-400 transition-colors py-1">
+                            <Mail className="w-3 h-3" /> {booking.email}
+                          </a>
                         </div>
                       </div>
                       <div className="space-y-1">
@@ -2162,35 +2060,35 @@ function AdminDashboard({ onBack, pricing }: { onBack: () => void, pricing: Pric
                           <Calendar className="w-3 h-3" /> თარიღი და დრო
                         </div>
                         <p className="font-bold text-sm text-white">{format(parseISO(booking.date), 'MMM dd, yyyy')}</p>
-                        <p className="text-xs text-slate-400 flex items-center gap-1"><Clock className="w-3 h-3" /> {booking.timeSlot}</p>
+                        <p className="text-xs text-slate-400 flex items-center gap-1 mt-1"><Clock className="w-3 h-3" /> {booking.timeSlot}</p>
                       </div>
                       <div className="space-y-1">
                         <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">
                           <MapPin className="w-3 h-3" /> მდებარეობა
                         </div>
-                        <p className="text-xs text-slate-300 line-clamp-2">{booking.location}</p>
+                        <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed">{booking.location}</p>
                       </div>
                     </div>
-                    <div className="bg-slate-950 p-5 flex flex-row md:flex-col justify-center gap-2 border-t md:border-t-0 md:border-l border-slate-800">
+                    <div className="bg-slate-950 p-4 md:p-5 flex flex-row md:flex-col items-center justify-center gap-3 border-t md:border-t-0 md:border-l border-slate-800">
                       {booking.status === 'pending' && (
-                        <>
-                          <Button size="sm" onClick={() => updateBookingStatus(booking.id!, 'completed')} className="bg-green-600 hover:bg-green-700">
+                        <div className="flex flex-1 md:flex-none gap-2 w-full">
+                          <Button size="sm" onClick={() => updateBookingStatus(booking.id!, 'completed')} className="flex-1 bg-green-600 hover:bg-green-700 h-10 md:h-auto">
                             დასრულება
                           </Button>
-                          <Button size="sm" variant="ghost" onClick={() => updateBookingStatus(booking.id!, 'cancelled')} className="text-red-400 hover:bg-red-900/20">
+                          <Button size="sm" variant="ghost" onClick={() => updateBookingStatus(booking.id!, 'cancelled')} className="flex-1 text-red-400 hover:bg-red-900/20 h-10 md:h-auto border border-red-900/30 md:border-0">
                             გაუქმება
                           </Button>
-                        </>
+                        </div>
                       )}
                       {booking.status !== 'pending' && (
                         <div className={cn(
-                          "px-4 py-2 rounded-lg text-sm font-bold text-center",
+                          "flex-1 md:flex-none px-4 py-2 rounded-lg text-xs md:text-sm font-bold text-center w-full",
                           booking.status === 'completed' ? "bg-green-900/20 text-green-400 border border-green-900/50" : "bg-red-900/20 text-red-400 border border-red-900/50"
                         )}>
                           {booking.status === 'completed' ? 'დასრულებული' : 'გაუქმებული'}
                         </div>
                       )}
-                      <Button size="sm" variant="ghost" onClick={() => deleteBooking(booking.id!)} className="text-slate-500 hover:text-red-400">
+                      <Button size="sm" variant="ghost" onClick={() => deleteBooking(booking.id!)} className="p-2.5 text-slate-500 hover:text-red-400 hover:bg-slate-900 rounded-full">
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
@@ -2322,11 +2220,11 @@ function PricingManager({ pricing, onBack }: { pricing: PricingSettings, onBack:
         </Card>
       </div>
 
-      <div className="flex justify-end pt-4">
+      <div className="flex justify-center md:justify-end pt-4">
         <Button 
           onClick={handleSave} 
           disabled={isSaving}
-          className="px-12 py-4 rounded-2xl font-bold text-lg shadow-xl shadow-blue-600/20"
+          className="w-full md:w-auto px-12 py-4 rounded-2xl font-bold text-base md:text-lg shadow-xl shadow-blue-600/20"
         >
           {isSaving ? 'ინახება...' : 'ცვლილებების შენახვა'}
         </Button>
@@ -2385,21 +2283,20 @@ function AvailabilityManager({ onBack }: { onBack: () => void }) {
   ];
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <div className="mb-6 flex items-center justify-between">
-        <Button variant="ghost" onClick={onBack} className="gap-2 text-slate-300 hover:bg-slate-900">
+    <div className="max-w-2xl mx-auto px-1 sm:px-0">
+      <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <Button variant="ghost" onClick={onBack} className="gap-2 text-slate-300 hover:bg-slate-900 -ml-2">
           <ArrowLeft className="w-4 h-4" /> საიტზე დაბრუნება
         </Button>
-        <h2 className="text-2xl font-bold text-white">ადმინ პანელი</h2>
+        <h2 className="text-xl md:text-2xl font-bold text-white">ხელმისაწვდომობის მართვა</h2>
       </div>
-      <Card className="bg-slate-900 border-slate-800 p-6">
-        <h3 className="text-xl font-bold mb-6 text-white">ხელმისაწვდომობის მართვა</h3>
+      <Card className="bg-slate-900 border-slate-800 p-4 md:p-6">
         <div className="space-y-6">
           <div className="space-y-2">
             <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">აირჩიეთ თარიღი</label>
             <input 
               type="date" 
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none text-white text-sm"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 focus:ring-2 focus:ring-blue-500 outline-none text-white text-base"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
             />
@@ -2407,13 +2304,13 @@ function AvailabilityManager({ onBack }: { onBack: () => void }) {
 
           <div className="space-y-4">
             <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">ხელმისაწვდომი დროები: {format(parseISO(selectedDate), 'MMMM dd')}</label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
               {timeOptions.map(time => (
                 <button
                   key={time}
                   onClick={() => toggleSlot(time)}
                   className={cn(
-                    "p-2.5 rounded-xl border text-xs font-medium transition-all",
+                    "p-3.5 rounded-xl border text-sm font-medium transition-all",
                     slots.includes(time) 
                       ? "bg-blue-600 border-blue-600 text-white shadow-md" 
                       : "bg-slate-950 border-slate-800 text-slate-400 hover:border-blue-500"
@@ -2425,7 +2322,7 @@ function AvailabilityManager({ onBack }: { onBack: () => void }) {
             </div>
           </div>
 
-          <Button className="w-full py-4 rounded-2xl font-bold shadow-xl shadow-blue-600/20" onClick={saveAvailability} disabled={isSaving}>
+          <Button className="w-full py-4 rounded-2xl font-bold text-base md:text-lg shadow-xl shadow-blue-600/20" onClick={saveAvailability} disabled={isSaving}>
             {isSaving ? 'ინახება...' : 'შენახვა'}
           </Button>
         </div>

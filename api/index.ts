@@ -3,9 +3,10 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { Resend } from 'resend';
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, addDoc, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, doc, getDoc, updateDoc, getDocs, query, where, orderBy } from 'firebase/firestore';
 import dotenv from 'dotenv';
 import fs from 'fs';
+import * as ics from 'ics';
 
 dotenv.config();
 
@@ -311,6 +312,63 @@ app.post('/api/send-cancellation', async (req, res) => {
     if (error) throw error;
     res.json({ success: true });
   } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/calendar.ics', async (req, res) => {
+  try {
+    if (!db) return res.status(500).json({ error: 'Database not initialized' });
+
+    // Fetch all pending and completed bookings
+    const bookingsQuery = query(
+      collection(db, 'bookings'),
+      where('status', 'in', ['pending', 'completed']),
+      orderBy('date', 'desc')
+    );
+    const bookingsSnap = await getDocs(bookingsQuery);
+    
+    const events: ics.EventAttributes[] = bookingsSnap.docs.map(doc => {
+      const data = doc.data();
+      const [year, month, day] = data.date.split('-').map(Number);
+      const [hour, minute] = data.timeSlot.split(':').map(Number);
+      
+      const serviceName = data.service === 'Premium' ? 'ინტერიერის პრემიუმ დითეილინგი' : 'ინტერიერის წმენდა';
+      
+      return {
+        start: [year, month, day, hour, minute],
+        duration: { hours: 3 }, // Most jobs take 3 hours based on features description
+        title: `${serviceName} - ${data.customerName}`,
+        description: `Customer: ${data.customerName}\nPhone: ${data.phone}\nEmail: ${data.email}\nService: ${serviceName}\nLocation: ${data.location}`,
+        location: data.location,
+        status: data.status === 'pending' ? 'TENTATIVE' : 'CONFIRMED',
+        categories: ['AutoSpa', 'Booking'],
+        organizer: { name: "Luca's AutoSpa", email: 'hello@lucasautospa.ge' }
+      };
+    });
+
+    if (events.length === 0) {
+      // Return an empty calendar if no events
+      const { error, value } = ics.createEvents([{
+        start: [2024, 1, 1, 0, 0],
+        duration: { hours: 0 },
+        title: 'No Bookings Yet',
+        description: 'Your calendar is empty.'
+      }]);
+      if (error) throw error;
+      res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
+      res.setHeader('Content-Disposition', 'attachment; filename="calendar.ics"');
+      return res.send(value);
+    }
+
+    const { error, value } = ics.createEvents(events);
+    if (error) throw error;
+
+    res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="calendar.ics"');
+    res.send(value);
+  } catch (error: any) {
+    console.error('Calendar Error:', error);
     res.status(500).json({ error: error.message });
   }
 });

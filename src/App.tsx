@@ -1861,6 +1861,9 @@ function AdminDashboard({ onBack, pricing }: { onBack: () => void, pricing: Pric
   const [activeTab, setActiveTab] = useState<'bookings' | 'availability' | 'pricing'>('bookings');
   const [isLoading, setIsLoading] = useState(true);
   const [sortBy, setSortBy] = useState<'date' | 'createdAt'>('createdAt');
+  const [showCalendarInfo, setShowCalendarInfo] = useState(false);
+
+  const calendarUrl = `${window.location.origin}/api/calendar.ics`;
 
   useEffect(() => {
     const q = query(collection(db, 'bookings'), orderBy(sortBy, 'desc'));
@@ -1957,12 +1960,79 @@ function AdminDashboard({ onBack, pricing }: { onBack: () => void, pricing: Pric
       exit={{ opacity: 0, y: 20 }}
       className="max-w-7xl mx-auto px-4 py-8"
     >
+      {/* Calendar Info Modal */}
+      <AnimatePresence>
+        {showCalendarInfo && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-slate-900 border border-slate-800 p-8 rounded-3xl max-w-md w-full shadow-2xl relative"
+            >
+              <button 
+                onClick={() => setShowCalendarInfo(false)}
+                className="absolute top-4 right-4 p-2 hover:bg-slate-800 rounded-full text-slate-500"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-12 h-12 bg-blue-600/20 text-blue-500 rounded-2xl flex items-center justify-center">
+                  <Calendar className="w-6 h-6" />
+                </div>
+                <h2 className="text-xl font-bold text-white">iOS კალენდართან დაკავშირება</h2>
+              </div>
+              
+              <div className="space-y-6">
+                <p className="text-sm text-slate-400 leading-relaxed">
+                  თქვენ შეგიძლიათ დაამატოთ ჯავშნები თქვენს iPhone-ის კალენდარში. კალენდარი ავტომატურად განახლდება ყოველ ჯერზე, როდესაც ახალი ჯავშანი დაემატება.
+                </p>
+                
+                <div className="space-y-3">
+                  <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">ინსტრუქცია iPhone-ისთვის:</h3>
+                  <ol className="text-sm text-slate-300 space-y-3 list-decimal pl-4">
+                    <li>გახსენით <strong>Settings</strong> აპლიკაცია</li>
+                    <li>გადადით <strong>Calendar</strong> &rarr; <strong>Accounts</strong></li>
+                    <li>აირჩიეთ <strong>Add Account</strong> &rarr; <strong>Other</strong></li>
+                    <li>აირჩიეთ <strong>Add Subscribed Calendar</strong></li>
+                    <li>ჩაწერეთ ქვემოთ მოცემული ბმული:</li>
+                  </ol>
+                </div>
+                
+                <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 break-all">
+                  <code className="text-xs text-blue-400 font-mono">{calendarUrl}</code>
+                </div>
+                
+                <button 
+                  onClick={() => {
+                    navigator.clipboard.writeText(calendarUrl);
+                    alert('ბმული დაკოპირებულია!');
+                  }}
+                  className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold transition-all shadow-lg shadow-blue-600/20"
+                >
+                  ბმულის დაკოპირება
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
         <div>
           <h1 className="text-3xl font-bold mb-2 text-white">ადმინ პანელი</h1>
           <p className="text-sm text-slate-400">მართეთ თქვენი ჯავშნები და ხელმისაწვდომობა.</p>
         </div>
-        <div className="flex bg-slate-900 p-1 rounded-xl border border-slate-800 shadow-sm">
+        <div className="flex flex-wrap items-center gap-4">
+          <button 
+            onClick={() => setShowCalendarInfo(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-blue-400 rounded-xl border border-slate-800 transition-all text-sm font-medium"
+          >
+            <Calendar className="w-4 h-4" />
+            კალენდართან დაკავშირება (iOS)
+          </button>
+          <div className="flex bg-slate-900 p-1 rounded-xl border border-slate-800 shadow-sm">
           <select 
             value={sortBy} 
             onChange={(e) => setSortBy(e.target.value as any)}
@@ -1998,6 +2068,7 @@ function AdminDashboard({ onBack, pricing }: { onBack: () => void, pricing: Pric
           >
             ფასები
           </button>
+          </div>
         </div>
       </div>
 

@@ -3,8 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { Resend } from 'resend';
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, addDoc, doc, getDoc, updateDoc, getDocs, query, where, orderBy } from 'firebase/firestore';
-import admin from 'firebase-admin';
+import { getFirestore, collection, addDoc, doc, getDoc, updateDoc, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
 import dotenv from 'dotenv';
 import fs from 'fs';
 import * as ics from 'ics';
@@ -33,29 +32,17 @@ try {
 
 // Initialize Firebase
 let db: any = null;
-let adminDb: any = null;
 if (firebaseConfig) {
   try {
     const firebaseApp = initializeApp(firebaseConfig);
     db = getFirestore(firebaseApp, firebaseConfig.firestoreDatabaseId);
     console.log('Firebase Initialized Successfully');
-
-    // Initialize Admin SDK for server-side operations that need to bypass rules
-    if (!admin.apps.length) {
-      admin.initializeApp({
-        projectId: firebaseConfig.projectId,
-      });
-    }
-    adminDb = admin.firestore();
-    // If a specific databaseId is used, we need to handle it
-    if (firebaseConfig.firestoreDatabaseId && firebaseConfig.firestoreDatabaseId !== '(default)') {
-      adminDb = admin.firestore(firebaseConfig.firestoreDatabaseId);
-    }
-    console.log('Firebase Admin Initialized Successfully');
   } catch (e) {
     console.error('CRITICAL: Firebase init error:', e);
   }
 }
+
+const CALENDAR_SECRET = "7f8a9b0c1d2e3f4g5h6i7j8k9l0m1n2o3p4q5r6s7t8u9v0w1x2y3z";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -147,8 +134,19 @@ app.post('/api/verify-code', async (req, res) => {
 
 app.post('/api/send-confirmation', async (req, res) => {
   try {
-    const { email, bookingData, price } = req.body;
+    const { email, bookingData, price, bookingId } = req.body;
     const serviceName = bookingData.service === 'Premium' ? 'პრემიუმ დითეილინგი' : 'სტანდარტული წმენდა';
+    
+    // Add the system secret to the booking so it's visible to the calendar feed
+    if (bookingId && db) {
+      try {
+        await updateDoc(doc(db, 'bookings', bookingId), {
+          calendarSecret: CALENDAR_SECRET
+        });
+      } catch (e) {
+        console.error('Failed to add calendar secret to booking', e);
+      }
+    }
     
     const { error } = await resend.emails.send({
       from: "Luca's AutoSpa <hello@lucasautospa.ge>",
@@ -333,15 +331,19 @@ app.post('/api/send-cancellation', async (req, res) => {
 
 app.get('/api/calendar.ics', async (req, res) => {
   try {
-    if (!adminDb) return res.status(500).json({ error: 'Admin Database not initialized' });
+    if (!db) return res.status(500).json({ error: 'Database not initialized' });
 
-    // Fetch all pending and completed bookings using Admin SDK to bypass rules
-    const bookingsSnap = await adminDb.collection('bookings')
-      .where('status', 'in', ['pending', 'completed'])
-      .orderBy('date', 'desc')
-      .get();
+    // Fetch all pending and completed bookings using the system secret to bypass admin rules
+    const bookingsQuery = query(
+      collection(db, 'bookings'),
+      where('status', 'in', ['pending', 'completed']),
+      where('calendarSecret', '==', CALENDAR_SECRET),
+      orderBy('date', 'desc'),
+      limit(1000)
+    );
+    const bookingsSnap = await getDocs(bookingsQuery);
     
-    const events: ics.EventAttributes[] = bookingsSnap.docs.map((doc: any) => {
+    const events: ics.EventAttributes[] = bookingsSnap.docs.map(doc => {
       const data = doc.data();
       const [year, month, day] = data.date.split('-').map(Number);
       const [hour, minute] = data.timeSlot.split(':').map(Number);

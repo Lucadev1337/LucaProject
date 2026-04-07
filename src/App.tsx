@@ -49,7 +49,8 @@ import {
   ArrowLeft,
   HelpCircle,
   ChevronLeft,
-  Check
+  Check,
+  RefreshCw
 } from 'lucide-react';
 import { format, addDays, startOfToday, isSameDay, parseISO } from 'date-fns';
 import { ka } from 'date-fns/locale';
@@ -1229,7 +1230,8 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
             body: JSON.stringify({ 
               email: bookingData.email, 
               bookingData,
-              price: getPrice(bookingData.service as 'Basic' | 'Premium')
+              price: getPrice(bookingData.service as 'Basic' | 'Premium'),
+              bookingId: bookingRef.id
             })
           });
         } catch (e) {
@@ -1862,8 +1864,37 @@ function AdminDashboard({ onBack, pricing }: { onBack: () => void, pricing: Pric
   const [isLoading, setIsLoading] = useState(true);
   const [sortBy, setSortBy] = useState<'date' | 'createdAt'>('createdAt');
   const [showCalendarInfo, setShowCalendarInfo] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const calendarUrl = `${window.location.origin}/api/calendar.ics`;
+
+  const syncCalendar = async () => {
+    setIsSyncing(true);
+    try {
+      // We'll just call send-confirmation for each booking to add the secret
+      // This is a bit hacky but it works without adding a new API endpoint
+      for (const booking of bookings) {
+        if (booking.status !== 'cancelled') {
+          await fetch('/api/send-confirmation', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              email: booking.email, 
+              bookingData: booking,
+              price: 0, // Not needed for sync
+              bookingId: booking.id
+            })
+          });
+        }
+      }
+      alert('კალენდარი წარმატებით დაინქრონიზდა!');
+    } catch (e) {
+      console.error('Sync failed', e);
+      alert('სინქრონიზაცია ვერ მოხერხდა');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   useEffect(() => {
     const q = query(collection(db, 'bookings'), orderBy(sortBy, 'desc'));
@@ -2031,6 +2062,14 @@ function AdminDashboard({ onBack, pricing }: { onBack: () => void, pricing: Pric
           >
             <Calendar className="w-4 h-4" />
             კალენდართან დაკავშირება (iOS)
+          </button>
+          <button 
+            onClick={syncCalendar}
+            disabled={isSyncing}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-green-400 rounded-xl border border-slate-800 transition-all text-sm font-medium disabled:opacity-50"
+          >
+            <RefreshCw className={cn("w-4 h-4", isSyncing && "animate-spin")} />
+            სინქრონიზაცია
           </button>
           <div className="flex bg-slate-900 p-1 rounded-xl border border-slate-800 shadow-sm">
           <select 

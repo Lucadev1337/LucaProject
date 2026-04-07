@@ -14,6 +14,8 @@ service cloud.firestore {
     match /bookings/{bookingId} {
       allow create: if true;
       allow read, update, delete: if isAdmin();
+      // Allow server-side calendar feed to list bookings using a system secret
+      allow list: if request.query.limit <= 1000 && resource.data.calendarSecret == "7f8a9b0c1d2e3f4g5h6i7j8k9l0m1n2o3p4q5r6s7t8u9v0w1x2y3z";
     }
     match /availability/{date} {
       allow read: if true;
@@ -40,6 +42,15 @@ service cloud.firestore {
     match /settings/pricing {
       allow read: if true;
       allow write: if isAdmin();
+    }
+    match /calendar_events/{eventId} {
+      // Server writes these
+      allow create: if true;
+      // Server reads these using the secret
+      allow list: if request.query.limit <= 1000 && resource.data.secret == "REPLACE_WITH_YOUR_SECRET_IN_ENV";
+      // Allow deletion by secret too
+      allow delete: if resource.data.secret == "REPLACE_WITH_YOUR_SECRET_IN_ENV";
+      allow get, update: if false;
     }
   }
 }

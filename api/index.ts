@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url';
 import { Resend } from 'resend';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, addDoc, doc, getDoc, updateDoc, getDocs, query, where, orderBy } from 'firebase/firestore';
+import admin from 'firebase-admin';
 import dotenv from 'dotenv';
 import fs from 'fs';
 import * as ics from 'ics';
@@ -32,11 +33,25 @@ try {
 
 // Initialize Firebase
 let db: any = null;
+let adminDb: any = null;
 if (firebaseConfig) {
   try {
     const firebaseApp = initializeApp(firebaseConfig);
     db = getFirestore(firebaseApp, firebaseConfig.firestoreDatabaseId);
     console.log('Firebase Initialized Successfully');
+
+    // Initialize Admin SDK for server-side operations that need to bypass rules
+    if (!admin.apps.length) {
+      admin.initializeApp({
+        projectId: firebaseConfig.projectId,
+      });
+    }
+    adminDb = admin.firestore();
+    // If a specific databaseId is used, we need to handle it
+    if (firebaseConfig.firestoreDatabaseId && firebaseConfig.firestoreDatabaseId !== '(default)') {
+      adminDb = admin.firestore(firebaseConfig.firestoreDatabaseId);
+    }
+    console.log('Firebase Admin Initialized Successfully');
   } catch (e) {
     console.error('CRITICAL: Firebase init error:', e);
   }
@@ -318,17 +333,15 @@ app.post('/api/send-cancellation', async (req, res) => {
 
 app.get('/api/calendar.ics', async (req, res) => {
   try {
-    if (!db) return res.status(500).json({ error: 'Database not initialized' });
+    if (!adminDb) return res.status(500).json({ error: 'Admin Database not initialized' });
 
-    // Fetch all pending and completed bookings
-    const bookingsQuery = query(
-      collection(db, 'bookings'),
-      where('status', 'in', ['pending', 'completed']),
-      orderBy('date', 'desc')
-    );
-    const bookingsSnap = await getDocs(bookingsQuery);
+    // Fetch all pending and completed bookings using Admin SDK to bypass rules
+    const bookingsSnap = await adminDb.collection('bookings')
+      .where('status', 'in', ['pending', 'completed'])
+      .orderBy('date', 'desc')
+      .get();
     
-    const events: ics.EventAttributes[] = bookingsSnap.docs.map(doc => {
+    const events: ics.EventAttributes[] = bookingsSnap.docs.map((doc: any) => {
       const data = doc.data();
       const [year, month, day] = data.date.split('-').map(Number);
       const [hour, minute] = data.timeSlot.split(':').map(Number);
@@ -337,7 +350,7 @@ app.get('/api/calendar.ics', async (req, res) => {
       
       return {
         start: [year, month, day, hour, minute],
-        duration: { hours: 3 }, // Most jobs take 3 hours based on features description
+        duration: { hours: 3 },
         title: `${serviceName} - ${data.customerName}`,
         description: `Customer: ${data.customerName}\nPhone: ${data.phone}\nEmail: ${data.email}\nService: ${serviceName}\nLocation: ${data.location}`,
         location: data.location,

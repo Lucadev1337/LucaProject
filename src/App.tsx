@@ -1774,7 +1774,7 @@ function TermsOfService({ onBack, t }: { onBack: () => void, t: any, key?: strin
           <ul className="list-disc pl-6 space-y-2">
             <li>კლიენტი ვალდებულია სერვისის დასრულებისთანავე შეამოწმოს ავტომობილი</li>
             <li>Luca’s AutoSpa არ აგებს პასუხს იმ დაზიანებებზე, რომლებიც დაფიქსირდება თანამშრომლის წასვლის შემდეგ</li>
-            <li>კომპანია არ არის პასუხისმგებელი:
+            <li>Luca’s AutoSpa არ არის პასუხისმგებელი:
               <ul className="list-disc pl-6 mt-2 space-y-1">
                 <li>უკვე არსებულ დაზიანებებზე</li>
                 <li>ძველ, ღრმად გამჯდარ ლაქებზე</li>

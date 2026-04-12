@@ -777,9 +777,10 @@ function PublicSite({ onBookNow, pricing, t, lang }: { onBookNow: (plan?: 'Basic
     }
   };
 
-  const getPrice = (base: number) => {
+  const getPrice = (base: number, type: 'Basic' | 'Premium') => {
     if (pricing.isSaleActive) {
-      return Math.round(base * (1 - pricing.salePercentage / 100));
+      const discount = type === 'Basic' ? (pricing.basicSalePercentage || 0) : (pricing.premiumSalePercentage || 0);
+      return Math.round(base * (1 - discount / 100));
     }
     return base;
   };
@@ -997,7 +998,7 @@ function PublicSite({ onBookNow, pricing, t, lang }: { onBookNow: (plan?: 'Basic
                     <div className="flex items-baseline gap-2">
                       {pricing.isSaleActive ? (
                         <>
-                          <span className="text-3xl font-black text-white">{getPrice(pricing.basicPrice)}₾</span>
+                          <span className="text-3xl font-black text-white">{getPrice(pricing.basicPrice, 'Basic')}₾</span>
                           <span className="text-lg text-slate-500 line-through">{pricing.basicPrice}₾</span>
                         </>
                       ) : (
@@ -1005,9 +1006,9 @@ function PublicSite({ onBookNow, pricing, t, lang }: { onBookNow: (plan?: 'Basic
                       )}
                       <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{t.perService}</span>
                     </div>
-                    {pricing.isSaleActive && (
+                    {pricing.isSaleActive && (pricing.basicSalePercentage || 0) > 0 && (
                       <div className="mt-3 inline-block bg-green-500/20 text-green-400 text-[10px] font-black px-2 py-1 rounded-full uppercase tracking-wider border border-green-500/20">
-                        -{pricing.basicSalePercentage || pricing.salePercentage}% {t.sale}
+                        -{pricing.basicSalePercentage}% {t.sale}
                       </div>
                     )}
                   </div>
@@ -1045,7 +1046,7 @@ function PublicSite({ onBookNow, pricing, t, lang }: { onBookNow: (plan?: 'Basic
                     <div className="flex items-baseline gap-2">
                       {pricing.isSaleActive ? (
                         <>
-                          <span className="text-3xl font-black text-white">{getPrice(pricing.premiumPrice)}₾</span>
+                          <span className="text-3xl font-black text-white">{getPrice(pricing.premiumPrice, 'Premium')}₾</span>
                           <span className="text-lg text-slate-500 line-through">{pricing.premiumPrice}₾</span>
                         </>
                       ) : (
@@ -1053,9 +1054,9 @@ function PublicSite({ onBookNow, pricing, t, lang }: { onBookNow: (plan?: 'Basic
                       )}
                       <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{t.perService}</span>
                     </div>
-                    {pricing.isSaleActive && (
+                    {pricing.isSaleActive && (pricing.premiumSalePercentage || 0) > 0 && (
                       <div className="mt-3 inline-block bg-green-500/20 text-green-400 text-[10px] font-black px-2 py-1 rounded-full uppercase tracking-wider border border-green-500/20">
-                        -{pricing.premiumSalePercentage || pricing.salePercentage}% {t.sale}
+                        -{pricing.premiumSalePercentage}% {t.sale}
                       </div>
                     )}
                   </div>
@@ -1185,7 +1186,8 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
   const getPrice = (service: 'Basic' | 'Premium') => {
     const base = service === 'Basic' ? pricing.basicPrice : pricing.premiumPrice;
     if (pricing.isSaleActive) {
-      return Math.round(base * (1 - pricing.salePercentage / 100));
+      const discount = service === 'Basic' ? (pricing.basicSalePercentage || 0) : (pricing.premiumSalePercentage || 0);
+      return Math.round(base * (1 - discount / 100));
     }
     return base;
   };
@@ -2606,24 +2608,13 @@ function PricingManager({ pricing, onBack }: { pricing: PricingSettings, onBack:
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">გლობალური ფასდაკლება (%)</label>
-              <input 
-                type="number"
-                value={localPricing.salePercentage}
-                onChange={(e) => setLocalPricing({ ...localPricing, salePercentage: Number(e.target.value) })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all"
-              />
+          <div className="p-4 bg-blue-600/5 border border-blue-600/10 rounded-2xl flex items-center gap-4">
+            <div className="w-12 h-12 bg-blue-600/10 text-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+              <span className="text-lg font-black">?</span>
             </div>
-            <div className="p-4 bg-blue-600/5 border border-blue-600/10 rounded-2xl flex items-center gap-4">
-              <div className="w-12 h-12 bg-blue-600/10 text-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
-                <span className="text-lg font-black">?</span>
-              </div>
-              <p className="text-xs text-slate-400">
-                თუ ინდივიდუალური ფასდაკლება 0-ია, გამოყენებული იქნება გლობალური ფასდაკლება.
-              </p>
-            </div>
+            <p className="text-xs text-slate-400">
+              ფასდაკლების გააქტიურების შემთხვევაში, თითოეულ სერვისზე გამოყენებული იქნება მისთვის მითითებული ინდივიდუალური ფასდაკლების პროცენტი.
+            </p>
           </div>
         </Card>
       </div>

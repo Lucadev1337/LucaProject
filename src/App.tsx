@@ -516,15 +516,7 @@ function MapPicker({ onLocationSelect, initialLocation, t }: { onLocationSelect:
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
             />
           </div>
-          <Button 
-            onClick={handleLocateMe}
-            variant="secondary"
-            disabled={isLocating}
-            className="rounded-2xl px-4 flex items-center justify-center"
-            title="Locate Me"
-          >
-            <MapPin className={cn("w-5 h-5", isLocating && "animate-pulse text-blue-500")} />
-          </Button>
+          
           <Button 
             onClick={handleSearch} 
             disabled={isSearching}

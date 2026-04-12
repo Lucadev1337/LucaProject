@@ -211,6 +211,27 @@ app.post('/api/send-confirmation', async (req, res) => {
         </div>
       `
     });
+
+    // Send WhatsApp Notification to Admin
+    if (db) {
+      try {
+        const pricingSnap = await getDoc(doc(db, 'settings', 'pricing'));
+        if (pricingSnap.exists()) {
+          const pricing = pricingSnap.data();
+          if (pricing.isWhatsappEnabled && pricing.whatsappNumber && pricing.whatsappApiKey) {
+            const message = `🚗 *ახალი ჯავშანი!* \n\n👤 კლიენტი: ${bookingData.customerName}\n📞 ტელ: ${bookingData.phone}\n🛠 სერვისი: ${serviceName}\n📅 თარიღი: ${bookingData.date}\n⏰ დრო: ${bookingData.timeSlot}\n📍 მისამართი: ${bookingData.location}\n💰 ფასი: ${price}₾`;
+            
+            const whatsappUrl = `https://api.callmebot.com/whatsapp.php?phone=${pricing.whatsappNumber.replace('+', '')}&text=${encodeURIComponent(message)}&apikey=${pricing.whatsappApiKey}`;
+            
+            await fetch(whatsappUrl);
+            console.log('WhatsApp notification sent');
+          }
+        }
+      } catch (e) {
+        console.error('Failed to send WhatsApp notification', e);
+      }
+    }
+
     if (error) throw error;
     res.json({ success: true });
   } catch (error: any) {

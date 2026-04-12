@@ -315,6 +315,9 @@ interface PricingSettings {
   salePercentage: number;
   isSaleActive: boolean;
   heroReviews?: HeroReview[];
+  whatsappNumber?: string;
+  whatsappApiKey?: string;
+  isWhatsappEnabled?: boolean;
 }
 
 // --- Error Handling ---
@@ -2615,6 +2618,65 @@ function PricingManager({ pricing, onBack }: { pricing: PricingSettings, onBack:
             <p className="text-xs text-slate-400">
               ფასდაკლების გააქტიურების შემთხვევაში, თითოეულ სერვისზე გამოყენებული იქნება მისთვის მითითებული ინდივიდუალური ფასდაკლების პროცენტი.
             </p>
+          </div>
+        </Card>
+
+        {/* WhatsApp Notifications */}
+        <Card className="bg-slate-900 border-slate-800 p-6 space-y-6 md:col-span-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-green-600/10 text-green-500 rounded-xl flex items-center justify-center">
+                <MessageCircle className="w-5 h-5" />
+              </div>
+              <h3 className="text-xl font-bold text-white">WhatsApp შეტყობინებები (უფასო)</h3>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-slate-400">{localPricing.isWhatsappEnabled ? 'ჩართულია' : 'გამორთულია'}</span>
+              <button 
+                onClick={() => setLocalPricing({ ...localPricing, isWhatsappEnabled: !localPricing.isWhatsappEnabled })}
+                className={cn(
+                  "w-12 h-6 rounded-full transition-all relative",
+                  localPricing.isWhatsappEnabled ? "bg-green-600" : "bg-slate-800"
+                )}
+              >
+                <div className={cn(
+                  "absolute top-1 w-4 h-4 rounded-full bg-white transition-all",
+                  localPricing.isWhatsappEnabled ? "left-7" : "left-1"
+                )} />
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">ტელეფონის ნომერი (მაგ: +995...)</label>
+              <input 
+                type="text"
+                value={localPricing.whatsappNumber || ''}
+                onChange={(e) => setLocalPricing({ ...localPricing, whatsappNumber: e.target.value })}
+                placeholder="+995591952473"
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-green-600 transition-all"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">CallMeBot API Key</label>
+              <input 
+                type="text"
+                value={localPricing.whatsappApiKey || ''}
+                onChange={(e) => setLocalPricing({ ...localPricing, whatsappApiKey: e.target.value })}
+                placeholder="123456"
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-green-600 transition-all"
+              />
+            </div>
+          </div>
+
+          <div className="p-4 bg-green-600/5 border border-green-600/10 rounded-2xl space-y-3">
+            <p className="text-xs text-slate-300 font-bold">როგორ მივიღოთ API Key:</p>
+            <ol className="text-[11px] text-slate-400 space-y-1 list-decimal ml-4">
+              <li>დაამატეთ <b>+34 644 20 44 15</b> თქვენს კონტაქტებში (WhatsApp).</li>
+              <li>გააგზავნეთ შეტყობინება: <b>I allow callmebot to send me messages</b></li>
+              <li>დაელოდეთ პასუხს API Key-ით და ჩაწერეთ ზემოთ მოცემულ ველში.</li>
+            </ol>
           </div>
         </Card>
       </div>

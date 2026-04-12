@@ -153,6 +153,11 @@ const translations = {
     termsOfService: "წესები და პირობები",
     agreeToTerms: "ვეთანხმები წესებსა და პირობებს",
     readTerms: "წაიკითხეთ წესები და პირობები",
+    errorService: "გთხოვთ აირჩიოთ სერვისი",
+    errorDateTime: "გთხოვთ აირჩიოთ თარიღი და დრო",
+    errorLocation: "გთხოვთ მიუთითოთ მომსახურების მისამართი",
+    errorPersonalInfo: "გთხოვთ შეავსოთ საკონტაქტო ინფორმაცია",
+    errorTerms: "გთხოვთ დაეთანხმოთ წესებსა და პირობებს",
     standardDetails: [
       "სრული სალონის მტვერსასრუტით წმენდა",
       "მტვრის მოცილება და ტილოთი წმენდა",
@@ -250,6 +255,11 @@ const translations = {
     termsOfService: "Terms of Service",
     agreeToTerms: "I agree to the Terms of Service",
     readTerms: "Read Terms of Service",
+    errorService: "Please select a service",
+    errorDateTime: "Please select a date and time",
+    errorLocation: "Please specify the service address",
+    errorPersonalInfo: "Please fill in your contact information",
+    errorTerms: "Please agree to the terms and conditions",
     standardDetails: [
       "Full interior vacuum cleaning",
       "Dust removal and wiping",
@@ -300,6 +310,8 @@ interface HeroReview {
 interface PricingSettings {
   basicPrice: number;
   premiumPrice: number;
+  basicSalePercentage?: number;
+  premiumSalePercentage?: number;
   salePercentage: number;
   isSaleActive: boolean;
   heroReviews?: HeroReview[];
@@ -994,16 +1006,16 @@ function PublicSite({ onBookNow, pricing, t, lang }: { onBookNow: (plan?: 'Basic
                       <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{t.perService}</span>
                     </div>
                     {pricing.isSaleActive && (
-                      <div className="mt-3 inline-block bg-red-500/20 text-red-400 text-[10px] font-black px-2 py-1 rounded-full uppercase tracking-wider border border-red-500/20">
-                        -{pricing.salePercentage}% {t.sale}
+                      <div className="mt-3 inline-block bg-green-500/20 text-green-400 text-[10px] font-black px-2 py-1 rounded-full uppercase tracking-wider border border-green-500/20">
+                        -{pricing.basicSalePercentage || pricing.salePercentage}% {t.sale}
                       </div>
                     )}
                   </div>
                   <ul className="space-y-3 mb-8">
                     {t.standardDetails.map((item, i) => (
                       <li key={i} className="flex items-center gap-2.5 text-xs text-slate-300">
-                        <div className="w-4 h-4 rounded-full bg-blue-400/10 flex items-center justify-center flex-shrink-0">
-                          <CheckCircle className="w-3 h-3 text-blue-400" />
+                        <div className="w-4 h-4 rounded-full bg-slate-400/10 flex items-center justify-center flex-shrink-0">
+                          <CheckCircle className="w-3 h-3 text-slate-400" />
                         </div>
                         {item}
                       </li>
@@ -1042,16 +1054,16 @@ function PublicSite({ onBookNow, pricing, t, lang }: { onBookNow: (plan?: 'Basic
                       <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{t.perService}</span>
                     </div>
                     {pricing.isSaleActive && (
-                      <div className="mt-3 inline-block bg-red-500/20 text-red-400 text-[10px] font-black px-2 py-1 rounded-full uppercase tracking-wider border border-red-500/20">
-                        -{pricing.salePercentage}% {t.sale}
+                      <div className="mt-3 inline-block bg-green-500/20 text-green-400 text-[10px] font-black px-2 py-1 rounded-full uppercase tracking-wider border border-green-500/20">
+                        -{pricing.premiumSalePercentage || pricing.salePercentage}% {t.sale}
                       </div>
                     )}
                   </div>
                   <ul className="space-y-3 mb-8">
                     {t.premiumDetails.map((item, i) => (
                       <li key={i} className="flex items-center gap-2.5 text-xs text-slate-300">
-                        <div className="w-4 h-4 rounded-full bg-blue-400/10 flex items-center justify-center flex-shrink-0">
-                          <CheckCircle className="w-3 h-3 text-blue-400" />
+                        <div className="w-4 h-4 rounded-full bg-[#30c3fc]/10 flex items-center justify-center flex-shrink-0">
+                          <CheckCircle className="w-3 h-3 text-[#30c3fc]" />
                         </div>
                         {item}
                       </li>
@@ -1327,12 +1339,35 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
 
   const handleBookingSubmit = async () => {
     setFormError(null);
-    if (!termsAccepted) {
-      setFormError(t.agreeToTerms);
+    
+    if (!bookingData.service) {
+      setFormError(t.errorService);
+      document.getElementById('plan-section')?.scrollIntoView({ behavior: 'smooth' });
       return;
     }
-    if (!bookingData.service || !bookingData.date || !bookingData.timeSlot || !bookingData.customerName || !bookingData.phone || !bookingData.location || !bookingData.email) {
-      setFormError(t.fillAllFields);
+    if (!bookingData.date || !bookingData.timeSlot) {
+      setFormError(t.errorDateTime);
+      document.getElementById('date-section')?.scrollIntoView({ behavior: 'smooth' });
+      return;
+    }
+    if (!bookingData.location) {
+      setFormError(t.errorLocation);
+      document.getElementById('location-section')?.scrollIntoView({ behavior: 'smooth' });
+      return;
+    }
+    if (!bookingData.customerName || !bookingData.phone || !bookingData.email) {
+      setFormError(t.errorPersonalInfo);
+      document.getElementById('personal-info-section')?.scrollIntoView({ behavior: 'smooth' });
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(bookingData.email)) {
+      setFormError(lang === 'GE' ? 'გთხოვთ შეიყვანოთ სწორი ელ-ფოსტა' : 'Please enter a valid email address');
+      document.getElementById('personal-info-section')?.scrollIntoView({ behavior: 'smooth' });
+      return;
+    }
+    if (!termsAccepted) {
+      setFormError(t.errorTerms);
       return;
     }
 
@@ -1534,8 +1569,14 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                       <div className="p-6 bg-slate-900/20 backdrop-blur-xl rounded-2xl border border-white/5 space-y-2">
                         {s.details.map((detail, idx) => (
                           <div key={idx} className="flex items-center gap-2.5 text-xs text-slate-400">
-                            <div className="w-4 h-4 rounded-full bg-blue-400/10 flex items-center justify-center flex-shrink-0">
-                              <Check className="w-2.5 h-2.5 text-blue-400" />
+                            <div className={cn(
+                              "w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0",
+                              s.id === 'Premium' ? "bg-[#30c3fc]/10" : "bg-slate-400/10"
+                            )}>
+                              <Check className={cn(
+                                "w-2.5 h-2.5",
+                                s.id === 'Premium' ? "text-[#30c3fc]" : "text-slate-400"
+                              )} />
                             </div>
                             {detail}
                           </div>
@@ -1656,6 +1697,7 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
 
         {/* Service Location */}
         <motion.section 
+          id="location-section"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -1675,7 +1717,7 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div id="personal-info-section" className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] ml-2">{t.name}</label>
                 <input 
@@ -2040,9 +2082,12 @@ function TermsOfService({ onBack, t }: { onBack: () => void, t: any, key?: strin
 
 function AdminDashboard({ onBack, pricing }: { onBack: () => void, pricing: PricingSettings, key?: string }) {
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [activeTab, setActiveTab] = useState<'bookings' | 'availability' | 'pricing'>('bookings');
+  const [activeTab, setActiveTab] = useState<'bookings' | 'availability' | 'pricing' | 'reviews'>('bookings');
   const [isLoading, setIsLoading] = useState(true);
   const [sortBy, setSortBy] = useState<'date' | 'createdAt'>('createdAt');
+  const [filterStatus, setFilterStatus] = useState<'future' | 'completed' | 'all'>('future');
+  const [expandedBookingId, setExpandedBookingId] = useState<string | null>(null);
+  const [showActionsId, setShowActionsId] = useState<string | null>(null);
 
   useEffect(() => {
     const q = query(collection(db, 'bookings'), orderBy(sortBy, 'desc'));
@@ -2050,34 +2095,28 @@ function AdminDashboard({ onBack, pricing }: { onBack: () => void, pricing: Pric
       const fetchedBookings = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Booking));
       setBookings(fetchedBookings);
       setIsLoading(false);
-
-      // Simple migration: ensure all active bookings are in taken_slots
-      fetchedBookings.forEach(async (booking) => {
-        if (booking.status !== 'cancelled') {
-          await setDoc(doc(db, 'taken_slots', `${booking.date}_${booking.timeSlot}`), {
-            date: booking.date,
-            timeSlot: booking.timeSlot,
-            bookingId: booking.id
-          });
-        }
-      });
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, 'bookings');
     });
     return unsubscribe;
   }, [sortBy]);
 
+  const filteredBookings = bookings.filter(booking => {
+    if (filterStatus === 'all') return true;
+    if (filterStatus === 'completed') return booking.status === 'completed';
+    if (filterStatus === 'future') return booking.status === 'pending';
+    return true;
+  });
+
   const updateBookingStatus = async (id: string, status: Booking['status']) => {
     try {
       const booking = bookings.find(b => b.id === id);
       await updateDoc(doc(db, 'bookings', id), { status });
       
-      // Update taken_slots if cancelled or re-activated
       if (booking) {
         if (status === 'cancelled') {
           await deleteDoc(doc(db, 'taken_slots', `${booking.date}_${booking.timeSlot}`));
         } else {
-          // Ensure it exists if not cancelled
           await setDoc(doc(db, 'taken_slots', `${booking.date}_${booking.timeSlot}`), {
             date: booking.date,
             timeSlot: booking.timeSlot,
@@ -2086,47 +2125,39 @@ function AdminDashboard({ onBack, pricing }: { onBack: () => void, pricing: Pric
         }
       }
       
-      // If completed, send review request email
       if (status === 'completed' && booking) {
-        // Track completion event
-        track('Order Completed', {
-          service: booking.service,
-          bookingId: id
-        });
-        
+        track('Order Completed', { service: booking.service, bookingId: id });
         try {
           await fetch('/api/send-review-request', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: booking.email, customerName: booking.customerName })
           });
-        } catch (e) {
-          console.error('Failed to send review request email', e);
-        }
+        } catch (e) { console.error(e); }
       } else if (status === 'cancelled' && booking) {
-        // Send cancellation email
         try {
           await fetch('/api/send-cancellation', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: booking.email, bookingData: booking })
           });
-        } catch (e) {
-          console.error('Failed to send cancellation email', e);
-        }
+        } catch (e) { console.error(e); }
       }
+      setShowActionsId(null);
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `bookings/${id}`);
     }
   };
 
   const deleteBooking = async (id: string) => {
+    if (!confirm('ნამდვილად გსურთ წაშლა?')) return;
     try {
       const booking = bookings.find(b => b.id === id);
       await deleteDoc(doc(db, 'bookings', id));
       if (booking) {
         await deleteDoc(doc(db, 'taken_slots', `${booking.date}_${booking.timeSlot}`));
       }
+      setShowActionsId(null);
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `bookings/${id}`);
     }
@@ -2146,14 +2177,6 @@ function AdminDashboard({ onBack, pricing }: { onBack: () => void, pricing: Pric
         </div>
         <div className="w-full lg:w-auto flex flex-col sm:flex-row gap-4 items-stretch sm:items-center">
           <div className="flex bg-slate-900 p-1 rounded-xl border border-slate-800 shadow-sm overflow-x-auto no-scrollbar">
-            <select 
-              value={sortBy} 
-              onChange={(e) => setSortBy(e.target.value as any)}
-              className="bg-transparent text-slate-400 text-xs md:text-sm px-3 md:px-4 outline-none border-r border-slate-800 cursor-pointer"
-            >
-              <option value="createdAt">ბოლო დამატებული</option>
-              <option value="date">თარიღით</option>
-            </select>
             <div className="flex flex-nowrap">
               <button 
                 onClick={() => setActiveTab('bookings')}
@@ -2182,6 +2205,15 @@ function AdminDashboard({ onBack, pricing }: { onBack: () => void, pricing: Pric
               >
                 ფასები
               </button>
+              <button 
+                onClick={() => setActiveTab('reviews')}
+                className={cn(
+                  "px-4 md:px-6 py-2 rounded-lg text-xs md:text-sm font-medium transition-all whitespace-nowrap",
+                  activeTab === 'reviews' ? "bg-blue-600 text-white shadow-md" : "text-slate-400 hover:bg-slate-800"
+                )}
+              >
+                ავატარები
+              </button>
             </div>
           </div>
         </div>
@@ -2189,92 +2221,160 @@ function AdminDashboard({ onBack, pricing }: { onBack: () => void, pricing: Pric
 
       {activeTab === 'bookings' ? (
         <div className="space-y-6">
-          <div className="mb-8 flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <Button variant="ghost" onClick={onBack} className="gap-2 text-slate-300 hover:bg-slate-900">
               <ArrowLeft className="w-4 h-4" /> საიტზე დაბრუნება
             </Button>
+            
+            <div className="flex items-center gap-2 bg-slate-900 p-1 rounded-xl border border-slate-800">
+              <button 
+                onClick={() => setFilterStatus('future')}
+                className={cn(
+                  "px-4 py-1.5 rounded-lg text-xs font-bold transition-all",
+                  filterStatus === 'future' ? "bg-blue-600 text-white" : "text-slate-500 hover:text-slate-300"
+                )}
+              >
+                მომავალი
+              </button>
+              <button 
+                onClick={() => setFilterStatus('completed')}
+                className={cn(
+                  "px-4 py-1.5 rounded-lg text-xs font-bold transition-all",
+                  filterStatus === 'completed' ? "bg-blue-600 text-white" : "text-slate-500 hover:text-slate-300"
+                )}
+              >
+                დასრულებული
+              </button>
+              <button 
+                onClick={() => setFilterStatus('all')}
+                className={cn(
+                  "px-4 py-1.5 rounded-lg text-xs font-bold transition-all",
+                  filterStatus === 'all' ? "bg-blue-600 text-white" : "text-slate-500 hover:text-slate-300"
+                )}
+              >
+                ყველა
+              </button>
+            </div>
           </div>
+
           {isLoading ? (
             <div className="text-center py-20 text-slate-500">ჯავშნები იტვირთება...</div>
-          ) : bookings.length === 0 ? (
+          ) : filteredBookings.length === 0 ? (
             <Card className="text-center py-20 bg-slate-900 border-slate-800">
               <Calendar className="w-12 h-12 text-slate-700 mx-auto mb-4" />
-              <h3 className="text-xl font-bold mb-2 text-white">ჯავშნები ჯერ არ არის</h3>
-              <p className="text-slate-500">ახალი ჯავშნები აქ გამოჩნდება.</p>
+              <h3 className="text-xl font-bold mb-2 text-white">ჯავშნები არ მოიძებნა</h3>
+              <p className="text-slate-500">ამ კატეგორიაში ჯავშნები არ არის.</p>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 gap-4">
-              {bookings.map(booking => (
-                <Card key={booking.id} className="p-0 overflow-hidden bg-slate-900 border-slate-800">
-                  <div className="flex flex-col md:flex-row">
-                    <div className={cn(
-                      "w-full md:w-2 bg-slate-800",
-                      booking.status === 'pending' && "bg-yellow-500",
-                      booking.status === 'completed' && "bg-green-500",
-                      booking.status === 'cancelled' && "bg-red-500"
-                    )} />
-                    <div className="flex-1 p-4 md:p-5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                          <UserIcon className="w-3 h-3" /> კლიენტი
-                        </div>
-                        <p className="font-bold text-base text-white">{booking.customerName}</p>
-                        <div className="flex flex-col text-xs text-slate-400 gap-1 mt-1">
-                          <a href={`tel:${booking.phone}`} className="flex items-center gap-2 hover:text-blue-400 transition-colors py-1">
-                            <Phone className="w-3 h-3" /> {booking.phone}
-                          </a>
-                          <a href={`mailto:${booking.email}`} className="flex items-center gap-2 hover:text-blue-400 transition-colors py-1">
-                            <Mail className="w-3 h-3" /> {booking.email}
-                          </a>
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                          <Zap className="w-3 h-3" /> სერვისი
-                        </div>
-                        <p className="font-bold text-sm text-white">{booking.service === 'Premium' ? 'პრემიუმ დითეილინგი' : 'სტანდარტული წმენდა'}</p>
-                        <p className="text-xs text-slate-400">
-                          {booking.service === 'Basic' ? pricing.basicPrice : pricing.premiumPrice}₾
-                        </p>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                          <Calendar className="w-3 h-3" /> თარიღი და დრო
-                        </div>
-                        <p className="font-bold text-sm text-white">{format(parseISO(booking.date), 'MMM dd, yyyy')}</p>
-                        <p className="text-xs text-slate-400 flex items-center gap-1 mt-1"><Clock className="w-3 h-3" /> {booking.timeSlot}</p>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                          <MapPin className="w-3 h-3" /> მდებარეობა
-                        </div>
-                        <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed">{booking.location}</p>
+            <div className="grid grid-cols-1 gap-3">
+              {filteredBookings.map(booking => (
+                <Card key={booking.id} className="overflow-hidden bg-slate-900 border-slate-800 hover:border-slate-700 transition-all">
+                  <div 
+                    onClick={() => setExpandedBookingId(expandedBookingId === booking.id ? null : booking.id)}
+                    className="p-4 cursor-pointer flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className={cn(
+                        "w-2 h-10 rounded-full",
+                        booking.status === 'pending' && "bg-yellow-500",
+                        booking.status === 'completed' && "bg-green-500",
+                        booking.status === 'cancelled' && "bg-red-500"
+                      )} />
+                      <div>
+                        <p className="font-bold text-white">{booking.customerName}</p>
+                        <p className="text-xs text-slate-500">{format(parseISO(booking.date), 'MMM dd, yyyy')} • {booking.timeSlot}</p>
                       </div>
                     </div>
-                    <div className="bg-slate-950 p-4 md:p-5 flex flex-row md:flex-col items-center justify-center gap-3 border-t md:border-t-0 md:border-l border-slate-800">
-                      {booking.status === 'pending' && (
-                        <div className="flex flex-1 md:flex-none gap-2 w-full">
-                          <Button size="sm" onClick={() => updateBookingStatus(booking.id!, 'completed')} className="flex-1 bg-green-600 hover:bg-green-700 h-10 md:h-auto">
-                            დასრულება
-                          </Button>
-                          <Button size="sm" variant="ghost" onClick={() => updateBookingStatus(booking.id!, 'cancelled')} className="flex-1 text-red-400 hover:bg-red-900/20 h-10 md:h-auto border border-red-900/30 md:border-0">
-                            გაუქმება
-                          </Button>
-                        </div>
-                      )}
-                      {booking.status !== 'pending' && (
-                        <div className={cn(
-                          "flex-1 md:flex-none px-4 py-2 rounded-lg text-xs md:text-sm font-bold text-center w-full",
-                          booking.status === 'completed' ? "bg-green-900/20 text-green-400 border border-green-900/50" : "bg-red-900/20 text-red-400 border border-red-900/50"
-                        )}>
-                          {booking.status === 'completed' ? 'დასრულებული' : 'გაუქმებული'}
-                        </div>
-                      )}
-                      <Button size="sm" variant="ghost" onClick={() => deleteBooking(booking.id!)} className="p-2.5 text-slate-500 hover:text-red-400 hover:bg-slate-900 rounded-full">
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                    <div className="flex items-center gap-4">
+                      <span className="text-xs font-bold text-slate-400 bg-slate-800 px-3 py-1 rounded-full">
+                        {booking.service === 'Premium' ? 'პრემიუმი' : 'სტანდარტი'}
+                      </span>
+                      <ChevronRight className={cn(
+                        "w-5 h-5 text-slate-600 transition-transform",
+                        expandedBookingId === booking.id && "rotate-90"
+                      )} />
                     </div>
                   </div>
+
+                  <AnimatePresence>
+                    {expandedBookingId === booking.id && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="border-t border-slate-800 bg-slate-950/50"
+                      >
+                        <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-6">
+                          <div className="space-y-4">
+                            <div>
+                              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">საკონტაქტო</p>
+                              <div className="space-y-1">
+                                <a href={`tel:${booking.phone}`} className="flex items-center gap-2 text-sm text-blue-400 hover:underline">
+                                  <Phone className="w-3.5 h-3.5" /> {booking.phone}
+                                </a>
+                                <a href={`mailto:${booking.email}`} className="flex items-center gap-2 text-sm text-blue-400 hover:underline">
+                                  <Mail className="w-3.5 h-3.5" /> {booking.email}
+                                </a>
+                              </div>
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">მდებარეობა</p>
+                              <p className="text-sm text-slate-300 flex items-start gap-2">
+                                <MapPin className="w-3.5 h-3.5 mt-0.5 text-slate-500" /> {booking.location}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="space-y-4">
+                            <div>
+                              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">სტატუსი</p>
+                              <span className={cn(
+                                "text-[10px] font-black uppercase px-2 py-0.5 rounded-md",
+                                booking.status === 'pending' && "bg-yellow-500/10 text-yellow-500 border border-yellow-500/20",
+                                booking.status === 'completed' && "bg-green-500/10 text-green-500 border border-green-500/20",
+                                booking.status === 'cancelled' && "bg-red-500/10 text-red-500 border border-red-500/20"
+                              )}>
+                                {booking.status === 'pending' ? 'მოლოდინში' : booking.status === 'completed' ? 'დასრულებული' : 'გაუქმებული'}
+                              </span>
+                            </div>
+                            <div className="relative">
+                              <Button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setShowActionsId(showActionsId === booking.id ? null : booking.id);
+                                }}
+                                className="w-full bg-slate-800 hover:bg-slate-700 text-white gap-2"
+                              >
+                                მოქმედება <ChevronRight className={cn("w-4 h-4 transition-transform", showActionsId === booking.id && "rotate-90")} />
+                              </Button>
+
+                              {showActionsId === booking.id && (
+                                <div className="absolute bottom-full left-0 w-full mb-2 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-50 overflow-hidden">
+                                  <button 
+                                    onClick={() => updateBookingStatus(booking.id!, 'completed')}
+                                    className="w-full px-4 py-3 text-left text-sm font-bold text-green-400 hover:bg-green-500/10 border-b border-slate-800 transition-colors"
+                                  >
+                                    დასრულება
+                                  </button>
+                                  <button 
+                                    onClick={() => updateBookingStatus(booking.id!, 'cancelled')}
+                                    className="w-full px-4 py-3 text-left text-sm font-bold text-yellow-500 hover:bg-yellow-500/10 border-b border-slate-800 transition-colors"
+                                  >
+                                    გაუქმება
+                                  </button>
+                                  <button 
+                                    onClick={() => deleteBooking(booking.id!)}
+                                    className="w-full px-4 py-3 text-left text-sm font-bold text-red-500 hover:bg-red-500/10 transition-colors"
+                                  >
+                                    წაშლა
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </Card>
               ))}
             </div>
@@ -2282,10 +2382,114 @@ function AdminDashboard({ onBack, pricing }: { onBack: () => void, pricing: Pric
         </div>
       ) : activeTab === 'availability' ? (
         <AvailabilityManager onBack={onBack} />
-      ) : (
+      ) : activeTab === 'pricing' ? (
         <PricingManager pricing={pricing} onBack={onBack} />
+      ) : (
+        <ReviewsManager pricing={pricing} onBack={onBack} />
       )}
     </motion.div>
+  );
+}
+
+function ReviewsManager({ pricing, onBack }: { pricing: PricingSettings, onBack: () => void }) {
+  const [localPricing, setLocalPricing] = useState<PricingSettings>(pricing);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await setDoc(doc(db, 'settings', 'pricing'), localPricing);
+      alert('ავატარები წარმატებით განახლდა!');
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, 'settings/pricing');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-8 max-w-4xl mx-auto">
+      <div className="flex items-center justify-between">
+        <Button variant="ghost" onClick={onBack} className="gap-2 text-slate-300 hover:bg-slate-900">
+          <ArrowLeft className="w-4 h-4" /> საიტზე დაბრუნება
+        </Button>
+        <h2 className="text-2xl font-bold text-white">ავატარების მართვა</h2>
+      </div>
+
+      <Card className="bg-slate-900 border-slate-800 p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-600/10 text-blue-500 rounded-xl flex items-center justify-center">
+              <Users className="w-5 h-5" />
+            </div>
+            <h3 className="text-xl font-bold text-white">მთავარი გვერდის რევიუები</h3>
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => {
+              const reviews = localPricing.heroReviews || [];
+              setLocalPricing({ ...localPricing, heroReviews: [...reviews, { imageUrl: '', link: '' }] });
+            }}
+            className="gap-2 border-slate-700 text-slate-300 hover:bg-slate-800"
+          >
+            <Plus className="w-4 h-4" /> დამატება
+          </Button>
+        </div>
+
+        <div className="space-y-4">
+          {(localPricing.heroReviews || []).map((review, index) => (
+            <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-slate-950 rounded-2xl border border-slate-800 relative group">
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">სურათის URL</label>
+                <input 
+                  type="text"
+                  value={review.imageUrl}
+                  onChange={(e) => {
+                    const newReviews = [...(localPricing.heroReviews || [])];
+                    newReviews[index].imageUrl = e.target.value;
+                    setLocalPricing({ ...localPricing, heroReviews: newReviews });
+                  }}
+                  placeholder="https://example.com/image.jpg"
+                  className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-xs text-white outline-none focus:border-blue-600 transition-all"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">ბმული (Link)</label>
+                <input 
+                  type="text"
+                  value={review.link}
+                  onChange={(e) => {
+                    const newReviews = [...(localPricing.heroReviews || [])];
+                    newReviews[index].link = e.target.value;
+                    setLocalPricing({ ...localPricing, heroReviews: newReviews });
+                  }}
+                  placeholder="https://instagram.com/review"
+                  className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-xs text-white outline-none focus:border-blue-600 transition-all"
+                />
+              </div>
+              <button 
+                onClick={() => {
+                  const newReviews = (localPricing.heroReviews || []).filter((_, i) => i !== index);
+                  setLocalPricing({ ...localPricing, heroReviews: newReviews });
+                }}
+                className="absolute -top-2 -right-2 w-6 h-6 bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <Button 
+          onClick={handleSave} 
+          disabled={isSaving}
+          className="w-full py-4 rounded-xl font-bold shadow-xl shadow-blue-600/20"
+        >
+          {isSaving ? 'ინახება...' : 'ავატარების შენახვა'}
+        </Button>
+      </Card>
+    </div>
   );
 }
 
@@ -2323,14 +2527,25 @@ function PricingManager({ pricing, onBack }: { pricing: PricingSettings, onBack:
             <h3 className="text-xl font-bold text-white">ინტერიერის წმენდა</h3>
           </div>
           
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">ფასი (₾)</label>
-            <input 
-              type="number"
-              value={localPricing.basicPrice}
-              onChange={(e) => setLocalPricing({ ...localPricing, basicPrice: Number(e.target.value) })}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">ფასი (₾)</label>
+              <input 
+                type="number"
+                value={localPricing.basicPrice}
+                onChange={(e) => setLocalPricing({ ...localPricing, basicPrice: Number(e.target.value) })}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">ფასდაკლება (%)</label>
+              <input 
+                type="number"
+                value={localPricing.basicSalePercentage || 0}
+                onChange={(e) => setLocalPricing({ ...localPricing, basicSalePercentage: Number(e.target.value) })}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all"
+              />
+            </div>
           </div>
         </Card>
 
@@ -2343,25 +2558,36 @@ function PricingManager({ pricing, onBack }: { pricing: PricingSettings, onBack:
             <h3 className="text-xl font-bold text-white">პრემიუმ დითეილინგი</h3>
           </div>
           
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">ფასი (₾)</label>
-            <input 
-              type="number"
-              value={localPricing.premiumPrice}
-              onChange={(e) => setLocalPricing({ ...localPricing, premiumPrice: Number(e.target.value) })}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">ფასი (₾)</label>
+              <input 
+                type="number"
+                value={localPricing.premiumPrice}
+                onChange={(e) => setLocalPricing({ ...localPricing, premiumPrice: Number(e.target.value) })}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">ფასდაკლება (%)</label>
+              <input 
+                type="number"
+                value={localPricing.premiumSalePercentage || 0}
+                onChange={(e) => setLocalPricing({ ...localPricing, premiumSalePercentage: Number(e.target.value) })}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all"
+              />
+            </div>
           </div>
         </Card>
 
-        {/* Sale Settings */}
+        {/* Global Sale Settings */}
         <Card className="bg-slate-900 border-slate-800 p-6 space-y-6 md:col-span-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-blue-600/10 text-blue-500 rounded-xl flex items-center justify-center">
                 <Tag className="w-5 h-5" />
               </div>
-              <h3 className="text-xl font-bold text-white">ფასდაკლების პარამეტრები</h3>
+              <h3 className="text-xl font-bold text-white">ფასდაკლების აქტივაცია</h3>
             </div>
             <div className="flex items-center gap-3">
               <span className="text-sm font-medium text-slate-400">{localPricing.isSaleActive ? 'აქტიურია' : 'გამორთულია'}</span>
@@ -2382,7 +2608,7 @@ function PricingManager({ pricing, onBack }: { pricing: PricingSettings, onBack:
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">ფასდაკლების პროცენტი (%)</label>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">გლობალური ფასდაკლება (%)</label>
               <input 
                 type="number"
                 value={localPricing.salePercentage}
@@ -2395,81 +2621,9 @@ function PricingManager({ pricing, onBack }: { pricing: PricingSettings, onBack:
                 <span className="text-lg font-black">?</span>
               </div>
               <p className="text-xs text-slate-400">
-                ფასდაკლება ავტომატურად აისახება ყველა სერვისზე საიტზე და ჯავშნის გვერდზე.
+                თუ ინდივიდუალური ფასდაკლება 0-ია, გამოყენებული იქნება გლობალური ფასდაკლება.
               </p>
             </div>
-          </div>
-        </Card>
-
-        {/* Hero Reviews */}
-        <Card className="bg-slate-900 border-slate-800 p-6 space-y-6 md:col-span-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-600/10 text-blue-500 rounded-xl flex items-center justify-center">
-                <Users className="w-5 h-5" />
-              </div>
-              <h3 className="text-xl font-bold text-white">მთავარი გვერდის რევიუები (ავატარები)</h3>
-            </div>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => {
-                const reviews = localPricing.heroReviews || [];
-                setLocalPricing({ ...localPricing, heroReviews: [...reviews, { imageUrl: '', link: '' }] });
-              }}
-              className="gap-2 border-slate-700 text-slate-300 hover:bg-slate-800"
-            >
-              <Plus className="w-4 h-4" /> დამატება
-            </Button>
-          </div>
-
-          <div className="space-y-4">
-            {(localPricing.heroReviews || []).map((review, index) => (
-              <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-slate-950 rounded-2xl border border-slate-800 relative group">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">სურათის URL</label>
-                  <input 
-                    type="text"
-                    value={review.imageUrl}
-                    onChange={(e) => {
-                      const newReviews = [...(localPricing.heroReviews || [])];
-                      newReviews[index].imageUrl = e.target.value;
-                      setLocalPricing({ ...localPricing, heroReviews: newReviews });
-                    }}
-                    placeholder="https://example.com/image.jpg"
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-xs text-white outline-none focus:border-blue-600 transition-all"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">ბმული (Link)</label>
-                  <input 
-                    type="text"
-                    value={review.link}
-                    onChange={(e) => {
-                      const newReviews = [...(localPricing.heroReviews || [])];
-                      newReviews[index].link = e.target.value;
-                      setLocalPricing({ ...localPricing, heroReviews: newReviews });
-                    }}
-                    placeholder="https://instagram.com/review"
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-xs text-white outline-none focus:border-blue-600 transition-all"
-                  />
-                </div>
-                <button 
-                  onClick={() => {
-                    const newReviews = (localPricing.heroReviews || []).filter((_, i) => i !== index);
-                    setLocalPricing({ ...localPricing, heroReviews: newReviews });
-                  }}
-                  className="absolute -top-2 -right-2 w-6 h-6 bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-            ))}
-            {(!localPricing.heroReviews || localPricing.heroReviews.length === 0) && (
-              <div className="text-center py-8 border-2 border-dashed border-slate-800 rounded-2xl">
-                <p className="text-sm text-slate-500">რევიუები არ არის დამატებული. საიტზე გამოჩნდება სტანდარტული სურათები.</p>
-              </div>
-            )}
           </div>
         </Card>
       </div>

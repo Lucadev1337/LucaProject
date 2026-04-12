@@ -161,6 +161,7 @@ const translations = {
     errorTerms: "გთხოვთ დაეთანხმოთ წესებსა და პირობებს",
     acceptAndConfirm: "ვეთანხმები და დაჯავშნა",
     cancel: "გაუქმება",
+    locationError: "თქვენი ადგილმდებარეობის დადგენა ვერ მოხერხდა",
     termsTitle: "წესები და პირობები",
     bestValue: "საუკეთესო ფასი",
     secure: "უსაფრთხო",
@@ -270,6 +271,7 @@ const translations = {
     errorTerms: "Please agree to the terms and conditions",
     acceptAndConfirm: "Accept & Confirm",
     cancel: "Cancel",
+    locationError: "Unable to retrieve your location",
     termsTitle: "Terms & Conditions",
     bestValue: "Best Value",
     secure: "Secure",
@@ -400,7 +402,10 @@ function MapEvents({ onClick }: { onClick: (e: L.LeafletMouseEvent) => void }) {
 function ChangeView({ center, zoom }: { center: [number, number], zoom: number }) {
   const map = useMap();
   useEffect(() => {
-    map.setView(center, zoom);
+    map.flyTo(center, zoom, {
+      duration: 1.5,
+      easeLinearity: 0.25
+    });
   }, [center, zoom, map]);
   return null;
 }
@@ -410,6 +415,7 @@ function MapPicker({ onLocationSelect, initialLocation, t }: { onLocationSelect:
   const [address, setAddress] = useState(initialLocation || '');
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
   const [mapCenter, setMapCenter] = useState<[number, number]>(TBILISI_CENTER);
   const [zoom, setZoom] = useState(13);
 
@@ -460,24 +466,38 @@ function MapPicker({ onLocationSelect, initialLocation, t }: { onLocationSelect:
 
   const handleLocateMe = () => {
     if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(async (position) => {
-        const { latitude, longitude } = position.coords;
-        setMarker([latitude, longitude]);
-        setMapCenter([latitude, longitude]);
-        setZoom(17);
-        
-        try {
-          const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`);
-          const data = await response.json();
-          if (data && data.display_name) {
-            setAddress(data.display_name);
-            setSearchQuery(data.display_name);
-            onLocationSelect(data.display_name, latitude, longitude);
+      setIsLocating(true);
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          setMarker([latitude, longitude]);
+          setMapCenter([latitude, longitude]);
+          setZoom(17);
+          
+          try {
+            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`);
+            const data = await response.json();
+            if (data && data.display_name) {
+              setAddress(data.display_name);
+              setSearchQuery(data.display_name);
+              onLocationSelect(data.display_name, latitude, longitude);
+            }
+          } catch (e) {
+            console.error('Reverse geocoding failed', e);
+          } finally {
+            setIsLocating(false);
           }
-        } catch (e) {
-          console.error('Reverse geocoding failed', e);
-        }
-      });
+        },
+        (error) => {
+          console.error('Geolocation error:', error);
+          setIsLocating(false);
+          // Silent fail or console log is safer in iframe than alert
+          console.warn('Location access denied or unavailable');
+        },
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+      );
+    } else {
+      console.warn('Geolocation is not supported by your browser');
     }
   };
 
@@ -499,10 +519,11 @@ function MapPicker({ onLocationSelect, initialLocation, t }: { onLocationSelect:
           <Button 
             onClick={handleLocateMe}
             variant="secondary"
+            disabled={isLocating}
             className="rounded-2xl px-4 flex items-center justify-center"
             title="Locate Me"
           >
-            <MapPin className="w-5 h-5" />
+            <MapPin className={cn("w-5 h-5", isLocating && "animate-pulse text-blue-500")} />
           </Button>
           <Button 
             onClick={handleSearch} 
@@ -1638,9 +1659,6 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                     <div>
                       <div className="flex items-center gap-2">
                         <h3 className="text-lg font-black text-white mb-0.5">{s.title}</h3>
-                        {s.id === 'Premium' && (
-                          <span className="text-[8px] font-black bg-blue-400 text-slate-950 px-1.5 py-0.5 rounded-full uppercase tracking-wider">{t.bestValue}</span>
-                        )}
                       </div>
                       <div className="flex items-baseline gap-2">
                         <p className={cn(
@@ -1651,14 +1669,6 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                           <p className="text-xs text-slate-600 line-through">{s.originalPrice}₾</p>
                         )}
                       </div>
-                    </div>
-                  </div>
-                  <div className="relative z-10">
-                    <div className={cn(
-                      "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-500",
-                      bookingData.service === s.id ? "bg-blue-400 border-blue-400 scale-105" : "border-white/10"
-                    )}>
-                      {bookingData.service === s.id && <Check className="w-3 h-3 text-slate-950" />}
                     </div>
                   </div>
                 </button>

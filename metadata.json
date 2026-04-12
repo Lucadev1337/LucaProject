@@ -1,5 +1,5 @@
 {
   "name": "Luca's AutoSpa",
   "description": "ჩვენ ვაწკრიალებთ მანქანას შენს მისამართზე, შენ ზოგავ დროს",
-  "requestFramePermissions": []
+  "requestFramePermissions": ["geolocation"]
 }

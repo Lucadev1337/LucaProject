@@ -46,10 +46,12 @@ import {
   Plus,
   Trash2,
   MessageCircle,
+  Instagram,
   ArrowLeft,
   HelpCircle,
   ChevronLeft,
-  Check
+  Check,
+  Users
 } from 'lucide-react';
 import { format, addDays, startOfToday, isSameDay, parseISO } from 'date-fns';
 import { ka } from 'date-fns/locale';
@@ -77,10 +79,11 @@ type Language = 'GE' | 'EN';
 
 const translations = {
   GE: {
+    socialMedia: "სოციალური ქსელები",
     heroBadge: "მოძრავი სერვისი - ჩვენ მოვალთ თქვენთან!",
     heroTitle: "ჩვენ ვაწკრიალებთ, ",
     heroTitleSpan: "შენ ზოგავ დროს",
-    heroDesc: "დეტალური ინტერიერის წმენდა შენს მისამართზე. პროფესიონალური ხსნარებით, მისაღებ ფასად.",
+    heroDesc: "დეტალური ინტერიერის ქიმწმენდა შენს მისამართზე. პროფესიონალური ხსნარებით, მისაღებ ფასად.",
     bookNow: "დაჯავშნე ახლავე",
     viewServices: "სერვისების ნახვა",
     lastResult: "ბოლო შედეგი",
@@ -103,6 +106,7 @@ const translations = {
     readyForNewSpan: "სიახლისთვის?",
     ctaDesc: "ენდეთ Luca's AutoSpa-ს და დაუბრუნეთ თქვენს ავტომობილს პირვანდელი სახე.",
     fiveStar: "5-ვარსკვლავიანი",
+    googleReviews: "მომხმარებლების შეფასებები",
     mobile: "მოძრავი",
     footerDesc: "ინტერიერის პრემიუმ დითეილინგი, სასურველ მისამართზე. თქვენ ზოგავთ დროს და ენერგიას, ჩვენ მოვდივართ თქვენს მისამართზე და ვუბრუნებთ ავტომობილს პირვანდელი იერსახეს.",
     serviceArea: "მომსახურების არეალი",
@@ -166,10 +170,11 @@ const translations = {
     ]
   },
   EN: {
+    socialMedia: "Social Media",
     heroBadge: "Mobile Service - We come to you!",
     heroTitle: "We clean at your location, ",
     heroTitleSpan: "you save precious time",
-    heroDesc: "Detailed interior cleaning at your door. With professional cleaning agents, at an affordable price.",
+    heroDesc: "Detailed interior cleaning at your doorstep. At an affordable price.",
     bookNow: "Book Now",
     viewServices: "View Services",
     lastResult: "Last Result",
@@ -192,6 +197,7 @@ const translations = {
     readyForNewSpan: "something new?",
     ctaDesc: "Trust Luca's AutoSpa and give your car its original look back.",
     fiveStar: "5-Star",
+    googleReviews: "Google Reviews",
     mobile: "Mobile",
     footerDesc: "Premium interior cleaning at your desired address. You save time and energy, we come to your address and restore your car's original look.",
     serviceArea: "Service Area",
@@ -274,11 +280,17 @@ interface Availability {
   slots: string[];
 }
 
+interface HeroReview {
+  imageUrl: string;
+  link: string;
+}
+
 interface PricingSettings {
   basicPrice: number;
   premiumPrice: number;
   salePercentage: number;
   isSaleActive: boolean;
+  heroReviews?: HeroReview[];
 }
 
 // --- Error Handling ---
@@ -665,6 +677,19 @@ export default function App() {
                 </div>
               </div>
               <div>
+                <h4 className="text-white font-semibold mb-3 text-sm">{t.socialMedia}</h4>
+                <div className="flex gap-4">
+                  <a href="https://www.instagram.com/lucasautospa.ge/" target="_blank" rel="noopener noreferrer" className="w-8 h-8 bg-slate-800 rounded-lg flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all">
+                    <Instagram className="w-4 h-4" />
+                  </a>
+                  <a href="https://www.tiktok.com/@lucasautospa.ge" target="_blank" rel="noopener noreferrer" className="w-8 h-8 bg-slate-800 rounded-lg flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all">
+                    <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                      <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.17-2.89-.6-4.13-1.47-.13 3.1-.12 6.2-.13 9.3 0 1.29-.27 2.61-.9 3.74-.85 1.54-2.43 2.59-4.16 2.89-2.12.37-4.44-.19-6.01-1.7-1.73-1.66-2.32-4.32-1.47-6.57.73-1.92 2.61-3.41 4.65-3.64.13-.02.26-.03.39-.03v4.02c-.8.1-1.6.46-2.14 1.06-.63.7-.83 1.73-.51 2.58.3.8.99 1.48 1.84 1.67 1.13.23 2.43-.1 3.09-1.03.44-.6.54-1.36.54-2.1V4.59c0-1.52 0-3.05-.01-4.57z"/>
+                    </svg>
+                  </a>
+                </div>
+              </div>
+              <div>
                 <h4 className="text-white font-semibold mb-3 text-sm">{t.termsOfService}</h4>
                 <button 
                   onClick={() => {
@@ -705,12 +730,9 @@ function PublicSite({ onBookNow, pricing, t, lang }: { onBookNow: (plan?: 'Basic
   const y = useTransform(scrollY, [0, 500], [0, 150]);
   const [currentSlide, setCurrentSlide] = useState(0);
   const heroImages = [
-    "https://s25180.pcdn.co/wp-content/uploads/2022/06/Interior-Detailing-Products.jpg",
-    "https://i.pinimg.com/1200x/dd/4e/42/dd4e4266d0a8972dd80175f1f6250541.jpg",
-    "https://i.pinimg.com/1200x/dd/4e/42/dd4e4266d0a8972dd80175f1f6250541.jpg",
-    "https://i.pinimg.com/1200x/dd/4e/42/dd4e4266d0a8972dd80175f1f6250541.jpg",
-    "https://i.pinimg.com/1200x/dd/4e/42/dd4e4266d0a8972dd80175f1f6250541.jpg",
-    "https://i.pinimg.com/1200x/dd/4e/42/dd4e4266d0a8972dd80175f1f6250541.jpg",
+    "https://media.discordapp.net/attachments/1456600712489468089/1492884090524008488/IMG_9959.png?ex=69dcf427&is=69dba2a7&hm=d78117ac4a1ac8d8592e657f2f21f5e425bc5c6efbba5c9749af84bf9cd4c7c0&=&format=webp&quality=lossless&width=1466&height=1100",
+    "https://media.discordapp.net/attachments/1456600712489468089/1492884090947375154/IMG_9961.png?ex=69dcf427&is=69dba2a7&hm=8e3c61b43894ed87869c60a4bcb3581ffc3b38395b030bab8b18bfff3154122c&=&format=webp&quality=lossless&width=1466&height=1100",
+    
   ];
 
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % heroImages.length);
@@ -779,21 +801,48 @@ function PublicSite({ onBookNow, pricing, t, lang }: { onBookNow: (plan?: 'Basic
             </div>
             <div className="mt-12 flex items-center gap-6">
               <div className="flex -space-x-3">
-                {[1, 2, 3].map(i => (
-                  <img 
-                    key={i} 
-                    src={`https://picsum.photos/seed/user${i}/100/100`} 
-                    className="w-10 h-10 rounded-full border-2 border-slate-900 shadow-sm" 
-                    referrerPolicy="no-referrer"
-                    alt="Happy Customer"
-                  />
-                ))}
+                {pricing.heroReviews && pricing.heroReviews.length > 0 ? (
+                  pricing.heroReviews.map((review, i) => (
+                    <a 
+                      key={i} 
+                      href={review.link || '#'} 
+                      target={review.link ? "_blank" : "_self"}
+                      rel="noopener noreferrer"
+                      className="transition-transform hover:scale-110 hover:z-10"
+                    >
+                      <img 
+                        src={review.imageUrl || `https://picsum.photos/seed/user${i}/100/100`} 
+                        className="w-10 h-10 rounded-full border-2 border-slate-900 shadow-sm object-cover" 
+                        referrerPolicy="no-referrer"
+                        alt="Happy Customer"
+                      />
+                    </a>
+                  ))
+                ) : (
+                  [1, 2, 3].map(i => (
+                    <img 
+                      key={i} 
+                      src={`https://picsum.photos/seed/user${i}/100/100`} 
+                      className="w-10 h-10 rounded-full border-2 border-slate-900 shadow-sm" 
+                      referrerPolicy="no-referrer"
+                      alt="Happy Customer"
+                    />
+                  ))
+                )}
               </div>
               <div className="text-sm">
                 <div className="flex text-yellow-500 mb-1">
                   {[...Array(5)].map((_, i) => <Star key={i} className="w-3 h-3 fill-current" />)}
                 </div>
-                <p className="text-slate-400 font-medium">{t.serviceAreaDesc}</p>
+                <a 
+                  href="https://maps.app.goo.gl/2anQdgTUnWonpiY77" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="text-slate-400 font-medium hover:text-blue-400 transition-colors flex items-center gap-1"
+                >
+                  {t.googleReviews}
+                  <ChevronRight className="w-3 h-3" />
+                </a>
               </div>
             </div>
           </motion.div>
@@ -861,29 +910,13 @@ function PublicSite({ onBookNow, pricing, t, lang }: { onBookNow: (plan?: 'Basic
                     <Zap className="w-6 h-6" />
                   </div>
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-widest opacity-60">{t.lastResult}</p>
-                    <p className="text-lg font-bold">{t.premiumDetailing}</p>
+                    <p className="text-xs font-bold uppercase tracking-widest opacity-90">{t.lastResult}</p>
                   </div>
                 </div>
               </div>
             </div>
 
           </motion.div>
-        </div>
-      </section>
-
-      {/* Features */}
-      <section className="py-12 px-4">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
-          {t.features.map((f: any, i: number) => (
-            <div key={i} className="flex flex-col gap-4 p-6 rounded-3xl bg-slate-900 border border-slate-800 hover:border-slate-700 transition-colors">
-              <div className="w-12 h-12 bg-blue-600/10 text-blue-500 rounded-2xl flex items-center justify-center">
-                {i === 0 ? <Zap className="w-6 h-6" /> : i === 1 ? <ShieldCheck className="w-6 h-6" /> : <MapPin className="w-6 h-6" />}
-              </div>
-              <h3 className="text-lg font-bold text-white">{f.title}</h3>
-              <p className="text-sm text-slate-400 leading-relaxed">{f.desc}</p>
-            </div>
-          ))}
         </div>
       </section>
 
@@ -967,6 +1000,21 @@ function PublicSite({ onBookNow, pricing, t, lang }: { onBookNow: (plan?: 'Basic
               </Button>
             </Card>
           </div>
+        </div>
+      </section>
+
+      {/* Features */}
+      <section className="py-12 px-4">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
+          {t.features.map((f: any, i: number) => (
+            <div key={i} className="flex flex-col gap-4 p-6 rounded-3xl bg-slate-900 border border-slate-800 hover:border-slate-700 transition-colors">
+              <div className="w-12 h-12 bg-blue-600/10 text-blue-500 rounded-2xl flex items-center justify-center">
+                {i === 0 ? <Zap className="w-6 h-6" /> : i === 1 ? <ShieldCheck className="w-6 h-6" /> : <MapPin className="w-6 h-6" />}
+              </div>
+              <h3 className="text-lg font-bold text-white">{f.title}</h3>
+              <p className="text-sm text-slate-400 leading-relaxed">{f.desc}</p>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -2216,6 +2264,78 @@ function PricingManager({ pricing, onBack }: { pricing: PricingSettings, onBack:
                 ფასდაკლება ავტომატურად აისახება ყველა სერვისზე საიტზე და ჯავშნის გვერდზე.
               </p>
             </div>
+          </div>
+        </Card>
+
+        {/* Hero Reviews */}
+        <Card className="bg-slate-900 border-slate-800 p-6 space-y-6 md:col-span-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-600/10 text-blue-500 rounded-xl flex items-center justify-center">
+                <Users className="w-5 h-5" />
+              </div>
+              <h3 className="text-xl font-bold text-white">მთავარი გვერდის რევიუები (ავატარები)</h3>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => {
+                const reviews = localPricing.heroReviews || [];
+                setLocalPricing({ ...localPricing, heroReviews: [...reviews, { imageUrl: '', link: '' }] });
+              }}
+              className="gap-2 border-slate-700 text-slate-300 hover:bg-slate-800"
+            >
+              <Plus className="w-4 h-4" /> დამატება
+            </Button>
+          </div>
+
+          <div className="space-y-4">
+            {(localPricing.heroReviews || []).map((review, index) => (
+              <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-slate-950 rounded-2xl border border-slate-800 relative group">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">სურათის URL</label>
+                  <input 
+                    type="text"
+                    value={review.imageUrl}
+                    onChange={(e) => {
+                      const newReviews = [...(localPricing.heroReviews || [])];
+                      newReviews[index].imageUrl = e.target.value;
+                      setLocalPricing({ ...localPricing, heroReviews: newReviews });
+                    }}
+                    placeholder="https://example.com/image.jpg"
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-xs text-white outline-none focus:border-blue-600 transition-all"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">ბმული (Link)</label>
+                  <input 
+                    type="text"
+                    value={review.link}
+                    onChange={(e) => {
+                      const newReviews = [...(localPricing.heroReviews || [])];
+                      newReviews[index].link = e.target.value;
+                      setLocalPricing({ ...localPricing, heroReviews: newReviews });
+                    }}
+                    placeholder="https://instagram.com/review"
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-xs text-white outline-none focus:border-blue-600 transition-all"
+                  />
+                </div>
+                <button 
+                  onClick={() => {
+                    const newReviews = (localPricing.heroReviews || []).filter((_, i) => i !== index);
+                    setLocalPricing({ ...localPricing, heroReviews: newReviews });
+                  }}
+                  className="absolute -top-2 -right-2 w-6 h-6 bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+            {(!localPricing.heroReviews || localPricing.heroReviews.length === 0) && (
+              <div className="text-center py-8 border-2 border-dashed border-slate-800 rounded-2xl">
+                <p className="text-sm text-slate-500">რევიუები არ არის დამატებული. საიტზე გამოჩნდება სტანდარტული სურათები.</p>
+              </div>
+            )}
           </div>
         </Card>
       </div>

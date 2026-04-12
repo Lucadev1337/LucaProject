@@ -234,10 +234,6 @@ app.post('/api/send-review-request', async (req, res) => {
             </div>
             
             <h2 style="font-size: 24px; font-weight: 700; color: #0f172a; margin-top: 0; margin-bottom: 20px;">დიდი მადლობა, ${customerName}!</h2>
-            
-            <p style="color: #475569; font-size: 16px; line-height: 1.7; margin-bottom: 32px; text-align: left;">
-              მოხარულები ვართ, რომ ისარგებლეთ ჩვენი სერვისით. იმედი გვაქვს, თქვენი ავტომობილი ისევ ისე ბზინავს, როგორც ახალი და შედეგით კმაყოფილი ხართ.
-            </p>
 
             <div style="background-color: #f1f5f9; border-radius: 16px; padding: 24px; margin-bottom: 32px; text-align: left;">
               <p style="color: #1e293b; font-size: 15px; font-weight: 600; margin-top: 0; margin-bottom: 12px;">თქვენი აზრი ჩვენთვის ძალიან მნიშვნელოვანია!</p>

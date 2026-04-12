@@ -48,7 +48,18 @@
         "basicPrice": { "type": "number", "description": "Price for the Basic package." },
         "premiumPrice": { "type": "number", "description": "Price for the Premium package." },
         "salePercentage": { "type": "number", "description": "Sale percentage (e.g., 20 for 20% off)." },
-        "isSaleActive": { "type": "boolean", "description": "Whether the sale is currently active." }
+        "isSaleActive": { "type": "boolean", "description": "Whether the sale is currently active." },
+        "heroReviews": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "imageUrl": { "type": "string", "description": "URL of the reviewer avatar." },
+              "link": { "type": "string", "description": "Link to the review or social profile." }
+            }
+          },
+          "description": "List of reviewer avatars with links for the hero section."
+        }
       },
       "required": ["basicPrice", "premiumPrice", "salePercentage", "isSaleActive"]
     }

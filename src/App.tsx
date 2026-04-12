@@ -1572,7 +1572,7 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
         <div style={{ paddingTop: '200px' }} className="flex items-center justify-between px-2">
           {steps.map((s, i) => (
             <React.Fragment key={s.id}>
-              <div className="flex flex-col items-center gap-2 relative">
+              <div style={{ textAlign: 'center' }} className="flex flex-col items-center gap-2 relative">
                 <div className={cn(
                   "w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-500",
                   s.completed ? "bg-green-500 text-slate-950" : s.id === currentStep ? "bg-blue-400 text-slate-950 shadow-lg shadow-blue-400/20" : "bg-slate-900 text-slate-500 border border-white/5"

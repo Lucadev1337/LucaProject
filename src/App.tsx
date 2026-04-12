@@ -1569,7 +1569,7 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
 
       <div className="max-w-2xl mx-auto px-4 pt-24 pb-0 space-y-6">
         {/* Progress Indicator */}
-        <div className="flex items-center justify-between px-2">
+        <div style={{ paddingTop: '170px' }} className="flex items-center justify-between px-2">
           {steps.map((s, i) => (
             <React.Fragment key={s.id}>
               <div className="flex flex-col items-center gap-2 relative">

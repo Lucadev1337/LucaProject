@@ -5,6 +5,19 @@
 @theme {
   --font-display: "Space Grotesk", sans-serif;
   --font-orbitron: "Orbitron", sans-serif;
+  --color-blue-400: #5ed2ff;
+  --color-blue-500: #30c3fc;
+  --color-blue-600: #1ba8e0;
+  --color-blue-700: #0e8dc2;
+}
+
+html, body {
+  background-color: #020617;
+  color: #f1f5f9;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  width: 100%;
 }
 
 @utility no-scrollbar {

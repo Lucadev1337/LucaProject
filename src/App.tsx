@@ -94,7 +94,7 @@ const translations = {
       { title: "მოქნილობა", desc: "ჩვენ მოვალთ თქვენს ლოკაციაზე. ნებისმიერ ადგილას, ნებისმიერ დროს." }
     ],
     pricingTitle: "მისაღები ფასები",
-    pricingDesc: "აირჩიეთ თქვენთვის სასურველი პაკეტი. ფარული ხარჯების გარეშე.",
+    pricingDesc: "აირჩიეთ თქვენთვის სასურველი პაკეტი.",
     standardClean: "ინტერიერის წმენდა",
     premiumDeepClean: "ინტერიერის პრემიუმ დითეილინგი",
     perService: "/ სერვისი ადგილზე",
@@ -167,6 +167,12 @@ const translations = {
       "სავარძლების ღრმა წმენდა",
       "ყველა დეტალის დამუშავება",
       "ანტიწვიმა ყველა მინაზე"
+    ],
+    howItWorks: "როგორ ვმუშაობთ",
+    steps: [
+      { title: "დაჯავშნა", desc: "აირჩიეთ სასურველი სერვისი და დრო ონლაინ." },
+      { title: "მოვდივართ თქვენთან", desc: "ჩვენი გუნდი მოვა თქვენს მისამართზე საჭირო აღჭურვილობით." },
+      { title: "ისიამოვნეთ შედეგით", desc: "მიიღეთ იდეალურად სუფთა ავტომობილი სახლიდან გაუსვლელად." }
     ]
   },
   EN: {
@@ -185,7 +191,7 @@ const translations = {
       { title: "Flexibility", desc: "We come to your location. Anywhere, anytime." }
     ],
     pricingTitle: "Affordable Pricing",
-    pricingDesc: "Choose the package that suits you. No hidden costs.",
+    pricingDesc: "Choose the package that suits you.",
     standardClean: "Standard Clean",
     premiumDeepClean: "Premium Deep Clean",
     perService: "/ on-site service",
@@ -258,6 +264,12 @@ const translations = {
       "Deep seat cleaning",
       "Thorough cleaning of all details",
       "Rain repellent on all windows"
+    ],
+    howItWorks: "How it works",
+    steps: [
+      { title: "Booking", desc: "Choose your desired service and time online." },
+      { title: "We come to you", desc: "Our team will come to your address with the necessary equipment." },
+      { title: "Enjoy the result", desc: "Get a perfectly clean car without leaving your home." }
     ]
   }
 };
@@ -440,7 +452,7 @@ function MapPicker({ onLocationSelect, initialLocation, t }: { onLocationSelect:
           </Button>
         </div>
       </div>
-      <div className="h-[300px] w-full rounded-3xl overflow-hidden border border-white/10 relative z-0">
+      <div className="h-[300px] w-full rounded-3xl overflow-hidden relative z-0">
         <MapContainer 
           center={mapCenter} 
           zoom={zoom} 
@@ -449,8 +461,8 @@ function MapPicker({ onLocationSelect, initialLocation, t }: { onLocationSelect:
         >
           <ChangeView center={mapCenter} zoom={zoom} />
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+            url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
           />
           <MapEvents onClick={handleMapClick} />
           {marker && <Marker position={marker} />}
@@ -567,7 +579,9 @@ export default function App() {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex justify-between h-16 items-center">
                 <div className="flex items-center gap-2 cursor-pointer" onClick={() => setView('public')}>
-                  <span className="text-xl font-bold tracking-tight text-white font-orbitron uppercase">LUCA'S <span className="text-blue-500">AUTOSPA</span></span>
+                  <span className="text-xl font-bold tracking-tight font-orbitron uppercase bg-gradient-to-r from-white to-[#30c3fc] bg-clip-text text-transparent">
+                    LUCA'S AUTOSPA
+                  </span>
                 </div>
                 
                 <div className="flex items-center gap-4">
@@ -654,8 +668,13 @@ export default function App() {
           <footer className="bg-slate-900 text-slate-400 py-8 px-4 border-t border-slate-800">
             <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-white font-bold text-base font-orbitron uppercase">LUCA'S AUTOSPA</span>
+                <div className="flex items-center gap-2 mb-4">
+                  <img 
+                    src="https://cdn.discordapp.com/attachments/1456600712489468089/1492899401872703550/lucasautospalogotransparentcropped.png?ex=69dd026a&is=69dbb0ea&hm=079b336f78d420e38f0b8d7599e23f22b1fd0221e60f8af1b52bf64049d437ed" 
+                    alt="Luca's Autospa Logo" 
+                    className="h-12 w-auto object-contain"
+                    referrerPolicy="no-referrer"
+                  />
                 </div>
                 <p className="text-xs leading-relaxed">
                   {t.footerDesc}
@@ -760,7 +779,7 @@ function PublicSite({ onBookNow, pricing, t, lang }: { onBookNow: (plan?: 'Basic
       exit={{ opacity: 0 }}
     >
       {/* Hero Section */}
-      <section className="relative pt-8 pb-24 px-4 overflow-hidden">
+      <section className="relative pt-6 pb-16 px-4 overflow-hidden">
         {/* Parallax Background */}
         <motion.div 
           style={{ y }}
@@ -775,27 +794,38 @@ function PublicSite({ onBookNow, pricing, t, lang }: { onBookNow: (plan?: 'Basic
           />
         </motion.div>
         
-        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center relative z-20">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center relative z-20">
           <motion.div 
             initial={{ x: -50, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             transition={{ delay: 0.2 }}
           >
-            <div className="inline-flex items-center gap-2 bg-blue-600/20 text-blue-400 px-4 py-2 rounded-full text-xs font-bold mb-6 border border-blue-600/30">
-              <MapPin className="w-4 h-4" />
+            <div className="inline-flex items-center gap-2 bg-blue-500/10 text-blue-400 px-3 py-1.5 rounded-full text-[10px] font-black mb-4 border border-blue-500/20">
+              <MapPin className="w-3.5 h-3.5" />
               <span>{t.heroBadge}</span>
             </div>
-            <h1 className="text-3xl lg:text-5xl font-extrabold tracking-tight text-white mb-6 leading-tight">
-              {t.heroTitle}<span className="text-blue-500">{t.heroTitleSpan}</span>
+            <h1 className="text-3xl lg:text-5xl font-black tracking-tight text-white mb-6 leading-[1.1]">
+              {t.heroTitle}
+              <br />
+              <span className="text-blue-400">{t.heroTitleSpan}</span>
             </h1>
-            <p className="text-base text-slate-400 mb-8 leading-relaxed max-w-lg">
+            <p className="text-base lg:text-lg text-slate-400 mb-6 leading-relaxed max-w-lg">
               {t.heroDesc}
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button size="lg" className="rounded-2xl shadow-xl shadow-blue-600/20" onClick={() => scrollToBooking()}>
+              <Button 
+                size="lg" 
+                className="rounded-2xl bg-blue-500 hover:bg-blue-400 text-slate-950 font-black px-8 h-14 text-base shadow-[0_0_20px_rgba(59,130,246,0.4)] hover:shadow-[0_0_30px_rgba(59,130,246,0.6)] transition-all hover:-translate-y-1 active:scale-95" 
+                onClick={() => scrollToBooking()}
+              >
                 {t.bookNow} <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
-              <Button variant="outline" size="lg" className="rounded-2xl border-slate-700 text-slate-300 hover:bg-slate-800" onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}>
+              <Button 
+                variant="outline" 
+                size="lg" 
+                className="rounded-2xl border-2 border-white/10 bg-white/5 backdrop-blur-md text-white hover:bg-white/10 hover:border-white/20 px-8 h-14 text-base transition-all hover:-translate-y-1 active:scale-95" 
+                onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}
+              >
                 {t.viewServices}
               </Button>
             </div>
@@ -830,6 +860,7 @@ function PublicSite({ onBookNow, pricing, t, lang }: { onBookNow: (plan?: 'Basic
                   ))
                 )}
               </div>
+              <div className="w-[1px] h-8 bg-white/10" />
               <div className="text-sm">
                 <div className="flex text-yellow-500 mb-1">
                   {[...Array(5)].map((_, i) => <Star key={i} className="w-3 h-3 fill-current" />)}
@@ -852,195 +883,272 @@ function PublicSite({ onBookNow, pricing, t, lang }: { onBookNow: (plan?: 'Basic
             transition={{ delay: 0.4 }}
             className="relative group"
           >
-            <div className="relative rounded-3xl overflow-hidden shadow-2xl shadow-blue-900/20 aspect-[4/3] border border-slate-800">
-              <AnimatePresence mode="wait">
-                <motion.img 
-                  key={currentSlide}
-                  src={heroImages[currentSlide]} 
-                  initial={{ opacity: 0, scale: 1.1 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{ duration: 0.6 }}
-                  drag="x"
-                  dragConstraints={{ left: 0, right: 0 }}
-                  onDragEnd={(_, info) => {
-                    if (info.offset.x > 50) prevSlide();
-                    else if (info.offset.x < -50) nextSlide();
-                  }}
-                  className="w-full h-full object-cover opacity-80 cursor-grab active:cursor-grabbing" 
-                  referrerPolicy="no-referrer"
-                  alt="Car Interior Detailing"
-                />
-              </AnimatePresence>
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent pointer-events-none" />
-              
-              {/* Navigation Arrows */}
-              <button 
-                onClick={prevSlide}
-                className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-slate-900/50 text-white backdrop-blur-md border border-white/10 opacity-0 group-hover:opacity-100 transition-all hover:bg-blue-600 hover:scale-110 active:scale-95 z-20"
-                aria-label="Previous image"
-              >
-                <ChevronLeft className="w-6 h-6" />
-              </button>
-              <button 
-                onClick={nextSlide}
-                className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-slate-900/50 text-white backdrop-blur-md border border-white/10 opacity-0 group-hover:opacity-100 transition-all hover:bg-blue-600 hover:scale-110 active:scale-95 z-20"
-                aria-label="Next image"
-              >
-                <ChevronRight className="w-6 h-6" />
-              </button>
-
-              {/* Indicators */}
-              <div className="absolute bottom-6 right-6 flex gap-2 z-20">
-                {heroImages.map((_, i) => (
-                  <button 
-                    key={i}
-                    onClick={() => setCurrentSlide(i)}
-                    className={cn(
-                      "w-2 h-2 rounded-full transition-all",
-                      currentSlide === i ? "bg-blue-500 w-6" : "bg-white/30 hover:bg-white/50"
-                    )}
+            {/* Floating Frame Effect */}
+            <div className="absolute -inset-4 bg-blue-600/20 blur-3xl rounded-[3rem] opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+            
+            <div className="relative rounded-[2.5rem] overflow-hidden shadow-2xl shadow-blue-900/40 aspect-[4/3] border border-white/10 bg-slate-900/40 backdrop-blur-sm p-2">
+              <div className="relative h-full w-full rounded-[2rem] overflow-hidden">
+                <AnimatePresence mode="wait">
+                  <motion.img 
+                    key={currentSlide}
+                    src={heroImages[currentSlide]} 
+                    initial={{ opacity: 0, scale: 1.1 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ duration: 0.6 }}
+                    drag="x"
+                    dragConstraints={{ left: 0, right: 0 }}
+                    onDragEnd={(_, info) => {
+                      if (info.offset.x > 50) prevSlide();
+                      else if (info.offset.x < -50) nextSlide();
+                    }}
+                    className="w-full h-full object-cover opacity-90 cursor-grab active:cursor-grabbing" 
+                    referrerPolicy="no-referrer"
+                    alt="Car Interior Detailing"
                   />
-                ))}
-              </div>
+                </AnimatePresence>
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent pointer-events-none" />
+                
+                {/* Navigation Arrows */}
+                <button 
+                  onClick={prevSlide}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/10 text-white backdrop-blur-xl border border-white/20 opacity-0 group-hover:opacity-100 transition-all hover:bg-blue-600 hover:scale-110 active:scale-95 z-20"
+                  aria-label="Previous image"
+                >
+                  <ChevronLeft className="w-6 h-6" />
+                </button>
+                <button 
+                  onClick={nextSlide}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/10 text-white backdrop-blur-xl border border-white/20 opacity-0 group-hover:opacity-100 transition-all hover:bg-blue-600 hover:scale-110 active:scale-95 z-20"
+                  aria-label="Next image"
+                >
+                  <ChevronRight className="w-6 h-6" />
+                </button>
 
-              <div className="absolute bottom-6 left-6 text-white pointer-events-none z-10">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-                    <Zap className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-widest opacity-90">{t.lastResult}</p>
+                {/* Indicators */}
+                <div className="absolute bottom-6 right-6 flex gap-2 z-20">
+                  {heroImages.map((_, i) => (
+                    <button 
+                      key={i}
+                      onClick={() => setCurrentSlide(i)}
+                      className={cn(
+                        "w-2 h-2 rounded-full transition-all",
+                        currentSlide === i ? "bg-blue-500 w-6" : "bg-white/30 hover:bg-white/50"
+                      )}
+                    />
+                  ))}
+                </div>
+
+                <div className="absolute bottom-6 left-6 text-white pointer-events-none z-10">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-600/40">
+                      <Zap className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-widest opacity-90">{t.lastResult}</p>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-
           </motion.div>
         </div>
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="py-12 px-4 bg-slate-950">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-white mb-4">{t.pricingTitle}</h2>
-            <p className="text-sm text-slate-400 max-w-2xl mx-auto">{t.pricingDesc}</p>
-          </div>
+      <section id="pricing" className="py-16 px-4 bg-slate-950 relative overflow-hidden">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(122,220,255,0.05)_0%,transparent_70%)] pointer-events-none" />
+        
+        <div className="max-w-7xl mx-auto relative z-10">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
+            <h2 className="text-3xl md:text-4xl font-black text-white mb-4 tracking-tight">{t.pricingTitle}</h2>
+            <p className="text-sm md:text-base text-slate-400 max-w-2xl mx-auto">{t.pricingDesc}</p>
+          </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
             {/* Basic Package */}
-            <Card className="flex flex-col bg-slate-900 border-slate-800 hover:border-blue-900/50 transition-colors">
-              <div className="mb-6">
-                <h3 className="text-xl font-bold mb-2 text-white">{t.standardClean}</h3>
-                <div className="flex items-baseline gap-2">
-                  {pricing.isSaleActive ? (
-                    <>
-                      <span className="text-3xl font-extrabold text-white">{getPrice(pricing.basicPrice)}₾</span>
-                      <span className="text-lg text-slate-500 line-through">{pricing.basicPrice}₾</span>
-                    </>
-                  ) : (
-                    <span className="text-3xl font-extrabold text-white">{pricing.basicPrice}₾</span>
-                  )}
-                  <span className="text-xs text-slate-500">{t.perService}</span>
-                </div>
-                {pricing.isSaleActive && (
-                  <div className="mt-2 inline-block bg-red-600/20 text-red-500 text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider">
-                    -{pricing.salePercentage}% {t.sale}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+            >
+              <Card className="flex flex-col h-full bg-slate-900/40 backdrop-blur-xl border-white/5 hover:border-blue-400/50 transition-all duration-500 group overflow-hidden rounded-[2rem]">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-400/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="p-6 relative z-10">
+                  <div className="mb-6">
+                    <h3 className="text-xl font-black mb-3 text-white">{t.standardClean}</h3>
+                    <div className="flex items-baseline gap-2">
+                      {pricing.isSaleActive ? (
+                        <>
+                          <span className="text-3xl font-black text-white">{getPrice(pricing.basicPrice)}₾</span>
+                          <span className="text-lg text-slate-500 line-through">{pricing.basicPrice}₾</span>
+                        </>
+                      ) : (
+                        <span className="text-3xl font-black text-white">{pricing.basicPrice}₾</span>
+                      )}
+                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{t.perService}</span>
+                    </div>
+                    {pricing.isSaleActive && (
+                      <div className="mt-3 inline-block bg-red-500/20 text-red-400 text-[10px] font-black px-2 py-1 rounded-full uppercase tracking-wider border border-red-500/20">
+                        -{pricing.salePercentage}% {t.sale}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-              <ul className="flex-1 space-y-3 mb-8">
-                {t.standardDetails.map((item, i) => (
-                  <li key={i} className="flex items-center gap-3 text-sm text-slate-300">
-                    <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <Button variant="outline" className="w-full py-3 rounded-xl border-slate-700 text-slate-300 hover:bg-slate-800" onClick={() => scrollToBooking('Basic')}>
-                {t.selectStandard}
-              </Button>
-            </Card>
+                  <ul className="space-y-3 mb-8">
+                    {t.standardDetails.map((item, i) => (
+                      <li key={i} className="flex items-center gap-2.5 text-xs text-slate-300">
+                        <div className="w-4 h-4 rounded-full bg-blue-400/10 flex items-center justify-center flex-shrink-0">
+                          <CheckCircle className="w-3 h-3 text-blue-400" />
+                        </div>
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                  <Button variant="outline" className="w-full py-5 rounded-xl border-white/5 text-white hover:bg-white/5 transition-all text-sm font-black" onClick={() => scrollToBooking('Basic')}>
+                    {t.selectStandard}
+                  </Button>
+                </div>
+              </Card>
+            </motion.div>
 
             {/* Premium Package */}
-            <Card className="flex flex-col bg-slate-900 border-blue-600/50 ring-4 ring-blue-600/5 relative overflow-hidden">
-              <div className="absolute top-0 right-0 bg-blue-600 text-white px-3 py-1 rounded-bl-xl text-[10px] font-bold uppercase tracking-wider">
-                {t.mostPopular}
-              </div>
-              <div className="mb-6">
-                <h3 className="text-xl font-bold mb-2 text-white">{t.premiumDeepClean}</h3>
-                <div className="flex items-baseline gap-2">
-                  {pricing.isSaleActive ? (
-                    <>
-                      <span className="text-3xl font-extrabold text-white">{getPrice(pricing.premiumPrice)}₾</span>
-                      <span className="text-lg text-slate-500 line-through">{pricing.premiumPrice}₾</span>
-                    </>
-                  ) : (
-                    <span className="text-3xl font-extrabold text-white">{pricing.premiumPrice}₾</span>
-                  )}
-                  <span className="text-xs text-slate-500">{t.perService}</span>
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+            >
+              <Card className="flex flex-col h-full bg-slate-900/60 backdrop-blur-xl border-blue-400/30 ring-1 ring-blue-400/10 relative overflow-hidden group rounded-[2rem]">
+                <div className="absolute top-0 right-0 bg-blue-400 text-slate-950 px-3 py-1 rounded-bl-xl text-[10px] font-black uppercase tracking-widest shadow-lg">
+                  {t.mostPopular}
                 </div>
-                {pricing.isSaleActive && (
-                  <div className="mt-2 inline-block bg-red-600/20 text-red-500 text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider">
-                    -{pricing.salePercentage}% {t.sale}
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-400/10 to-transparent opacity-50" />
+                <div className="p-6 relative z-10">
+                  <div className="mb-6">
+                    <h3 className="text-xl font-black mb-3 text-white">{t.premiumDeepClean}</h3>
+                    <div className="flex items-baseline gap-2">
+                      {pricing.isSaleActive ? (
+                        <>
+                          <span className="text-3xl font-black text-white">{getPrice(pricing.premiumPrice)}₾</span>
+                          <span className="text-lg text-slate-500 line-through">{pricing.premiumPrice}₾</span>
+                        </>
+                      ) : (
+                        <span className="text-3xl font-black text-white">{pricing.premiumPrice}₾</span>
+                      )}
+                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{t.perService}</span>
+                    </div>
+                    {pricing.isSaleActive && (
+                      <div className="mt-3 inline-block bg-red-500/20 text-red-400 text-[10px] font-black px-2 py-1 rounded-full uppercase tracking-wider border border-red-500/20">
+                        -{pricing.salePercentage}% {t.sale}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-              <ul className="flex-1 space-y-3 mb-8">
-                {t.premiumDetails.map((item, i) => (
-                  <li key={i} className="flex items-center gap-3 text-sm text-slate-300">
-                    <CheckCircle className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <Button className="w-full py-3 rounded-xl shadow-lg shadow-blue-600/20" onClick={() => scrollToBooking('Premium')}>
-                {t.selectPremium}
-              </Button>
-            </Card>
+                  <ul className="space-y-3 mb-8">
+                    {t.premiumDetails.map((item, i) => (
+                      <li key={i} className="flex items-center gap-2.5 text-xs text-slate-300">
+                        <div className="w-4 h-4 rounded-full bg-blue-400/10 flex items-center justify-center flex-shrink-0">
+                          <CheckCircle className="w-3 h-3 text-blue-400" />
+                        </div>
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                  <Button className="w-full py-5 rounded-xl shadow-2xl shadow-blue-400/20 bg-blue-400 hover:bg-blue-300 text-slate-950 transition-all font-black text-sm" onClick={() => scrollToBooking('Premium')}>
+                    {t.selectPremium}
+                  </Button>
+                </div>
+              </Card>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* How it works Section */}
+      <section className="py-16 px-4 bg-slate-900/30 relative overflow-hidden">
+        <div className="max-w-7xl mx-auto relative z-10">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
+            <h2 className="text-3xl md:text-4xl font-black text-white mb-4 tracking-tight">{t.howItWorks}</h2>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12 relative">
+            {/* Connecting Line (Desktop) */}
+            <div className="hidden md:block absolute top-1/2 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-blue-400/20 to-transparent -translate-y-1/2 -z-0" />
+            
+            {t.steps.map((step: any, i: number) => (
+              <motion.div 
+                key={i}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.2 }}
+                className="relative flex flex-col items-center text-center group"
+              >
+                <div className="w-16 h-16 bg-slate-900/80 backdrop-blur-xl border border-white/5 rounded-2xl flex items-center justify-center mb-6 shadow-2xl group-hover:scale-110 group-hover:border-blue-400/50 transition-all duration-500 relative z-10">
+                  <span className="text-2xl font-black text-blue-400">{i + 1}</span>
+                  <div className="absolute -inset-2 bg-blue-400/10 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                <h3 className="text-xl font-black text-white mb-3">{step.title}</h3>
+                <p className="text-xs text-slate-400 leading-relaxed max-w-xs">{step.desc}</p>
+              </motion.div>
+            ))}
           </div>
         </div>
       </section>
 
       {/* Features */}
-      <section className="py-12 px-4">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
+      <section className="py-16 px-4 bg-slate-950">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
           {t.features.map((f: any, i: number) => (
-            <div key={i} className="flex flex-col gap-4 p-6 rounded-3xl bg-slate-900 border border-slate-800 hover:border-slate-700 transition-colors">
-              <div className="w-12 h-12 bg-blue-600/10 text-blue-500 rounded-2xl flex items-center justify-center">
+            <motion.div 
+              key={i}
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.1 }}
+              className="flex flex-col gap-4 p-8 rounded-[2rem] bg-slate-900/40 backdrop-blur-xl border border-white/5 hover:border-white/10 transition-all duration-500 group"
+            >
+              <div className="w-12 h-12 bg-blue-400/10 text-blue-400 rounded-xl flex items-center justify-center group-hover:scale-110 group-hover:bg-blue-400 group-hover:text-slate-950 transition-all duration-500 shadow-lg">
                 {i === 0 ? <Zap className="w-6 h-6" /> : i === 1 ? <ShieldCheck className="w-6 h-6" /> : <MapPin className="w-6 h-6" />}
               </div>
-              <h3 className="text-lg font-bold text-white">{f.title}</h3>
-              <p className="text-sm text-slate-400 leading-relaxed">{f.desc}</p>
-            </div>
+              <h3 className="text-xl font-black text-white">{f.title}</h3>
+              <p className="text-slate-400 leading-relaxed text-sm">{f.desc}</p>
+            </motion.div>
           ))}
         </div>
       </section>
 
       {/* Booking CTA Section */}
-      <section className="py-16 px-4 bg-slate-900">
+      <section className="py-12 px-4 bg-slate-900">
         <div className="max-w-4xl mx-auto">
-          <div className="bg-slate-950 rounded-[2.5rem] p-10 md:p-16 text-center relative overflow-hidden border border-slate-800">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 blur-[100px] -z-0" />
-            <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-600/5 blur-[100px] -z-0" />
+          <div className="bg-slate-950 rounded-[2rem] p-8 md:p-12 text-center relative overflow-hidden border border-white/5">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-400/5 blur-[100px] -z-0" />
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-400/5 blur-[100px] -z-0" />
             
             <div className="relative z-10">
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">{t.readyForNew}<span className="text-blue-500">{t.readyForNewSpan}</span></h2>
-              <p className="text-slate-400 text-base mb-10 max-w-xl mx-auto">
+              <h2 className="text-2xl md:text-3xl font-black text-white mb-4">{t.readyForNew}<span className="text-blue-400">{t.readyForNewSpan}</span></h2>
+              <p className="text-slate-400 text-sm mb-8 max-w-xl mx-auto">
                 {t.ctaDesc}
               </p>
-              <Button size="lg" className="rounded-2xl shadow-2xl shadow-blue-600/20" onClick={() => scrollToBooking()}>
+              <Button size="lg" className="rounded-xl shadow-2xl shadow-blue-400/20 bg-blue-400 hover:bg-blue-300 text-slate-950 h-12 text-sm font-black" onClick={() => scrollToBooking()}>
                 {t.bookNow}
               </Button>
-              <div className="mt-10 flex flex-wrap justify-center gap-8 opacity-40">
+              <div className="mt-8 flex flex-wrap justify-center gap-6 opacity-40">
                 <div className="flex items-center gap-2 text-white">
-                  <Star className="w-4 h-4" />
-                  <span className="font-bold uppercase tracking-widest text-[10px]">{t.fiveStar}</span>
+                  <Star className="w-3.5 h-3.5" />
+                  <span className="font-black uppercase tracking-widest text-[9px]">{t.fiveStar}</span>
                 </div>
                 <div className="flex items-center gap-2 text-white">
-                  <Zap className="w-4 h-4" />
-                  <span className="font-bold uppercase tracking-widest text-[10px]">{t.mobile}</span>
+                  <Zap className="w-3.5 h-3.5" />
+                  <span className="font-black uppercase tracking-widest text-[9px]">{t.mobile}</span>
                 </div>
               </div>
             </div>
@@ -1323,27 +1431,35 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
       initial={{ opacity: 0 }} 
       animate={{ opacity: 1 }} 
       exit={{ opacity: 0 }}
-      className="min-h-screen bg-slate-950 text-slate-100 pb-32"
+      className="min-h-screen bg-slate-950 text-slate-100 pb-32 relative overflow-hidden"
     >
+      {/* Visual Depth Background */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(48,195,252,0.05)_0%,transparent_70%)] pointer-events-none" />
+      
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-slate-900/80 backdrop-blur-md border-b border-slate-800 px-4 py-4">
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
-          <button onClick={onBack} className="p-2 hover:bg-slate-800 rounded-full transition-colors text-slate-400">
-            <ArrowLeft className="w-6 h-6" />
+      <header className="sticky top-0 z-50 bg-slate-950/60 backdrop-blur-xl border-b border-white/5 px-4 py-3">
+        <div className="max-w-2xl mx-auto flex items-center relative min-h-[40px]">
+          <button onClick={onBack} className="p-1.5 hover:bg-white/5 rounded-full transition-colors text-slate-400 absolute left-0">
+            <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-lg font-bold text-white uppercase font-orbitron tracking-tight">LUCA'S AUTOSPA</h1>
-          <button className="p-2 hover:bg-slate-800 rounded-full transition-colors">
-            <HelpCircle className="w-6 h-6 text-slate-500" />
-          </button>
+          <h1 className="text-base font-black uppercase font-orbitron tracking-tight bg-gradient-to-r from-white to-[#30c3fc] bg-clip-text text-transparent absolute left-1/2 -translate-x-1/2 whitespace-nowrap">
+            LUCA'S AUTOSPA
+          </h1>
         </div>
       </header>
 
-      <div className="max-w-2xl mx-auto px-4 py-6 space-y-8">
+      <div className="max-w-2xl mx-auto px-4 py-4 space-y-6">
         {/* Progress Bar Removed */}
 
         {/* Select Service */}
-        <section id="plan-section" className="space-y-4">
-          <h2 className="text-xl font-bold text-white">{t.chooseService}</h2>
+        <motion.section 
+          id="plan-section" 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="space-y-4"
+        >
+          <h2 className="text-xl font-black text-white tracking-tight">{t.chooseService}</h2>
           <div className="space-y-3">
             {[
               { 
@@ -1368,28 +1484,27 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                   onClick={() => {
                     setBookingData({ ...bookingData, service: s.id as any });
                     setExpandedService(s.id);
-                    // Track service selection
                     track('Service Selected', { service: s.id });
                   }}
                   className={cn(
-                    "w-full flex items-center justify-between p-4 rounded-3xl border-2 transition-all text-left",
+                    "w-full flex items-center justify-between p-4 rounded-2xl border transition-all duration-500 text-left relative overflow-hidden group",
                     bookingData.service === s.id 
-                      ? "bg-blue-600/10 border-blue-600 ring-1 ring-blue-600 shadow-lg shadow-blue-600/5" 
-                      : "bg-slate-900 border-slate-800 hover:border-slate-700"
+                      ? "bg-blue-400/10 border-blue-400 ring-1 ring-blue-400/50 shadow-2xl shadow-blue-400/10" 
+                      : "bg-slate-900/40 backdrop-blur-xl border-white/5 hover:border-white/10"
                   )}
                 >
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-4 relative z-10">
                     <div className={cn(
-                      "w-12 h-12 rounded-2xl flex items-center justify-center transition-colors",
-                      bookingData.service === s.id ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20" : "bg-slate-950 text-slate-500"
+                      "w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-500",
+                      bookingData.service === s.id ? "bg-blue-400 text-slate-950 shadow-xl shadow-blue-400/40 scale-105" : "bg-slate-950/50 text-slate-500"
                     )}>
                       <s.icon className="w-6 h-6" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-bold text-white">{s.title}</h3>
+                      <h3 className="text-lg font-black text-white mb-0.5">{s.title}</h3>
                       <div className="flex items-baseline gap-2">
                         <p className={cn(
-                          "text-base font-bold",
+                          "text-base font-black",
                           bookingData.service === s.id ? "text-blue-400" : "text-slate-400"
                         )}>{s.price}₾</p>
                         {pricing.isSaleActive && (
@@ -1398,12 +1513,12 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="relative z-10">
                     <div className={cn(
-                      "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
-                      bookingData.service === s.id ? "bg-blue-600 border-blue-600" : "border-slate-700"
+                      "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-500",
+                      bookingData.service === s.id ? "bg-blue-400 border-blue-400 scale-105" : "border-white/10"
                     )}>
-                      {bookingData.service === s.id && <Check className="w-3 h-3 text-white" />}
+                      {bookingData.service === s.id && <Check className="w-3 h-3 text-slate-950" />}
                     </div>
                   </div>
                 </button>
@@ -1416,10 +1531,12 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                       exit={{ height: 0, opacity: 0 }}
                       className="overflow-hidden"
                     >
-                      <div className="p-6 bg-slate-900 rounded-3xl border border-slate-800 space-y-2">
+                      <div className="p-6 bg-slate-900/20 backdrop-blur-xl rounded-2xl border border-white/5 space-y-2">
                         {s.details.map((detail, idx) => (
-                          <div key={idx} className="flex items-center gap-2 text-sm text-slate-400">
-                            <Check className="w-3 h-3 text-blue-500" />
+                          <div key={idx} className="flex items-center gap-2.5 text-xs text-slate-400">
+                            <div className="w-4 h-4 rounded-full bg-blue-400/10 flex items-center justify-center flex-shrink-0">
+                              <Check className="w-2.5 h-2.5 text-blue-400" />
+                            </div>
                             {detail}
                           </div>
                         ))}
@@ -1430,33 +1547,39 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
               </div>
             ))}
           </div>
-        </section>
+        </motion.section>
 
         {/* Choose Date & Time */}
-        <section id="date-section" className="space-y-4">
+        <motion.section 
+          id="date-section" 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="space-y-4"
+        >
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-white">{t.chooseDate}</h2>
-            <div className="flex items-center gap-3">
+            <h2 className="text-xl font-black text-white tracking-tight">{t.chooseDate}</h2>
+            <div className="flex items-center gap-2 bg-slate-900/40 backdrop-blur-xl p-1 rounded-xl border border-white/5">
               <button 
                 onClick={() => setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
                 disabled={currentMonth.getMonth() === new Date().getMonth() && currentMonth.getFullYear() === new Date().getFullYear()}
-                className="p-1 hover:bg-slate-800 rounded-full disabled:opacity-20"
+                className="p-1.5 hover:bg-white/5 rounded-lg disabled:opacity-20 transition-colors"
               >
-                <ChevronLeft className="w-4 h-4 text-slate-500" />
+                <ChevronLeft className="w-3.5 h-3.5 text-slate-400" />
               </button>
-              <span className="text-xs font-bold uppercase text-white">{format(currentMonth, 'MMMM yyyy', { locale: lang === 'GE' ? ka : undefined })}</span>
+              <span className="text-[10px] font-black uppercase text-white px-1">{format(currentMonth, 'MMMM yyyy', { locale: lang === 'GE' ? ka : undefined })}</span>
               <button 
                 onClick={() => setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}
                 disabled={currentMonth.getMonth() === new Date().getMonth() + 1}
-                className="p-1 hover:bg-slate-800 rounded-full disabled:opacity-20"
+                className="p-1.5 hover:bg-white/5 rounded-lg disabled:opacity-20 transition-colors"
               >
-                <ChevronRight className="w-4 h-4 text-slate-500" />
+                <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
               </button>
             </div>
           </div>
 
           {/* Horizontal Date Picker */}
-          <div className="flex gap-3 overflow-x-auto pb-4 no-scrollbar">
+          <div className="flex gap-3 overflow-x-auto px-4 pt-4 pb-6 no-scrollbar -mx-4">
             {dates.map((date) => {
               const isSelected = bookingData.date === format(date, 'yyyy-MM-dd');
               return (
@@ -1464,16 +1587,17 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                   key={date.toISOString()}
                   onClick={() => {
                     setBookingData({ ...bookingData, date: format(date, 'yyyy-MM-dd'), timeSlot: undefined });
-                    // Track date selection
                     track('Date Selected', { date: format(date, 'yyyy-MM-dd') });
                   }}
                   className={cn(
-                    "flex-shrink-0 w-14 h-20 rounded-3xl flex flex-col items-center justify-center gap-1 transition-all",
-                    isSelected ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" : "bg-slate-900 text-slate-400 hover:bg-slate-800"
+                    "flex-shrink-0 w-14 h-20 rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all duration-500 border",
+                    isSelected 
+                      ? "bg-blue-400 border-blue-400 text-slate-950 shadow-2xl shadow-blue-400/30 scale-105" 
+                      : "bg-slate-900/40 backdrop-blur-xl border-white/5 text-slate-400 hover:border-white/10"
                   )}
                 >
-                  <span className="text-[10px] font-medium uppercase">{format(date, 'EEE', { locale: lang === 'GE' ? ka : undefined })}</span>
-                  <span className="text-lg font-bold">{format(date, 'd')}</span>
+                  <span className="text-[9px] font-black uppercase tracking-widest">{format(date, 'EEE', { locale: lang === 'GE' ? ka : undefined })}</span>
+                  <span className="text-lg font-black">{format(date, 'd')}</span>
                 </button>
               );
             })}
@@ -1481,21 +1605,25 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
 
           {/* Time Slots */}
           {bookingData.date && (
-            <div className="space-y-4 pt-2">
-              <div className="flex items-center justify-center gap-4">
-                <div className="h-[1px] flex-1 bg-slate-800" />
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t.availableTimes}</span>
-                <div className="h-[1px] flex-1 bg-slate-800" />
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              className="space-y-4 pt-1"
+            >
+              <div className="flex items-center justify-center gap-3">
+                <div className="h-[1px] flex-1 bg-white/5" />
+                <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">{t.availableTimes}</span>
+                <div className="h-[1px] flex-1 bg-white/5" />
               </div>
 
               {isLoadingSlots ? (
-                <div className="grid grid-cols-3 gap-3 animate-pulse">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 animate-pulse">
                   {[...Array(6)].map((_, i) => (
-                    <div key={i} className="h-20 bg-slate-900 rounded-3xl" />
+                    <div key={i} className="h-14 bg-slate-900/40 rounded-xl" />
                   ))}
                 </div>
               ) : availableSlots.length > 0 ? (
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-1">
                   {availableSlots.map((slot) => {
                     const isSelected = bookingData.timeSlot === slot;
                     return (
@@ -1503,63 +1631,69 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                         key={slot}
                         onClick={() => {
                           setBookingData({ ...bookingData, timeSlot: slot });
-                          // Track time slot selection
                           track('Time Slot Selected', { timeSlot: slot });
                         }}
                         className={cn(
-                          "h-20 rounded-3xl border-2 flex flex-col items-center justify-center gap-1 transition-all",
+                          "h-14 rounded-xl border transition-all duration-500 flex flex-col items-center justify-center gap-1 group relative overflow-hidden",
                           isSelected 
-                            ? "bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-600/20" 
-                            : "bg-slate-900 border-slate-800 text-white hover:border-slate-700"
+                            ? "bg-blue-400 border-blue-400 text-slate-950 shadow-2xl shadow-blue-400/30 scale-105" 
+                            : "bg-slate-900/40 backdrop-blur-xl border-white/5 text-white hover:border-white/10"
                         )}
                       >
-                        <span className="text-base font-bold">{slot}</span>
+                        <span className="text-base font-black relative z-10">{slot}</span>
                       </button>
                     );
                   })}
                 </div>
               ) : (
-                <div className="text-center py-6 bg-slate-900 rounded-3xl border border-dashed border-slate-800">
-                  <p className="text-xs text-slate-500">{t.noTimes}</p>
+                <div className="text-center py-8 bg-slate-900/40 backdrop-blur-xl rounded-2xl border border-dashed border-white/10">
+                  <p className="text-xs text-slate-500 font-medium">{t.noTimes}</p>
                 </div>
               )}
-            </div>
+            </motion.div>
           )}
-        </section>
+        </motion.section>
 
         {/* Service Location */}
-        <section className="space-y-6">
-          <h2 className="text-xl font-bold">{t.location}</h2>
+        <motion.section 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="space-y-6"
+        >
+          <h2 className="text-xl font-black tracking-tight">{t.location}</h2>
           
           <div className="space-y-4">
             <div className="space-y-2">
-              <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t.address}</label>
-              <MapPicker 
-                initialLocation={bookingData.location}
-                onLocationSelect={(address) => setBookingData({ ...bookingData, location: address })}
-                t={t}
-              />
+              <label className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] ml-2">{t.address}</label>
+              <div className="rounded-xl overflow-hidden shadow-2xl">
+                <MapPicker 
+                  initialLocation={bookingData.location}
+                  onLocationSelect={(address) => setBookingData({ ...bookingData, location: address })}
+                  t={t}
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t.name}</label>
+                <label className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] ml-2">{t.name}</label>
                 <input 
                   type="text" 
                   placeholder={t.namePlaceholder}
-                  className="w-full bg-slate-900 border border-slate-800 rounded-2xl p-3 focus:border-blue-600 outline-none transition-colors text-white text-sm"
+                  className="w-full bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-xl p-3.5 focus:border-blue-400 outline-none transition-all text-white text-sm shadow-inner"
                   value={bookingData.customerName || ''}
                   onChange={(e) => setBookingData({ ...bookingData, customerName: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t.phone}</label>
+                <label className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] ml-2">{t.phone}</label>
                 <div className="relative">
-                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input 
                     type="tel" 
                     placeholder="+995 ..."
-                    className="w-full bg-slate-900 border border-slate-800 rounded-2xl p-3 pl-10 focus:border-blue-600 outline-none transition-colors text-white text-sm"
+                    className="w-full bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-xl p-3.5 pl-12 focus:border-blue-400 outline-none transition-all text-white text-sm shadow-inner"
                     value={bookingData.phone || ''}
                     onChange={(e) => setBookingData({ ...bookingData, phone: e.target.value })}
                   />
@@ -1568,11 +1702,11 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t.email}</label>
+              <label className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] ml-2">{t.email}</label>
               <input 
                 type="email" 
                 placeholder={t.emailPlaceholder}
-                className="w-full bg-white/5 border border-white/10 rounded-2xl p-3 focus:border-blue-600 outline-none transition-colors text-white text-sm"
+                className="w-full bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-xl p-3.5 focus:border-blue-400 outline-none transition-all text-white text-sm shadow-inner"
                 value={bookingData.email || ''}
                 onChange={(e) => setBookingData({ ...bookingData, email: e.target.value })}
                 disabled={showVerification}
@@ -1623,13 +1757,13 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
               </motion.div>
             )}
           </div>
-        </section>
+        </motion.section>
       </div>
 
       {/* Terms of Service Checkbox */}
       <div className="max-w-2xl mx-auto px-4 mb-32">
-        <label className="flex items-start gap-3 cursor-pointer group">
-          <div className="relative flex items-center mt-1">
+        <label className="flex items-center gap-3 cursor-pointer group">
+          <div className="relative flex items-center">
             <input 
               type="checkbox" 
               className="peer sr-only"
@@ -1655,20 +1789,20 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
       </div>
 
       {/* Sticky Bottom Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-slate-950/90 backdrop-blur-xl border-t border-slate-800 p-4 pb-6">
-        <div className="max-w-2xl mx-auto flex items-center justify-between gap-6">
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-slate-950/60 backdrop-blur-2xl border-t border-white/5 p-6 pb-8">
+        <div className="max-w-2xl mx-auto flex items-center justify-between gap-8">
           <div>
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">{t.total}</p>
-            <p className="text-xl font-extrabold text-blue-400">{bookingData.service ? getPrice(bookingData.service as any) : 0}₾</p>
+            <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1">{t.total}</p>
+            <p className="text-2xl font-black text-blue-400">{bookingData.service ? getPrice(bookingData.service as any) : 0}₾</p>
           </div>
           <Button 
             onClick={handleBookingSubmit}
             disabled={isSubmitting || isSendingCode || isVerifying || !bookingData.timeSlot || !bookingData.location || !bookingData.customerName || !bookingData.email}
-            className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-3xl font-bold flex gap-2 shadow-lg shadow-blue-600/20"
+            className="flex-1 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-[2rem] font-black flex gap-3 shadow-2xl shadow-blue-600/40 transition-all active:scale-95 disabled:opacity-50"
           >
             {isSendingCode ? t.sendingCode : isVerifying ? t.verifying : isSubmitting ? t.processing : (
               <>
-                <Zap className="w-4 h-4" /> {showVerification ? t.verifyingBtn : t.confirmBooking}
+                <Zap className="w-5 h-5" /> {showVerification ? t.verifyingBtn : t.confirmBooking}
               </>
             )}
           </Button>

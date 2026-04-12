@@ -23,6 +23,7 @@ import {
 } from 'firebase/auth';
 import { db, auth } from './firebase';
 import { motion, AnimatePresence, useScroll, useTransform } from 'motion/react';
+import confetti from 'canvas-confetti';
 import { 
   Calendar, 
   Clock, 
@@ -158,6 +159,13 @@ const translations = {
     errorLocation: "გთხოვთ მიუთითოთ მომსახურების მისამართი",
     errorPersonalInfo: "გთხოვთ შეავსოთ საკონტაქტო ინფორმაცია",
     errorTerms: "გთხოვთ დაეთანხმოთ წესებსა და პირობებს",
+    acceptAndConfirm: "ვეთანხმები და დაჯავშნა",
+    cancel: "გაუქმება",
+    termsTitle: "წესები და პირობები",
+    bestValue: "საუკეთესო ფასი",
+    secure: "უსაფრთხო",
+    fast: "სწრაფი",
+    premium: "პრემიუმი",
     standardDetails: [
       "სრული სალონის მტვერსასრუტით წმენდა",
       "მტვრის მოცილება და ტილოთი წმენდა",
@@ -260,6 +268,13 @@ const translations = {
     errorLocation: "Please specify the service address",
     errorPersonalInfo: "Please fill in your contact information",
     errorTerms: "Please agree to the terms and conditions",
+    acceptAndConfirm: "Accept & Confirm",
+    cancel: "Cancel",
+    termsTitle: "Terms & Conditions",
+    bestValue: "Best Value",
+    secure: "Secure",
+    fast: "Fast",
+    premium: "Premium",
     standardDetails: [
       "Full interior vacuum cleaning",
       "Dust removal and wiping",
@@ -443,6 +458,29 @@ function MapPicker({ onLocationSelect, initialLocation, t }: { onLocationSelect:
     }
   };
 
+  const handleLocateMe = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(async (position) => {
+        const { latitude, longitude } = position.coords;
+        setMarker([latitude, longitude]);
+        setMapCenter([latitude, longitude]);
+        setZoom(17);
+        
+        try {
+          const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`);
+          const data = await response.json();
+          if (data && data.display_name) {
+            setAddress(data.display_name);
+            setSearchQuery(data.display_name);
+            onLocationSelect(data.display_name, latitude, longitude);
+          }
+        } catch (e) {
+          console.error('Reverse geocoding failed', e);
+        }
+      });
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="relative">
@@ -458,6 +496,14 @@ function MapPicker({ onLocationSelect, initialLocation, t }: { onLocationSelect:
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
             />
           </div>
+          <Button 
+            onClick={handleLocateMe}
+            variant="secondary"
+            className="rounded-2xl px-4 flex items-center justify-center"
+            title="Locate Me"
+          >
+            <MapPin className="w-5 h-5" />
+          </Button>
           <Button 
             onClick={handleSearch} 
             disabled={isSearching}
@@ -590,7 +636,7 @@ export default function App() {
       )}>
         {/* Navigation - Hidden on booking page */}
         {view !== 'booking' && (
-          <nav className="sticky top-0 z-50 bg-slate-900/80 backdrop-blur-lg border-b border-slate-800">
+          <nav className="fixed top-0 left-0 right-0 z-50 bg-slate-900/80 backdrop-blur-lg border-b border-slate-800">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex justify-between h-16 items-center">
                 <div className="flex items-center gap-2 cursor-pointer" onClick={() => setView('public')}>
@@ -795,7 +841,7 @@ function PublicSite({ onBookNow, pricing, t, lang }: { onBookNow: (plan?: 'Basic
       exit={{ opacity: 0 }}
     >
       {/* Hero Section */}
-      <section className="relative pt-6 pb-16 px-4 overflow-hidden">
+      <section className="relative pt-24 pb-16 px-4 overflow-hidden">
         {/* Parallax Background */}
         <motion.div 
           style={{ y }}
@@ -1210,6 +1256,15 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
   const [formError, setFormError] = useState<string | null>(null);
   const [expandedService, setExpandedService] = useState<string | 'all' | null>(initialPlan ? initialPlan : 'all');
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [showTermsPopup, setShowTermsPopup] = useState(false);
+
+  const steps = [
+    { id: 1, label: t.chooseService, icon: Zap, completed: !!bookingData.service },
+    { id: 2, label: t.chooseDate, icon: Calendar, completed: !!(bookingData.date && bookingData.timeSlot) },
+    { id: 3, label: t.location, icon: MapPin, completed: !!(bookingData.location && bookingData.customerName && bookingData.phone && bookingData.email) }
+  ];
+
+  const currentStep = steps.find(s => !s.completed)?.id || 3;
 
   useEffect(() => {
     const findSoonestAvailable = async () => {
@@ -1342,7 +1397,8 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
     }
   };
 
-  const handleBookingSubmit = async () => {
+  const handleBookingSubmit = async (bypassTermsCheck: boolean | React.MouseEvent = false) => {
+    const shouldBypass = typeof bypassTermsCheck === 'boolean' ? bypassTermsCheck : false;
     setFormError(null);
     
     if (!bookingData.service) {
@@ -1371,13 +1427,13 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
       document.getElementById('personal-info-section')?.scrollIntoView({ behavior: 'smooth' });
       return;
     }
-    if (!termsAccepted) {
-      setFormError(t.errorTerms);
+    if (!termsAccepted && !shouldBypass) {
+      setShowTermsPopup(true);
       return;
     }
 
     if (!showVerification) {
-      sendVerificationCode();
+      await sendVerificationCode();
       return;
     }
 
@@ -1433,6 +1489,12 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
         }
 
         setIsSuccess(true);
+        confetti({
+          particleCount: 150,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#30c3fc', '#ffffff', '#2563eb']
+        });
       } else {
         setVerificationError(data.error || t.invalidCode);
       }
@@ -1471,15 +1533,19 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
       initial={{ opacity: 0 }} 
       animate={{ opacity: 1 }} 
       exit={{ opacity: 0 }}
-      className="min-h-screen bg-slate-950 text-slate-100 pb-32 relative overflow-hidden"
+      className="bg-slate-950 text-slate-100 relative overflow-hidden pb-20"
     >
       {/* Visual Depth Background */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(48,195,252,0.05)_0%,transparent_70%)] pointer-events-none" />
+      <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/10 blur-[120px] rounded-full animate-pulse" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-400/10 blur-[120px] rounded-full animate-pulse" style={{ animationDelay: '2s' }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(48,195,252,0.03)_0%,transparent_70%)]" />
+      </div>
       
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-slate-950/60 backdrop-blur-xl border-b border-white/5 px-4 py-3">
-        <div className="max-w-2xl mx-auto flex items-center relative min-h-[40px]">
-          <button onClick={onBack} className="p-1.5 hover:bg-white/5 rounded-full transition-colors text-slate-400 absolute left-0">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-slate-950/80 backdrop-blur-xl border-b border-white/5 px-4 py-4">
+        <div className="max-w-2xl mx-auto flex items-center relative min-h-[32px]">
+          <button onClick={onBack} className="p-2 hover:bg-white/10 rounded-full transition-all text-slate-400 active:scale-90 relative z-10">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-base font-black uppercase font-orbitron tracking-tight bg-gradient-to-r from-white to-[#30c3fc] bg-clip-text text-transparent absolute left-1/2 -translate-x-1/2 whitespace-nowrap">
@@ -1488,8 +1554,37 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
         </div>
       </header>
 
-      <div className="max-w-2xl mx-auto px-4 py-4 space-y-6">
-        {/* Progress Bar Removed */}
+      <div className="max-w-2xl mx-auto px-4 pt-24 pb-0 space-y-6">
+        {/* Progress Indicator */}
+        <div className="flex items-center justify-between px-2">
+          {steps.map((s, i) => (
+            <React.Fragment key={s.id}>
+              <div className="flex flex-col items-center gap-2 relative">
+                <div className={cn(
+                  "w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-500",
+                  s.completed ? "bg-green-500 text-slate-950" : s.id === currentStep ? "bg-blue-400 text-slate-950 shadow-lg shadow-blue-400/20" : "bg-slate-900 text-slate-500 border border-white/5"
+                )}>
+                  {s.completed ? <CheckCircle className="w-5 h-5" /> : <s.icon className="w-5 h-5" />}
+                </div>
+                <span className={cn(
+                  "text-[10px] font-black uppercase tracking-wider transition-colors duration-500",
+                  s.id === currentStep ? "text-blue-400" : "text-slate-500"
+                )}>{s.label}</span>
+              </div>
+              {i < steps.length - 1 && (
+                <div className="flex-1 h-[2px] mx-4 bg-slate-900 relative overflow-hidden">
+                  <motion.div 
+                    className="absolute inset-0 bg-blue-400"
+                    initial={{ scaleX: 0 }}
+                    animate={{ scaleX: s.completed ? 1 : 0 }}
+                    style={{ originX: 0 }}
+                    transition={{ duration: 0.5 }}
+                  />
+                </div>
+              )}
+            </React.Fragment>
+          ))}
+        </div>
 
         {/* Select Service */}
         <motion.section 
@@ -1536,12 +1631,17 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                   <div className="flex items-center gap-4 relative z-10">
                     <div className={cn(
                       "w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-500",
-                      bookingData.service === s.id ? "bg-blue-400 text-slate-950 shadow-xl shadow-blue-400/40 scale-105" : "bg-slate-950/50 text-slate-500"
+                      bookingData.service === s.id ? "bg-blue-400 text-slate-950 shadow-xl shadow-blue-400/40 scale-110" : "bg-slate-950/50 text-slate-500"
                     )}>
                       <s.icon className="w-6 h-6" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-black text-white mb-0.5">{s.title}</h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-lg font-black text-white mb-0.5">{s.title}</h3>
+                        {s.id === 'Premium' && (
+                          <span className="text-[8px] font-black bg-blue-400 text-slate-950 px-1.5 py-0.5 rounded-full uppercase tracking-wider">{t.bestValue}</span>
+                        )}
+                      </div>
                       <div className="flex items-baseline gap-2">
                         <p className={cn(
                           "text-base font-black",
@@ -1571,20 +1671,23 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                       exit={{ height: 0, opacity: 0 }}
                       className="overflow-hidden"
                     >
-                      <div className="p-6 bg-slate-900/20 backdrop-blur-xl rounded-2xl border border-white/5 space-y-2">
+                      <div className="p-6 bg-slate-900/40 backdrop-blur-xl rounded-2xl border border-white/5 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
                         {s.details.map((detail, idx) => (
-                          <div key={idx} className="flex items-center gap-2.5 text-xs text-slate-400">
+                          <motion.div 
+                            key={idx} 
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: idx * 0.05 }}
+                            className="flex items-center gap-3 text-xs text-slate-300 group/item"
+                          >
                             <div className={cn(
-                              "w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0",
-                              s.id === 'Premium' ? "bg-[#30c3fc]/10" : "bg-slate-400/10"
+                              "w-5 h-5 rounded-lg flex items-center justify-center flex-shrink-0 transition-transform group-hover/item:scale-110",
+                              s.id === 'Premium' ? "bg-blue-400/20 text-blue-400" : "bg-slate-700/30 text-slate-500"
                             )}>
-                              <Check className={cn(
-                                "w-2.5 h-2.5",
-                                s.id === 'Premium' ? "text-[#30c3fc]" : "text-slate-400"
-                              )} />
+                              <CheckCircle className="w-3 h-3" />
                             </div>
-                            {detail}
-                          </div>
+                            <span className="font-medium">{detail}</span>
+                          </motion.div>
                         ))}
                       </div>
                     </motion.div>
@@ -1644,6 +1747,12 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                 >
                   <span className="text-[9px] font-black uppercase tracking-widest">{format(date, 'EEE', { locale: lang === 'GE' ? ka : undefined })}</span>
                   <span className="text-lg font-black">{format(date, 'd')}</span>
+                  {isSelected && (
+                    <motion.div 
+                      layoutId="date-indicator"
+                      className="absolute -bottom-1 w-1 h-1 bg-slate-950 rounded-full"
+                    />
+                  )}
                 </button>
               );
             })}
@@ -1735,14 +1844,19 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] ml-2">{t.phone}</label>
-                <div className="relative">
-                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <div className="relative flex items-center bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden focus-within:border-blue-400 transition-all shadow-inner">
+                  <div className="pl-4 pr-3 py-3.5 text-white font-black text-sm border-r border-white/10 bg-white/5">
+                    +995
+                  </div>
                   <input 
                     type="tel" 
-                    placeholder="+995 ..."
-                    className="w-full bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-xl p-3.5 pl-12 focus:border-blue-400 outline-none transition-all text-white text-sm shadow-inner"
+                    placeholder="5..."
+                    className="flex-1 bg-transparent p-3.5 outline-none text-white text-sm"
                     value={bookingData.phone || ''}
-                    onChange={(e) => setBookingData({ ...bookingData, phone: e.target.value })}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '');
+                      setBookingData({ ...bookingData, phone: val });
+                    }}
                   />
                 </div>
               </div>
@@ -1759,121 +1873,204 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                 disabled={showVerification}
               />
             </div>
+          </div>
+        </motion.section>
 
-            {showVerification && (
-              <motion.div 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="space-y-3 p-6 bg-blue-600/10 border border-blue-600/20 rounded-3xl"
-              >
-                <label className="text-sm font-bold text-blue-400 flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4" /> {t.enterCode}
+        {/* Trust Badges */}
+        <motion.div 
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          className="grid grid-cols-3 gap-4 py-4 border-y border-white/5"
+        >
+          {[
+            { icon: ShieldCheck, label: t.secure },
+            { icon: Zap, label: t.fast },
+            { icon: Star, label: t.premium }
+          ].map((item, i) => (
+            <div key={i} className="flex flex-col items-center gap-2">
+              <div className="w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center text-blue-400 border border-white/5">
+                <item.icon className="w-5 h-5" />
+              </div>
+              <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">{item.label}</span>
+            </div>
+          ))}
+        </motion.div>
+
+        {/* Verification Box at the very bottom */}
+        <AnimatePresence>
+          {showVerification && (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className="space-y-4 p-6 bg-blue-600/10 border border-blue-600/20 rounded-[2.5rem] shadow-2xl relative z-10"
+            >
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-black text-blue-400 flex items-center gap-2 uppercase tracking-widest">
+                  <ShieldCheck className="w-5 h-5" /> {t.enterCode}
                 </label>
-                <input 
-                  type="text" 
-                  maxLength={6}
-                  placeholder="000000"
-                  className={cn(
-                    "w-full bg-white/5 border rounded-2xl p-4 text-center text-2xl font-bold tracking-[1em] focus:border-blue-600 outline-none transition-colors text-white",
-                    verificationError ? "border-red-500/50 bg-red-500/5" : "border-white/10"
-                  )}
-                  value={userCode}
-                  onChange={(e) => {
-                    setUserCode(e.target.value.replace(/\D/g, ''));
-                    setVerificationError(null);
-                  }}
-                />
-                {verificationError && (
-                  <motion.p 
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    className="text-xs text-red-500 text-center font-bold"
-                  >
-                    {verificationError}
-                  </motion.p>
-                )}
-                <p className="text-xs text-slate-400 text-center">
-                  {t.codeSent}
-                </p>
                 <button 
                   onClick={() => setShowVerification(false)}
-                  className="text-xs text-blue-400 hover:underline w-full text-center"
+                  className="text-[10px] font-black text-blue-400/60 hover:text-blue-400 uppercase tracking-widest transition-colors"
                 >
                   {t.changeEmail}
                 </button>
-              </motion.div>
-            )}
-          </div>
-        </motion.section>
+              </div>
+              <input 
+                type="text" 
+                maxLength={6}
+                placeholder="000000"
+                className={cn(
+                  "w-full bg-slate-950/50 border rounded-2xl p-5 text-center text-3xl font-black tracking-[0.5em] focus:border-blue-600 outline-none transition-all text-white shadow-inner",
+                  verificationError ? "border-red-500/50 bg-red-500/5" : "border-white/10"
+                )}
+                value={userCode}
+                onChange={(e) => {
+                  setUserCode(e.target.value.replace(/\D/g, ''));
+                  setVerificationError(null);
+                }}
+              />
+              {verificationError && (
+                <motion.p 
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  className="text-xs text-red-500 text-center font-bold"
+                >
+                  {verificationError}
+                </motion.p>
+              )}
+              <p className="text-[10px] text-slate-500 text-center uppercase tracking-widest font-bold">
+                {t.codeSent}
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      {/* Terms of Service Checkbox */}
-      <div className="max-w-2xl mx-auto px-4 mb-32">
-        <label className="flex items-center gap-3 cursor-pointer group">
-          <div className="relative flex items-center">
-            <input 
-              type="checkbox" 
-              className="peer sr-only"
-              checked={termsAccepted}
-              onChange={(e) => setTermsAccepted(e.target.checked)}
+      {/* Terms of Service Popup */}
+      <AnimatePresence>
+        {showTermsPopup && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowTermsPopup(false)}
+              className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
             />
-            <div className="w-5 h-5 border-2 border-slate-700 rounded-md bg-slate-900 peer-checked:bg-blue-600 peer-checked:border-blue-600 transition-all" />
-            <Check className="absolute w-3.5 h-3.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity left-0.5" />
-          </div>
-          <span className="text-sm text-slate-400 leading-tight">
-            {t.agreeToTerms}{' '}
-            <button 
-              onClick={(e) => {
-                e.preventDefault();
-                onViewTerms?.();
-              }}
-              className="text-blue-400 hover:underline font-medium"
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-lg bg-slate-900 border border-white/10 rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
             >
-              {t.termsOfService}
-            </button>
-          </span>
-        </label>
-      </div>
+              <div className="p-6 border-b border-white/5 flex items-center justify-between">
+                <h3 className="text-xl font-black text-white tracking-tight">{t.termsTitle}</h3>
+                <button onClick={() => setShowTermsPopup(false)} className="p-2 hover:bg-white/5 rounded-full transition-colors text-slate-400">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                <div className="prose prose-invert prose-sm max-w-none text-slate-400 space-y-6">
+                  <p className="text-lg font-bold text-white">Luca’s AutoSpa</p>
+                  
+                  <section>
+                    <h4 className="text-white font-bold mb-2">1. ზოგადი ინფორმაცია</h4>
+                    <p>Luca’s AutoSpa წარმოადგენს მოძრავ სერვისს, რომელიც უზრუნველყოფს ავტომობილის ინტერიერის პროფესიონალურ წმენდას თბილისში. სერვისის გამოყენებით მომხმარებელი ავტომატურად ეთანხმება ქვემოთ ჩამოთვლილ წესებსა და პირობებს.</p>
+                  </section>
+
+                  <section>
+                    <h4 className="text-white font-bold mb-2">2. სერვისის აღწერა</h4>
+                    <p>სტანდარტული პაკეტი მოიცავს: სრული სალონის მტვერსასრუტით წმენდა, მტვრის მოცილება, მინების წმენდა, ხალიჩების წმენდა, ჰაერის არომატიზაცია.</p>
+                    <p className="mt-2">პრემიუმ პაკეტი მოიცავს: სტანდარტული პაკეტის ყველა სერვისი, პროფესიონალური ქაფით და ფუნჯით ღრმა წმენდა, ჭერზე ლაქების მოცილება, სავარძლების ღრმა წმენდა, ანტიწვიმის დატანა ყველა მინაზე.</p>
+                  </section>
+
+                  <section>
+                    <h4 className="text-white font-bold mb-2">3. მომსახურების პირობები</h4>
+                    <p>სერვისი ხორციელდება მხოლოდ თბილისის ტერიტორიაზე. კლიენტი ვალდებულია უზრუნველყოს ავტომობილის დროებითი დაქოქვის შესაძლებლობა ან საკმარისი ადგილი დენის მიწოდების მიზნით.</p>
+                  </section>
+
+                  <section>
+                    <h4 className="text-white font-bold mb-2">4. გადახდა</h4>
+                    <p>გადახდა ხდება ადგილზე ნაღდი ანგარიშსწორებით ან საბანკო გადარიცხვით. Luca’s AutoSpa იტოვებს უფლებას შეცვალოს ფასი ადგილზე, თუ ავტომობილის მდგომარეობა მნიშვნელოვნად განსხვავდება წინასწარ აღწერილისგან.</p>
+                  </section>
+
+                  <section>
+                    <h4 className="text-white font-bold mb-2">5. ჯავშნის გაუქმება და გადადება</h4>
+                    <p>კლიენტმა უნდა გააუქმოს ჯავშანი მინიმუმ 2 საათით ადრე. დაგვიანებული გაუქმების შემთხვევაში, კლიენტი ვალდებულია გადაიხადოს სერვისის 50%.</p>
+                  </section>
+
+                  <section>
+                    <h4 className="text-white font-bold mb-2">6. დაგვიანება</h4>
+                    <p>თუ კლიენტი აგვიანებს 15 წუთზე მეტით, ჯავშანი ავტომატურად გაუქმდება და კლიენტს ეკისრება სერვისის 100% გადახდა.</p>
+                  </section>
+
+                  <section>
+                    <h4 className="text-white font-bold mb-2">7. პასუხისმგებლობა</h4>
+                    <p>კლიენტი ვალდებულია სერვისის დასრულებისთანავე შეამოწმოს ავტომობილი. Luca’s AutoSpa არ აგებს პასუხს იმ დაზიანებებზე, რომლებიც დაფიქსირდება თანამშრომლის წასვლის შემდეგ.</p>
+                  </section>
+                </div>
+              </div>
+
+              <div className="p-6 bg-slate-950/50 border-t border-white/5 flex flex-col gap-3">
+                <Button 
+                  onClick={() => {
+                    setTermsAccepted(true);
+                    setShowTermsPopup(false);
+                    handleBookingSubmit(true);
+                  }}
+                  className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black shadow-xl shadow-blue-600/20"
+                >
+                  {t.acceptAndConfirm}
+                </Button>
+                <button 
+                  onClick={() => setShowTermsPopup(false)}
+                  className="w-full py-2 text-sm font-bold text-slate-500 hover:text-slate-300 transition-colors"
+                >
+                  {t.cancel}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Sticky Bottom Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-slate-950/60 backdrop-blur-2xl border-t border-white/5 p-6 pb-8">
-        <div className="max-w-2xl mx-auto flex items-center justify-between gap-8">
-          <div>
-            <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1">{t.total}</p>
-            <p className="text-2xl font-black text-blue-400">{bookingData.service ? getPrice(bookingData.service as any) : 0}₾</p>
+      <div className="fixed bottom-0 left-0 right-0 z-50 p-4 md:p-6">
+        <div className="max-w-2xl mx-auto bg-slate-900/80 backdrop-blur-2xl border border-white/10 p-5 rounded-[2.5rem] shadow-2xl shadow-black/50">
+          <div className="flex items-center justify-between gap-6">
+            <div className="pl-2">
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-0.5">{t.total}</p>
+              <div className="flex items-baseline gap-1">
+                <p className="text-2xl font-black text-blue-400 leading-none">{bookingData.service ? getPrice(bookingData.service as any) : 0}</p>
+                <span className="text-sm font-black text-blue-400/60">₾</span>
+              </div>
+            </div>
+            <Button 
+              onClick={() => handleBookingSubmit()}
+              disabled={isSubmitting || isSendingCode || isVerifying || !bookingData.timeSlot || !bookingData.location || !bookingData.customerName || !bookingData.email}
+              className="flex-1 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-[2rem] font-black flex gap-3 shadow-xl shadow-blue-600/20 transition-all active:scale-95 disabled:opacity-50 h-14"
+            >
+              {isSendingCode ? t.sendingCode : isVerifying ? t.verifying : isSubmitting ? t.processing : (
+                <>
+                  <Zap className="w-5 h-5" /> {showVerification ? t.verifyingBtn : t.confirmBooking}
+                </>
+              )}
+            </Button>
           </div>
-          <Button 
-            onClick={handleBookingSubmit}
-            disabled={isSubmitting || isSendingCode || isVerifying || !bookingData.timeSlot || !bookingData.location || !bookingData.customerName || !bookingData.email}
-            className="flex-1 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-[2rem] font-black flex gap-3 shadow-2xl shadow-blue-600/40 transition-all active:scale-95 disabled:opacity-50"
-          >
-            {isSendingCode ? t.sendingCode : isVerifying ? t.verifying : isSubmitting ? t.processing : (
-              <>
-                <Zap className="w-5 h-5" /> {showVerification ? t.verifyingBtn : t.confirmBooking}
-              </>
-            )}
-          </Button>
+          {formError && (
+            <motion.p 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-[10px] text-red-500 text-center mt-3 font-bold uppercase tracking-wider"
+            >
+              {formError}
+            </motion.p>
+          )}
         </div>
-        {formError && (
-          <motion.p 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-xs text-red-500 text-center mt-4 font-bold"
-          >
-            {formError}
-          </motion.p>
-        )}
       </div>
-
-      {/* Floating Chat Button */}
-      <a 
-        href="https://wa.me/995591952473"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="fixed bottom-32 right-6 z-50 bg-green-600 text-white p-4 rounded-full shadow-2xl hover:scale-110 transition-transform active:scale-90"
-      >
-        <MessageCircle className="w-6 h-6" />
-      </a>
     </motion.div>
   );
 }
@@ -1885,7 +2082,7 @@ function TermsOfService({ onBack, t }: { onBack: () => void, t: any, key?: strin
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="max-w-4xl mx-auto py-16 px-6 text-slate-300"
+      className="max-w-4xl mx-auto pt-24 pb-16 px-6 text-slate-300"
     >
       <Button 
         variant="ghost" 
@@ -2173,7 +2370,7 @@ function AdminDashboard({ onBack, pricing }: { onBack: () => void, pricing: Pric
       initial={{ opacity: 0, y: 20 }} 
       animate={{ opacity: 1, y: 0 }} 
       exit={{ opacity: 0, y: 20 }}
-      className="max-w-7xl mx-auto px-4 py-8"
+      className="max-w-7xl mx-auto px-4 pt-24 pb-8"
     >
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">
         <div>

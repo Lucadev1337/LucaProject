@@ -1752,7 +1752,7 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                   {isSelected && (
                     <motion.div 
                       layoutId="date-indicator"
-                      className="absolute -bottom-1 w-1 h-1 bg-slate-950 rounded-full"
+                      className="absolute -bottom-1 w-1 h-1 bg-white rounded-full"
                     />
                   )}
                 </button>

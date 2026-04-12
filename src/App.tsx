@@ -63,7 +63,7 @@ import { track } from '@vercel/analytics';
 // Fix Leaflet icon issue
 import icon from 'leaflet/dist/images/marker-icon.png';
 import iconShadow from 'leaflet/dist/images/marker-shadow.png';
-const logo = "https://i.ibb.co/F4NCrqg1/lucasautospa.jpg";
+const logo = "https://cdn.discordapp.com/attachments/1456600712489468089/1492934413393072300/lucasautospa.jpeg?ex=69dd2305&is=69dbd185&hm=e2c5e667e176c9f07812bfdda468c92196bb2eaf6eb7ed38b161a7738c983b1b";
 
 let DefaultIcon = L.icon({
     iconUrl: icon,

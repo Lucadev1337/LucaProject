@@ -46,6 +46,7 @@ import {
   LayoutDashboard,
   Plus,
   Trash2,
+  Power,
   MessageCircle,
   Instagram,
   ArrowLeft,
@@ -322,6 +323,14 @@ interface Availability {
 interface HeroReview {
   imageUrl: string;
   link: string;
+}
+
+interface PromoCode {
+  id: string;
+  code: string;
+  discount: number;
+  active: boolean;
+  createdAt: any;
 }
 
 interface PricingSettings {
@@ -823,8 +832,8 @@ function PublicSite({ onBookNow, pricing, t, lang }: { onBookNow: (plan?: 'Basic
   const y = useTransform(scrollY, [0, 500], [0, 150]);
   const [currentSlide, setCurrentSlide] = useState(0);
   const heroImages = [
-    "https://media.discordapp.net/attachments/1456600712489468089/1492884090524008488/IMG_9959.png?ex=69dcf427&is=69dba2a7&hm=d78117ac4a1ac8d8592e657f2f21f5e425bc5c6efbba5c9749af84bf9cd4c7c0&=&format=webp&quality=lossless&width=1466&height=1100",
-    "https://media.discordapp.net/attachments/1456600712489468089/1492884090947375154/IMG_9961.png?ex=69dcf427&is=69dba2a7&hm=8e3c61b43894ed87869c60a4bcb3581ffc3b38395b030bab8b18bfff3154122c&=&format=webp&quality=lossless&width=1466&height=1100",
+    "https://freeimage.host/i/BODqC3x",
+    "https://freeimage.host/i/BODqXGs",
     
   ];
 
@@ -1247,11 +1256,46 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
 
   const getPrice = (service: 'Basic' | 'Premium') => {
     const base = service === 'Basic' ? pricing.basicPrice : pricing.premiumPrice;
+    let finalPrice = base;
+    
     if (pricing.isSaleActive) {
       const discount = service === 'Basic' ? (pricing.basicSalePercentage || 0) : (pricing.premiumSalePercentage || 0);
-      return Math.round(base * (1 - discount / 100));
+      finalPrice = Math.round(base * (1 - discount / 100));
     }
-    return base;
+
+    if (appliedPromo && appliedPromo.active) {
+      finalPrice = Math.round(finalPrice * (1 - appliedPromo.discount / 100));
+    }
+
+    return finalPrice;
+  };
+
+  const applyPromoCode = async () => {
+    if (!promoCodeInput) return;
+    setIsApplyingPromo(true);
+    setPromoError(null);
+    try {
+      const codeId = promoCodeInput.toUpperCase().trim();
+      const docRef = doc(db, 'promo_codes', codeId);
+      const docSnap = await getDoc(docRef);
+      
+      if (docSnap.exists()) {
+        const promo = { id: docSnap.id, ...docSnap.data() } as PromoCode;
+        if (promo.active) {
+          setAppliedPromo(promo);
+          track('Promo Code Applied', { code: codeId, discount: promo.discount });
+        } else {
+          setPromoError(lang === 'GE' ? 'პრომო კოდი არააქტიურია' : 'Promo code is inactive');
+        }
+      } else {
+        setPromoError(lang === 'GE' ? 'პრომო კოდი არასწორია' : 'Invalid promo code');
+      }
+    } catch (error) {
+      console.error('Error applying promo:', error);
+      setPromoError(lang === 'GE' ? 'შეცდომა კოდის შემოწმებისას' : 'Error validating code');
+    } finally {
+      setIsApplyingPromo(false);
+    }
   };
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
@@ -1270,6 +1314,10 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
   const [expandedService, setExpandedService] = useState<string | 'all' | null>(initialPlan ? initialPlan : 'all');
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [showTermsPopup, setShowTermsPopup] = useState(false);
+  const [promoCodeInput, setPromoCodeInput] = useState('');
+  const [appliedPromo, setAppliedPromo] = useState<PromoCode | null>(null);
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [isApplyingPromo, setIsApplyingPromo] = useState(false);
 
   const steps = [
     { id: 1, label: t.chooseService, icon: Zap, completed: !!bookingData.service },
@@ -1302,7 +1350,19 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
             const takenSnap = await getDocs(takenSlotsQuery);
             const takenSlots = takenSnap.docs.map(d => d.data().timeSlot);
             
-            if (slots.filter(s => !takenSlots.includes(s)).length > 0) {
+            // Filter out past slots or slots less than 1 hour away
+            const now = new Date();
+            const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
+            
+            const available = slots.filter(slot => {
+              if (takenSlots.includes(slot)) return false;
+              const [hours, minutes] = slot.split(':').map(Number);
+              const [year, month, day] = dateStr.split('-').map(Number);
+              const slotDate = new Date(year, month - 1, day, hours, minutes);
+              return slotDate > oneHourFromNow;
+            });
+
+            if (available.length > 0) {
               setBookingData(prev => ({ ...prev, date: dateStr }));
               setCurrentMonth(parseISO(dateStr));
               return;
@@ -1315,23 +1375,6 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
     };
 
     findSoonestAvailable();
-
-    if (initialPlan) {
-      setTimeout(() => {
-        const element = document.getElementById('date-section');
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 100);
-    } else {
-      // If no initial plan, scroll to plan section
-      setTimeout(() => {
-        const element = document.getElementById('plan-section');
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 100);
-    }
   }, [initialPlan]);
 
   const getDaysInMonth = (date: Date) => {
@@ -1483,13 +1526,17 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
         const bookingRef = await addDoc(collection(db, 'bookings'), {
           ...bookingData,
           status: 'pending',
+          promoCode: appliedPromo?.code || null,
+          discountAmount: appliedPromo ? appliedPromo.discount : 0,
+          finalPrice: getPrice(bookingData.service as any),
           createdAt: serverTimestamp()
         });
         
         // Track booking event
         track('Booking Confirmed', {
           service: bookingData.service || 'Unknown',
-          price: bookingData.service ? getPrice(bookingData.service as any) : 0
+          price: getPrice(bookingData.service as any),
+          promoCode: appliedPromo?.code || null
         });
         
         // Also mark slot as taken in public collection
@@ -1507,7 +1554,8 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
             body: JSON.stringify({ 
               email: bookingData.email, 
               bookingData,
-              price: getPrice(bookingData.service as 'Basic' | 'Premium')
+              price: getPrice(bookingData.service as 'Basic' | 'Premium'),
+              promoCode: appliedPromo?.code || null
             })
           });
         } catch (e) {
@@ -1582,7 +1630,7 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
 
       <div className="max-w-2xl mx-auto px-4 pt-24 pb-0 space-y-6">
         {/* Progress Indicator */}
-        <div style={{ paddingTop: '200px' }} className="flex items-center justify-between px-2">
+        <div className="flex items-center justify-between px-2">
           {steps.map((s, i) => (
             <React.Fragment key={s.id}>
               <div style={{ textAlign: 'center' }} className="flex flex-col items-center gap-2 relative">
@@ -1710,6 +1758,53 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                 </AnimatePresence>
               </div>
             ))}
+          </div>
+
+          {/* Promo Code Input */}
+          <div className="pt-2">
+            {!appliedPromo ? (
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] ml-2">პრომო კოდი</label>
+                <div className="flex gap-2">
+                  <input 
+                    type="text" 
+                    placeholder="SAVE20"
+                    className="flex-1 bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-xl p-3 focus:border-blue-400 outline-none transition-all text-white text-sm uppercase"
+                    value={promoCodeInput}
+                    onChange={(e) => setPromoCodeInput(e.target.value)}
+                  />
+                  <Button 
+                    onClick={applyPromoCode} 
+                    disabled={isApplyingPromo || !promoCodeInput}
+                    className="px-6 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl"
+                  >
+                    {isApplyingPromo ? '...' : (lang === 'GE' ? 'გამოყენება' : 'Apply')}
+                  </Button>
+                </div>
+                {promoError && <p className="text-[10px] text-red-500 font-bold ml-2">{promoError}</p>}
+              </div>
+            ) : (
+              <div className="bg-green-500/10 border border-green-500/20 rounded-2xl p-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-green-500/20 text-green-500 rounded-lg flex items-center justify-center">
+                    <Tag className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-black text-white uppercase tracking-wider">{appliedPromo.code}</p>
+                    <p className="text-[10px] text-green-500 font-bold">{appliedPromo.discount}% ფასდაკლება გამოყენებულია</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => {
+                    setAppliedPromo(null);
+                    setPromoCodeInput('');
+                  }}
+                  className="text-slate-500 hover:text-white transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
           </div>
         </motion.section>
 
@@ -2443,7 +2538,7 @@ function TermsOfService({ onBack, t }: { onBack: () => void, t: any, key?: strin
 
 function AdminDashboard({ onBack, pricing }: { onBack: () => void, pricing: PricingSettings, key?: string }) {
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [activeTab, setActiveTab] = useState<'bookings' | 'availability' | 'pricing' | 'reviews'>('bookings');
+  const [activeTab, setActiveTab] = useState<'bookings' | 'availability' | 'pricing' | 'reviews' | 'promo'>('bookings');
   const [isLoading, setIsLoading] = useState(true);
   const [sortBy, setSortBy] = useState<'date' | 'createdAt'>('createdAt');
   const [filterStatus, setFilterStatus] = useState<'future' | 'completed' | 'all'>('future');
@@ -2574,6 +2669,15 @@ function AdminDashboard({ onBack, pricing }: { onBack: () => void, pricing: Pric
                 )}
               >
                 ავატარები
+              </button>
+              <button 
+                onClick={() => setActiveTab('promo')}
+                className={cn(
+                  "px-4 md:px-6 py-2 rounded-lg text-xs md:text-sm font-medium transition-all whitespace-nowrap",
+                  activeTab === 'promo' ? "bg-blue-600 text-white shadow-md" : "text-slate-400 hover:bg-slate-800"
+                )}
+              >
+                პრომო კოდები
               </button>
             </div>
           </div>
@@ -2745,6 +2849,8 @@ function AdminDashboard({ onBack, pricing }: { onBack: () => void, pricing: Pric
         <AvailabilityManager onBack={onBack} />
       ) : activeTab === 'pricing' ? (
         <PricingManager pricing={pricing} onBack={onBack} />
+      ) : activeTab === 'promo' ? (
+        <PromoCodeManager onBack={onBack} />
       ) : (
         <ReviewsManager pricing={pricing} onBack={onBack} />
       )}
@@ -3144,6 +3250,166 @@ function AvailabilityManager({ onBack }: { onBack: () => void }) {
           </Button>
         </div>
       </Card>
+    </div>
+  );
+}
+
+function PromoCodeManager({ onBack }: { onBack: () => void }) {
+  const [promoCodes, setPromoCodes] = useState<PromoCode[]>([]);
+  const [newCode, setNewCode] = useState('');
+  const [newDiscount, setNewDiscount] = useState(10);
+  const [isAdding, setIsAdding] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const q = query(collection(db, 'promo_codes'), orderBy('createdAt', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetched = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PromoCode));
+      setPromoCodes(fetched);
+      setIsLoading(false);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'promo_codes');
+    });
+    return unsubscribe;
+  }, []);
+
+  const handleAddCode = async () => {
+    if (!newCode) return;
+    setIsAdding(true);
+    try {
+      const codeId = newCode.toUpperCase().trim();
+      await setDoc(doc(db, 'promo_codes', codeId), {
+        code: codeId,
+        discount: newDiscount,
+        active: true,
+        createdAt: serverTimestamp()
+      });
+      setNewCode('');
+      setNewDiscount(10);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, 'promo_codes');
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
+  const toggleCodeStatus = async (id: string, currentStatus: boolean) => {
+    try {
+      await updateDoc(doc(db, 'promo_codes', id), { active: !currentStatus });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `promo_codes/${id}`);
+    }
+  };
+
+  const deleteCode = async (id: string) => {
+    if (!confirm('ნამდვილად გსურთ ამ პრომო კოდის წაშლა?')) return;
+    try {
+      await deleteDoc(doc(db, 'promo_codes', id));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `promo_codes/${id}`);
+    }
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto space-y-8">
+      <div className="flex items-center justify-between">
+        <Button variant="ghost" onClick={onBack} className="gap-2 text-slate-300 hover:bg-slate-900">
+          <ArrowLeft className="w-4 h-4" /> საიტზე დაბრუნება
+        </Button>
+        <h2 className="text-2xl font-bold text-white">პრომო კოდების მართვა</h2>
+      </div>
+
+      <Card className="bg-slate-900 border-slate-800 p-6 space-y-6">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-10 h-10 bg-blue-600/10 text-blue-500 rounded-xl flex items-center justify-center">
+            <Plus className="w-5 h-5" />
+          </div>
+          <h3 className="text-xl font-bold text-white">ახალი პრომო კოდი</h3>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">კოდი</label>
+            <input 
+              type="text"
+              value={newCode}
+              onChange={(e) => setNewCode(e.target.value)}
+              placeholder="მაგ: SAVE20"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">ფასდაკლება (%)</label>
+            <input 
+              type="number"
+              value={newDiscount}
+              onChange={(e) => setNewDiscount(Number(e.target.value))}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all"
+            />
+          </div>
+          <div className="flex items-end">
+            <Button 
+              onClick={handleAddCode} 
+              disabled={isAdding || !newCode}
+              className="w-full py-3 rounded-xl font-bold"
+            >
+              {isAdding ? 'ემატება...' : 'კოდის დამატება'}
+            </Button>
+          </div>
+        </div>
+      </Card>
+
+      <div className="space-y-4">
+        <h3 className="text-lg font-bold text-white flex items-center gap-2">
+          <Tag className="w-5 h-5 text-blue-500" /> არსებული კოდები
+        </h3>
+        
+        {isLoading ? (
+          <div className="text-center py-10 text-slate-500">იტვირთება...</div>
+        ) : promoCodes.length === 0 ? (
+          <Card className="p-10 text-center bg-slate-900 border-slate-800 border-dashed">
+            <p className="text-slate-500">პრომო კოდები არ არის დამატებული.</p>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {promoCodes.map(code => (
+              <Card key={code.id} className="bg-slate-900 border-slate-800 p-5 flex items-center justify-between group">
+                <div className="flex items-center gap-4">
+                  <div className={cn(
+                    "w-12 h-12 rounded-xl flex items-center justify-center font-black text-lg",
+                    code.active ? "bg-blue-600/10 text-blue-500" : "bg-slate-800 text-slate-500"
+                  )}>
+                    {code.discount}%
+                  </div>
+                  <div>
+                    <h4 className="font-black text-white text-lg tracking-tight">{code.code}</h4>
+                    <p className="text-xs text-slate-500">შექმნილია: {code.createdAt?.toDate ? format(code.createdAt.toDate(), 'MMM dd, yyyy') : 'ახლახანს'}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => toggleCodeStatus(code.id, code.active)}
+                    className={cn(
+                      "w-10 h-10 rounded-xl flex items-center justify-center transition-all",
+                      code.active ? "bg-green-500/10 text-green-500 hover:bg-green-500/20" : "bg-slate-800 text-slate-500 hover:bg-slate-700"
+                    )}
+                    title={code.active ? "დეაქტივაცია" : "აქტივაცია"}
+                  >
+                    <Power className="w-4 h-4" />
+                  </button>
+                  <button 
+                    onClick={() => deleteCode(code.id)}
+                    className="w-10 h-10 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500/20 transition-all"
+                    title="წაშლა"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

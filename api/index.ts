@@ -134,7 +134,7 @@ app.post('/api/verify-code', async (req, res) => {
 
 app.post('/api/send-confirmation', async (req, res) => {
   try {
-    const { email, bookingData, price, bookingId } = req.body;
+    const { email, bookingData, price, bookingId, promoCode } = req.body;
     const serviceName = bookingData.service === 'Premium' ? 'პრემიუმ დითეილინგი' : 'სტანდარტული წმენდა';
     
     // Add the system secret to the booking so it's visible to the calendar feed
@@ -170,7 +170,7 @@ app.post('/api/send-confirmation', async (req, res) => {
                 </tr>
                 <tr>
                   <td style="padding: 12px 0; color: #64748b; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9;">ფასი</td>
-                  <td style="padding: 12px 0; color: #0f172a; font-size: 18px; font-weight: 800; border-bottom: 1px solid #f1f5f9;">${price}₾</td>
+                  <td style="padding: 12px 0; color: #0f172a; font-size: 18px; font-weight: 800; border-bottom: 1px solid #f1f5f9;">${price}₾ ${promoCode ? `<span style="font-size: 12px; color: #10b981; font-weight: 600;">(პრომო: ${promoCode})</span>` : ''}</td>
                 </tr>
                 <tr>
                   <td style="padding: 12px 0; color: #64748b; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9;">თარიღი</td>
@@ -219,7 +219,8 @@ app.post('/api/send-confirmation', async (req, res) => {
         if (pricingSnap.exists()) {
           const pricing = pricingSnap.data();
           if (pricing.isWhatsappEnabled && pricing.whatsappNumber && pricing.whatsappApiKey) {
-            const message = `🚗 *ახალი ჯავშანი!* \n\n👤 კლიენტი: ${bookingData.customerName}\n📞 ტელ: ${bookingData.phone}\n🛠 სერვისი: ${serviceName}\n📅 თარიღი: ${bookingData.date}\n⏰ დრო: ${bookingData.timeSlot}\n📍 მისამართი: ${bookingData.location}\n💰 ფასი: ${price}₾`;
+            const promoInfo = promoCode ? `\n🎟 პრომო: ${promoCode}` : '';
+            const message = `🚗 *ახალი ჯავშანი!* \n\n👤 კლიენტი: ${bookingData.customerName}\n📞 ტელ: ${bookingData.phone}\n🛠 სერვისი: ${serviceName}\n📅 თარიღი: ${bookingData.date}\n⏰ დრო: ${bookingData.timeSlot}\n📍 მისამართი: ${bookingData.location}\n💰 ფასი: ${price}₾${promoInfo}`;
             
             const whatsappUrl = `https://api.callmebot.com/whatsapp.php?phone=${pricing.whatsappNumber.replace('+', '')}&text=${encodeURIComponent(message)}&apikey=${pricing.whatsappApiKey}`;
             

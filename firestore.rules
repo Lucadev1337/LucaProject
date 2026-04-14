@@ -43,6 +43,10 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
+    match /promo_codes/{code} {
+      allow get: if true;
+      allow list, create, update, delete: if isAdmin();
+    }
     match /calendar_events/{eventId} {
       // Server writes these
       allow create: if true;

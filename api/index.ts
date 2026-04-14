@@ -257,12 +257,10 @@ app.post('/api/send-review-request', async (req, res) => {
             
             <h2 style="font-size: 24px; font-weight: 700; color: #0f172a; margin-top: 0; margin-bottom: 20px;">დიდი მადლობა, ${customerName}!</h2>
 
-            <div style="background-color: #f1f5f9; border-radius: 16px; padding: 24px; margin-bottom: 32px; text-align: left;">
               <p style="color: #1e293b; font-size: 15px; font-weight: 600; margin-top: 0; margin-bottom: 12px;">თქვენი აზრი ჩვენთვის ძალიან მნიშვნელოვანია!</p>
               <p style="color: #64748b; font-size: 14px; line-height: 1.6; margin: 0;">
                 თქვენი გამოხმაურება გვეხმარება გავხდეთ უკეთესები და შევთავაზოთ საუკეთესო სერვისი ჩვენს მომხმარებლებს.
               </p>
-            </div>
             
             <div style="margin-bottom: 40px;">
               <a href="https://g.page/r/Cc7gXgecIBlIEBM/review" style="background-color: #2563eb; color: #ffffff; padding: 18px 36px; border-radius: 14px; font-weight: 700; text-decoration: none; display: inline-block; font-size: 16px; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);">დაგვიტოვეთ შეფასება</a>

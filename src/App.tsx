@@ -636,6 +636,11 @@ export default function App() {
     };
   }, []);
 
+  // Scroll to top when view changes (e.g., to booking or terms)
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [view]);
+
   const login = async () => {
     const provider = new GoogleAuthProvider();
     try {
@@ -1247,6 +1252,10 @@ function PublicSite({ onBookNow, pricing, t, lang }: { onBookNow: (plan?: 'Basic
 // --- Booking Page ---
 
 function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { onBack: () => void, pricing: PricingSettings, t: any, lang: Language, initialPlan?: 'Basic' | 'Premium', onViewTerms?: () => void, key?: string }) {
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   const [step, setStep] = useState(1);
   const [bookingData, setBookingData] = useState<Partial<Booking>>({
     service: initialPlan,
@@ -2332,6 +2341,10 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
 // --- Admin Dashboard ---
 
 function TermsOfService({ onBack, t }: { onBack: () => void, t: any, key?: string }) {
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   return (
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
@@ -2606,7 +2619,6 @@ function AdminDashboard({ onBack, pricing }: { onBack: () => void, pricing: Pric
   };
 
   const deleteBooking = async (id: string) => {
-    if (!confirm('ნამდვილად გსურთ წაშლა?')) return;
     try {
       const booking = bookings.find(b => b.id === id);
       await deleteDoc(doc(db, 'bookings', id));
@@ -2866,7 +2878,7 @@ function ReviewsManager({ pricing, onBack }: { pricing: PricingSettings, onBack:
     setIsSaving(true);
     try {
       await setDoc(doc(db, 'settings', 'pricing'), localPricing);
-      alert('ავატარები წარმატებით განახლდა!');
+      // Success
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, 'settings/pricing');
     } finally {
@@ -2968,7 +2980,7 @@ function PricingManager({ pricing, onBack }: { pricing: PricingSettings, onBack:
     setIsSaving(true);
     try {
       await setDoc(doc(db, 'settings', 'pricing'), localPricing);
-      alert('ფასები წარმატებით განახლდა!');
+      // Success
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, 'settings/pricing');
     } finally {
@@ -3193,7 +3205,6 @@ function AvailabilityManager({ onBack }: { onBack: () => void }) {
         date: selectedDate,
         slots: slots
       });
-      alert('ხელმისაწვდომობა წარმატებით განახლდა');
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `availability/${selectedDate}`);
     } finally {
@@ -3302,7 +3313,6 @@ function PromoCodeManager({ onBack }: { onBack: () => void }) {
   };
 
   const deleteCode = async (id: string) => {
-    if (!confirm('ნამდვილად გსურთ ამ პრომო კოდის წაშლა?')) return;
     try {
       await deleteDoc(doc(db, 'promo_codes', id));
     } catch (error) {

@@ -832,8 +832,8 @@ function PublicSite({ onBookNow, pricing, t, lang }: { onBookNow: (plan?: 'Basic
   const y = useTransform(scrollY, [0, 500], [0, 150]);
   const [currentSlide, setCurrentSlide] = useState(0);
   const heroImages = [
-    "https://freeimage.host/i/BODqC3x",
-    "https://freeimage.host/i/BODqXGs",
+    "https://iili.io/BODqC3x.png",
+    "https://iili.io/BODqXGs.png",
     
   ];
 

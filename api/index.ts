@@ -75,7 +75,7 @@ app.post('/api/send-verification', async (req, res) => {
         <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1e293b; background-color: #f8fafc;">
           <div style="background-color: #ffffff; border-radius: 24px; padding: 48px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0; text-align: center;">
             <div style="margin-bottom: 32px;">
-              <img src="https://cdn.discordapp.com/attachments/1456600712489468089/1492934413393072300/lucasautospa.jpeg?ex=69dd2305&is=69dbd185&hm=e2c5e667e176c9f07812bfdda468c92196bb2eaf6eb7ed38b161a7738c983b1b" alt="Luca's AutoSpa Logo" style="width: 80px; height: 80px; border-radius: 20px; margin-bottom: 16px; object-fit: cover; border: 2px solid #f1f5f9;" />
+              <img src="https://iili.io/BOm6Gaf.jpg" alt="Luca's AutoSpa Logo" style="width: 80px; height: 80px; border-radius: 20px; margin-bottom: 16px; object-fit: cover; border: 2px solid #f1f5f9;" />
               <div style="height: 4px; width: 60px; background-color: #2563eb; margin: 16px auto; border-radius: 2px;"></div>
             </div>
             
@@ -156,7 +156,7 @@ app.post('/api/send-confirmation', async (req, res) => {
         <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1e293b; background-color: #f8fafc;">
           <div style="background-color: #ffffff; border-radius: 24px; padding: 48px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0;">
             <div style="text-align: center; margin-bottom: 32px;">
-              <img src="https://cdn.discordapp.com/attachments/1456600712489468089/1492934413393072300/lucasautospa.jpeg?ex=69dd2305&is=69dbd185&hm=e2c5e667e176c9f07812bfdda468c92196bb2eaf6eb7ed38b161a7738c983b1b" alt="Luca's AutoSpa Logo" style="width: 80px; height: 80px; border-radius: 20px; margin-bottom: 16px; object-fit: cover; border: 2px solid #f1f5f9;" />
+              <img src="https://iili.io/BOm6Gaf.jpg" alt="Luca's AutoSpa Logo" style="width: 80px; height: 80px; border-radius: 20px; margin-bottom: 16px; object-fit: cover; border: 2px solid #f1f5f9;" />
               <div style="height: 4px; width: 60px; background-color: #2563eb; margin: 16px auto; border-radius: 2px;"></div>
               <h2 style="font-size: 22px; font-weight: 700; color: #0f172a; margin-top: 0; margin-bottom: 12px;">ჯავშანი დადასტურებულია!</h2>
               <p style="color: #64748b; font-size: 16px; line-height: 1.6; margin: 0;">გმადლობთ, რომ აირჩიეთ ჩვენი სერვისი. თქვენი ჯავშნის დეტალები მოცენულია ქვემოთ:</p>
@@ -251,7 +251,7 @@ app.post('/api/send-review-request', async (req, res) => {
         <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1e293b; background-color: #f8fafc;">
           <div style="background-color: #ffffff; border-radius: 24px; padding: 48px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0; text-align: center;">
             <div style="margin-bottom: 32px;">
-              <img src="https://cdn.discordapp.com/attachments/1456600712489468089/1492934413393072300/lucasautospa.jpeg?ex=69dd2305&is=69dbd185&hm=e2c5e667e176c9f07812bfdda468c92196bb2eaf6eb7ed38b161a7738c983b1b" alt="Luca's AutoSpa Logo" style="width: 80px; height: 80px; border-radius: 20px; margin-bottom: 16px; object-fit: cover; border: 2px solid #f1f5f9;" />
+              <img src="https://iili.io/BOm6Gaf.jpg" alt="Luca's AutoSpa Logo" style="width: 80px; height: 80px; border-radius: 20px; margin-bottom: 16px; object-fit: cover; border: 2px solid #f1f5f9;" />
               <div style="height: 4px; width: 60px; background-color: #2563eb; margin: 16px auto; border-radius: 2px;"></div>
             </div>
             
@@ -301,7 +301,7 @@ app.post('/api/send-cancellation', async (req, res) => {
         <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1e293b; background-color: #f8fafc;">
           <div style="background-color: #ffffff; border-radius: 24px; padding: 48px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0;">
             <div style="text-align: center; margin-bottom: 32px;">
-              <img src="https://cdn.discordapp.com/attachments/1456600712489468089/1492934413393072300/lucasautospa.jpeg?ex=69dd2305&is=69dbd185&hm=e2c5e667e176c9f07812bfdda468c92196bb2eaf6eb7ed38b161a7738c983b1b" alt="Luca's AutoSpa Logo" style="width: 80px; height: 80px; border-radius: 20px; margin-bottom: 16px; object-fit: cover; border: 2px solid #f1f5f9;" />
+              <img src="https://iili.io/BOm6Gaf.jpg" alt="Luca's AutoSpa Logo" style="width: 80px; height: 80px; border-radius: 20px; margin-bottom: 16px; object-fit: cover; border: 2px solid #f1f5f9;" />
               <h1 style="color: #ef4444; margin: 0; font-size: 32px; font-weight: 800; letter-spacing: -0.025em; text-transform: uppercase;">Luca's <span style="color: #1e293b;">AutoSpa</span></h1>
               <div style="height: 4px; width: 60px; background-color: #ef4444; margin: 16px auto; border-radius: 2px;"></div>
               <h2 style="font-size: 22px; font-weight: 700; color: #0f172a; margin-top: 0; margin-bottom: 12px;">თქვენი ჯავშანი გაუქმებულია</h2>

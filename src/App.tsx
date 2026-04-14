@@ -65,7 +65,7 @@ import { track } from '@vercel/analytics';
 // Fix Leaflet icon issue
 import icon from 'leaflet/dist/images/marker-icon.png';
 import iconShadow from 'leaflet/dist/images/marker-shadow.png';
-const logo = "https://cdn.discordapp.com/attachments/1456600712489468089/1492934413393072300/lucasautospa.jpeg?ex=69dd2305&is=69dbd185&hm=e2c5e667e176c9f07812bfdda468c92196bb2eaf6eb7ed38b161a7738c983b1b";
+const logo = "https://iili.io/BOm6Gaf.jpg";
 
 let DefaultIcon = L.icon({
     iconUrl: icon,
@@ -753,7 +753,7 @@ export default function App() {
               <div>
                 <div className="flex items-center gap-2 mb-4">
                   <img 
-                    src="https://cdn.discordapp.com/attachments/1456600712489468089/1492899401872703550/lucasautospalogotransparentcropped.png?ex=69dd026a&is=69dbb0ea&hm=079b336f78d420e38f0b8d7599e23f22b1fd0221e60f8af1b52bf64049d437ed" 
+                    src="https://iili.io/BOpU56G.png" 
                     alt="Luca's Autospa Logo" 
                     className="h-12 w-auto object-contain"
                     referrerPolicy="no-referrer"

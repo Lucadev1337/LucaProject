@@ -251,30 +251,33 @@ app.post('/api/send-review-request', async (req, res) => {
         <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1e293b; background-color: #f8fafc;">
           <div style="background-color: #ffffff; border-radius: 24px; padding: 48px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0; text-align: center;">
             <div style="margin-bottom: 32px;">
-              <img src="https://iili.io/BOm6Gaf.jpg" alt="Luca's AutoSpa Logo" style="width: 80px; height: 80px; border-radius: 20px; margin-bottom: 16px; object-fit: cover; border: 2px solid #f1f5f9;" />
-              <div style="height: 4px; width: 60px; background-color: #2563eb; margin: 16px auto; border-radius: 2px;"></div>
+              <div style="display: inline-block; padding: 4px; background: linear-gradient(135deg, #2563eb, #3b82f6); border-radius: 24px; margin-bottom: 16px;">
+                <img src="https://iili.io/BOm6Gaf.jpg" alt="Luca's AutoSpa Logo" style="width: 80px; height: 80px; border-radius: 20px; display: block; object-fit: cover; border: 2px solid #ffffff;" />
+              </div>
+              <h1 style="color: #0f172a; margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.025em;">Luca's <span style="color: #2563eb;">AutoSpa</span></h1>
             </div>
             
-            <h2 style="font-size: 24px; font-weight: 700; color: #0f172a; margin-top: 0; margin-bottom: 20px;">დიდი მადლობა, ${customerName}!</h2>
+            <h2 style="font-size: 24px; font-weight: 700; color: #0f172a; margin-top: 0; margin-bottom: 16px;">დიდი მადლობა, ${customerName}!</h2>
+            <p style="color: #475569; font-size: 16px; line-height: 1.6; margin-bottom: 32px;">
+              იმედი გვაქვს, კმაყოფილი დარჩით ჩვენი მომსახურებით. თქვენი აზრი ჩვენთვის ძალიან მნიშვნელოვანია და გვეხმარება განვითარებაში.
+            </p>
 
-              <p style="color: #1e293b; font-size: 15px; font-weight: 600; margin-top: 0; margin-bottom: 12px;">თქვენი აზრი ჩვენთვის ძალიან მნიშვნელოვანია!</p>
-              <p style="color: #64748b; font-size: 14px; line-height: 1.6; margin: 0;">
-                თქვენი გამოხმაურება გვეხმარება გავხდეთ უკეთესები და შევთავაზოთ საუკეთესო სერვისი ჩვენს მომხმარებლებს.
+            <div style="background-color: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 20px; padding: 32px; margin-bottom: 32px;">
+              <p style="color: #1e293b; font-size: 15px; font-weight: 700; margin-top: 0; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">როგორ შეგვაფასებდით?</p>
+              <p style="color: #64748b; font-size: 14px; line-height: 1.6; margin-bottom: 24px;">
+                დაგვიტოვეთ მოკლე შეფასება Google-ზე. ამით ძალიან დაგვეხმარებით!
               </p>
-            
-            <div style="margin-bottom: 40px;">
-              <a href="https://g.page/r/Cc7gXgecIBlIEBM/review" style="background-color: #2563eb; color: #ffffff; padding: 18px 36px; border-radius: 14px; font-weight: 700; text-decoration: none; display: inline-block; font-size: 16px; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);">დაგვიტოვეთ შეფასება</a>
+              <a href="https://g.page/r/Cc7gXgecIBlIEBM/review" style="background-color: #2563eb; color: #ffffff; padding: 16px 32px; border-radius: 12px; font-weight: 700; text-decoration: none; display: inline-block; font-size: 16px;">დაგვიტოვეთ შეფასება</a>
             </div>
-            
-            <div style="margin-top: 48px; padding-top: 32px; border-top: 1px solid #f1f5f9; text-align: center;">
-              <p style="color: #1e293b; font-weight: 700; margin-bottom: 4px; font-size: 15px;">საუკეთესო სურვილებით,</p>
-              <p style="color: #2563eb; font-weight: 600; margin-top: 0; font-size: 16px;">Luca's AutoSpa-ს გუნდი</p>
+
+            <div style="margin-top: 40px; padding-top: 32px; border-top: 1px solid #f1f5f9;">
+              <p style="color: #64748b; font-size: 14px; margin-bottom: 4px;">კითხვების შემთხვევაში დაგვიკავშირდით:</p>
+              <a href="tel:+995591952473" style="color: #2563eb; text-decoration: none; font-weight: 700;">+995 591 952 473</a>
             </div>
           </div>
           
           <div style="text-align: center; margin-top: 32px;">
             <p style="color: #94a3b8; font-size: 12px;">&copy; ${new Date().getFullYear()} Luca's AutoSpa. ყველა უფლება დაცულია.</p>
-            <p style="color: #cbd5e1; font-size: 11px; margin-top: 8px;">ეს არის ავტომატური შეტყობინება, გთხოვთ ნუ უპასუხებთ.</p>
           </div>
         </div>
       `

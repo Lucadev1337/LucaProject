@@ -1372,7 +1372,20 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
       const takenSnap = await getDocs(takenSlotsQuery);
       const takenSlots = takenSnap.docs.map(d => d.data().timeSlot);
       
-      setAvailableSlots(baseSlots.filter(s => !takenSlots.includes(s)));
+      let filteredSlots = baseSlots.filter(s => !takenSlots.includes(s));
+
+      // Filter out past slots or slots less than 1 hour away
+      const now = new Date();
+      const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
+
+      filteredSlots = filteredSlots.filter(slot => {
+        const [hours, minutes] = slot.split(':').map(Number);
+        const [year, month, day] = date.split('-').map(Number);
+        const slotDate = new Date(year, month - 1, day, hours, minutes);
+        return slotDate > oneHourFromNow;
+      });
+      
+      setAvailableSlots(filteredSlots);
     } catch (error) {
       handleFirestoreError(error, OperationType.GET, `taken_slots/${date}`);
     } finally {

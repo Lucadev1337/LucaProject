@@ -162,7 +162,6 @@ const translations = {
     errorTerms: "გთხოვთ დაეთანხმოთ წესებსა და პირობებს",
     acceptAndConfirm: "ვეთანხმები და დაჯავშნა",
     cancel: "გაუქმება",
-    locationError: "თქვენი ადგილმდებარეობის დადგენა ვერ მოხერხდა",
     termsTitle: "წესები და პირობები",
     bestValue: "საუკეთესო ფასი",
     secure: "უსაფრთხო",
@@ -272,7 +271,6 @@ const translations = {
     errorTerms: "Please agree to the terms and conditions",
     acceptAndConfirm: "Accept & Confirm",
     cancel: "Cancel",
-    locationError: "Unable to retrieve your location",
     termsTitle: "Terms & Conditions",
     bestValue: "Best Value",
     secure: "Secure",
@@ -424,7 +422,6 @@ function MapPicker({ onLocationSelect, initialLocation, t }: { onLocationSelect:
   const [address, setAddress] = useState(initialLocation || '');
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-  const [isLocating, setIsLocating] = useState(false);
   const [mapCenter, setMapCenter] = useState<[number, number]>(TBILISI_CENTER);
   const [zoom, setZoom] = useState(13);
 
@@ -470,43 +467,6 @@ function MapPicker({ onLocationSelect, initialLocation, t }: { onLocationSelect:
       console.error('Search failed', error);
     } finally {
       setIsSearching(false);
-    }
-  };
-
-  const handleLocateMe = () => {
-    if (navigator.geolocation) {
-      setIsLocating(true);
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const { latitude, longitude } = position.coords;
-          setMarker([latitude, longitude]);
-          setMapCenter([latitude, longitude]);
-          setZoom(17);
-          
-          try {
-            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`);
-            const data = await response.json();
-            if (data && data.display_name) {
-              setAddress(data.display_name);
-              setSearchQuery(data.display_name);
-              onLocationSelect(data.display_name, latitude, longitude);
-            }
-          } catch (e) {
-            console.error('Reverse geocoding failed', e);
-          } finally {
-            setIsLocating(false);
-          }
-        },
-        (error) => {
-          console.error('Geolocation error:', error);
-          setIsLocating(false);
-          // Silent fail or console log is safer in iframe than alert
-          console.warn('Location access denied or unavailable');
-        },
-        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
-      );
-    } else {
-      console.warn('Geolocation is not supported by your browser');
     }
   };
 

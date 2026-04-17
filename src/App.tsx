@@ -397,7 +397,7 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 }
 
 // --- Map Config ---
-const TBILISI_CENTER: [number, number] = [41.7151, 44.8271];
+const TBILISI_CENTER: [number, number] = [41.6934, 44.8015];
 
 function MapEvents({ onClick }: { onClick: (e: L.LeafletMouseEvent) => void }) {
   useMapEvents({

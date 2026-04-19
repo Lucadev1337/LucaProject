@@ -19,7 +19,10 @@ import {
   GoogleAuthProvider, 
   onAuthStateChanged, 
   signOut,
-  User
+  User,
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+  ConfirmationResult
 } from 'firebase/auth';
 import { db, auth } from './firebase';
 import { motion, AnimatePresence, useScroll, useTransform } from 'motion/react';
@@ -53,7 +56,8 @@ import {
   HelpCircle,
   ChevronLeft,
   Check,
-  Users
+  Users,
+  Smartphone
 } from 'lucide-react';
 import { format, addDays, startOfToday, isSameDay, parseISO } from 'date-fns';
 import { ka } from 'date-fns/locale';
@@ -61,6 +65,12 @@ import { cn } from './lib/utils';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { track } from '@vercel/analytics';
+
+declare global {
+  interface Window {
+    recaptchaVerifier: any;
+  }
+}
 
 // Fix Leaflet icon issue
 import icon from 'leaflet/dist/images/marker-icon.png';
@@ -124,10 +134,9 @@ const translations = {
     address: "მისამართი",
     name: "სახელი",
     phone: "ტელეფონი",
-    email: "ელ-ფოსტა (ვერიფიკაციისთვის)",
     enterCode: "შეიყვანეთ 6-ნიშნა კოდი",
-    codeSent: "კოდი გაიგზავნა თქვენს ელ-ფოსტაზე. თუ არ მიგიღიათ, შეამოწმეთ სპამი.",
-    changeEmail: "ელ-ფოსტის შეცვლა",
+    codeSent: "კოდი გაიგზავნა თქვენს ტელეფონზე SMS-ის სახით.",
+    changeEmail: "ნომრის შეცვლა",
     total: "ჯამი",
     confirmBooking: "ჯავშნის დადასტურება",
     verifyingBtn: "ვერიფიკაცია და დაჯავშნა",
@@ -144,7 +153,6 @@ const translations = {
     processing: "მუშავდება...",
     noTimes: "ამ დღისთვის ხელმისაწვდომი დროები არ არის.",
     namePlaceholder: "თქვენი სახელი",
-    emailPlaceholder: "თქვენი@ფოსტა.com",
     detailsLink: "დეტალები",
     chooseService: "აირჩიეთ სერვისი",
     invalidCode: "არასწორი ან ვადაგასული კოდი",
@@ -160,7 +168,6 @@ const translations = {
     errorLocation: "გთხოვთ მიუთითოთ მომსახურების მისამართი",
     errorPersonalInfo: "გთხოვთ შეავსოთ საკონტაქტო ინფორმაცია",
     errorTerms: "გთხოვთ დაეთანხმოთ წესებსა და პირობებს",
-    acceptAndConfirm: "ვეთანხმები და დაჯავშნა",
     cancel: "გაუქმება",
     termsTitle: "წესები და პირობები",
     bestValue: "საუკეთესო ფასი",
@@ -233,10 +240,9 @@ const translations = {
     address: "Address",
     name: "Name",
     phone: "Phone",
-    email: "Email (for verification)",
     enterCode: "Enter 6-digit code",
-    codeSent: "Code sent to your email. If not received, check spam.",
-    changeEmail: "Change Email",
+    codeSent: "Code sent to your phone via SMS.",
+    changeEmail: "Change Number",
     total: "Total",
     confirmBooking: "Confirm Booking",
     verifyingBtn: "Verify & Book",
@@ -253,7 +259,6 @@ const translations = {
     processing: "Processing...",
     noTimes: "No available times for this day.",
     namePlaceholder: "Your Name",
-    emailPlaceholder: "your@email.com",
     detailsLink: "Details",
     chooseService: "Choose Service",
     invalidCode: "Invalid or expired code",
@@ -269,7 +274,6 @@ const translations = {
     errorLocation: "Please specify the service address",
     errorPersonalInfo: "Please fill in your contact information",
     errorTerms: "Please agree to the terms and conditions",
-    acceptAndConfirm: "Accept & Confirm",
     cancel: "Cancel",
     termsTitle: "Terms & Conditions",
     bestValue: "Best Value",
@@ -303,8 +307,8 @@ const translations = {
 interface Booking {
   id: string;
   customerName: string;
-  email: string;
   phone: string;
+  email?: string;
   service: 'Basic' | 'Premium';
   date: string;
   timeSlot: string;
@@ -342,6 +346,12 @@ interface PricingSettings {
   whatsappNumber?: string;
   whatsappApiKey?: string;
   isWhatsappEnabled?: boolean;
+  smsApiKey?: string;
+  isSmsEnabled?: boolean;
+  reviewLink?: string;
+  verificationMethod?: 'sms' | 'email';
+  resendApiKey?: string;
+  resendSenderEmail?: string;
 }
 
 // --- Error Handling ---
@@ -565,7 +575,10 @@ export default function App() {
     basicPrice: 89,
     premiumPrice: 149,
     salePercentage: 20,
-    isSaleActive: false
+    isSaleActive: false,
+    isSmsEnabled: true,
+    isWhatsappEnabled: true,
+    verificationMethod: 'sms'
   });
 
   useEffect(() => {
@@ -786,6 +799,7 @@ export default function App() {
             <MessageCircle className="w-5 h-5" />
           </a>
         )}
+        <div id="recaptcha-container"></div>
       </div>
   );
 }
@@ -1273,7 +1287,7 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
   const [isSuccess, setIsSuccess] = useState(false);
   
   // Verification states
-  const [verificationId, setVerificationId] = useState<string | null>(null);
+  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
   const [userCode, setUserCode] = useState('');
   const [isSendingCode, setIsSendingCode] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
@@ -1288,10 +1302,44 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
   const [promoError, setPromoError] = useState<string | null>(null);
   const [isApplyingPromo, setIsApplyingPromo] = useState(false);
 
+  useEffect(() => {
+    // Warm up reCAPTCHA early so it doesn't "load too late"
+    if (pricing.verificationMethod === 'sms') {
+      const initRecaptcha = async () => {
+        try {
+          const container = document.getElementById('recaptcha-container');
+          if (window.recaptchaVerifier) {
+            try { window.recaptchaVerifier.clear(); } catch (e) {}
+          }
+          if (container) container.innerHTML = '';
+          
+          window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+            'size': 'invisible'
+          });
+          
+          await window.recaptchaVerifier.render();
+          console.log('reCAPTCHA warmed up');
+        } catch (e) {
+          console.error('reCAPTCHA warmup failed:', e);
+        }
+      };
+      initRecaptcha();
+    }
+
+    return () => {
+      if (window.recaptchaVerifier) {
+        try {
+          window.recaptchaVerifier.clear();
+        } catch (e) {}
+      }
+    };
+  }, [pricing.verificationMethod]);
+
   const steps = [
     { id: 1, label: t.chooseService, icon: Zap, completed: !!bookingData.service },
     { id: 2, label: t.chooseDate, icon: Calendar, completed: !!(bookingData.date && bookingData.timeSlot) },
-    { id: 3, label: t.location, icon: MapPin, completed: !!(bookingData.location && bookingData.customerName && bookingData.phone && bookingData.email) }
+    { id: 3, label: t.location, icon: MapPin, completed: !!(bookingData.location && bookingData.customerName && (pricing.verificationMethod === 'email' ? bookingData.email : bookingData.phone)) },
+    { id: 4, label: lang === 'GE' ? 'დადასტურება' : 'Confirm', icon: ShieldCheck, completed: false }
   ];
 
   const currentStep = steps.find(s => !s.completed)?.id || 3;
@@ -1407,31 +1455,116 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
 
   const sendVerificationCode = async () => {
     setFormError(null);
-    if (!bookingData.email) {
-      setFormError(t.email);
+    const method = pricing.verificationMethod || 'sms';
+    
+    if (method === 'sms' && !bookingData.phone) {
+      setFormError(t.phone);
       return;
     }
+    if (method === 'email' && !bookingData.email) {
+      setFormError(lang === 'GE' ? 'გთხოვთ შეიყვანოთ ელ-ფოსტა' : 'Please enter your email');
+      return;
+    }
+
     setIsSendingCode(true);
     try {
-      const response = await fetch('/api/send-verification', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: bookingData.email })
-      });
-      const data = await response.json();
-      if (data.verificationId) {
-        setVerificationId(data.verificationId);
-        setShowVerification(true);
-        // Track verification event
-        track('Verification Code Sent', { email: bookingData.email });
+      if (method === 'sms') {
+        let phoneNumber = bookingData.phone!;
+        if (!phoneNumber.startsWith('+')) {
+          const cleanPhone = phoneNumber.replace(/^0+/, '');
+          phoneNumber = `+995${cleanPhone}`;
+        }
+        
+        // Defensive check: if it fails with -39, it's often an environment/staging mismatch.
+        // We ensure a fresh container and a fresh verifier.
+        const container = document.getElementById('recaptcha-container');
+        if (container) container.innerHTML = '';
+        
+        if (window.recaptchaVerifier) {
+          try { window.recaptchaVerifier.clear(); } catch(e) {}
+        }
+
+        // Try invisible first, but provide a way to fall back if it fails repeatedly
+        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+          'size': 'invisible',
+          'callback': (response: any) => {
+             console.log('reCAPTCHA solved');
+          },
+          'expired-callback': () => {
+             console.warn('reCAPTCHA expired');
+          }
+        });
+
+        const appVerifier = window.recaptchaVerifier;
+        
+        try {
+          const result = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+          setConfirmationResult(result);
+          setShowVerification(true);
+          track('SMS Verification Sent', { phone: phoneNumber });
+        } catch (smsError: any) {
+          console.error('SMS Error inside block:', smsError);
+          // If we hit -39, let's try to clear and maybe show a different error or retry once
+          if (smsError.message.includes('-39') || smsError.code?.includes('internal-error')) {
+            console.log('Detected -39, attempting visible fallback/retry preparation');
+            if (window.recaptchaVerifier) window.recaptchaVerifier.clear();
+            if (container) container.innerHTML = '';
+            
+            // Re-throw to be caught by the outer catch, but with better context
+            throw smsError;
+          }
+          throw smsError;
+        }
       } else {
-        setFormError(t.sendCodeError);
+        // Email Verification via Resend (Backend)
+        const response = await fetch('/api/send-verification-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            email: bookingData.email,
+            lang
+          })
+        });
+        
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.error || 'Failed to send verification email');
+        }
+        
+        setShowVerification(true);
+        track('Email Verification Sent', { email: bookingData.email });
       }
-    } catch (error) {
-      console.error('Send code error:', error);
-      setFormError(t.generalError);
+    } catch (error: any) {
+      console.error('Verification Code error:', error);
+      if (error.code === 'auth/invalid-phone-number') {
+        setFormError(lang === 'GE' ? 'არასწორი ტელეფონის ნომერი' : 'Invalid phone number');
+      } else if (error.code === 'auth/too-many-requests') {
+        setFormError(lang === 'GE' ? 'ძალიან ბევრი მცდელობა. სცადეთ მოგვიანებით' : 'Too many requests. Try again later');
+      } else if (error.code === 'auth/operation-not-allowed') {
+        setFormError(lang === 'GE' 
+          ? 'Phone Auth არ არის ჩართული Firebase კონსოლში. გთხოვთ ჩრთოთ Authentication > Sign-in method-დან.' 
+          : 'Phone Auth is not enabled in Firebase Console. Please enable it in Authentication > Sign-in method.');
+      } else if (error.message.includes('-39')) {
+        setFormError(lang === 'GE' 
+          ? 'Firebase Error -39: კავშირის პრობლემა. გთხოვთ შეამოწმოთ: 1. Firebase Console-ში Authorized Domains. 2. SMS სერვისი თუ ჩართულია თქვენს რეგიონში. 3. სცადეთ Email ვერიფიკაცია.' 
+          : 'Firebase Error -39: Connection problem. Please check: 1. Authorized Domains in Firebase Console. 2. If SMS is enabled for your region. 3. Try Email Verification instead.');
+      } else {
+        setFormError(error.message || t.generalError);
+      }
     } finally {
       setIsSendingCode(false);
+    }
+  };
+
+  const handleSMSNotification = async (phone: string, message: string) => {
+    try {
+      await fetch('/api/send-sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, message })
+      });
+    } catch (e) {
+      console.error('Failed to send SMS notification', e);
     }
   };
 
@@ -1440,29 +1573,19 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
     setFormError(null);
     
     if (!bookingData.service) {
+      setStep(1);
       setFormError(t.errorService);
-      document.getElementById('plan-section')?.scrollIntoView({ behavior: 'smooth' });
       return;
     }
     if (!bookingData.date || !bookingData.timeSlot) {
+      setStep(2);
       setFormError(t.errorDateTime);
-      document.getElementById('date-section')?.scrollIntoView({ behavior: 'smooth' });
       return;
     }
-    if (!bookingData.location) {
-      setFormError(t.errorLocation);
-      document.getElementById('location-section')?.scrollIntoView({ behavior: 'smooth' });
-      return;
-    }
-    if (!bookingData.customerName || !bookingData.phone || !bookingData.email) {
-      setFormError(t.errorPersonalInfo);
-      document.getElementById('personal-info-section')?.scrollIntoView({ behavior: 'smooth' });
-      return;
-    }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(bookingData.email)) {
-      setFormError(lang === 'GE' ? 'გთხოვთ შეიყვანოთ სწორი ელ-ფოსტა' : 'Please enter a valid email address');
-      document.getElementById('personal-info-section')?.scrollIntoView({ behavior: 'smooth' });
+    const isContactValid = pricing.verificationMethod === 'email' ? bookingData.email : bookingData.phone;
+    if (!bookingData.location || !bookingData.customerName || !isContactValid) {
+      setStep(3);
+      setFormError(t.fillAllFields);
       return;
     }
     if (!termsAccepted && !shouldBypass) {
@@ -1483,14 +1606,34 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
     setIsVerifying(true);
     setVerificationError(null);
     try {
-      const response = await fetch('/api/verify-code', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ verificationId, code: userCode })
-      });
-      const data = await response.json();
+      let isVerified = false;
+      const method = pricing.verificationMethod || 'sms';
+
+      if (method === 'sms') {
+        if (!confirmationResult) {
+          throw new Error('No confirmation result');
+        }
+        const result = await confirmationResult.confirm(userCode);
+        isVerified = !!result.user;
+      } else {
+        // Verify Email OTP via Backend
+        const response = await fetch('/api/verify-email-code', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            email: bookingData.email,
+            code: userCode
+          })
+        });
+        
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.error || 'Invalid verification code');
+        }
+        isVerified = true;
+      }
       
-      if (data.success) {
+      if (isVerified) {
         setIsSubmitting(true);
         const bookingRef = await addDoc(collection(db, 'bookings'), {
           ...bookingData,
@@ -1515,20 +1658,41 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
           bookingId: bookingRef.id
         });
         
-        // Send confirmation email to customer
+        // Send notification to backend (WhatsApp to Admin)
         try {
-          await fetch('/api/send-confirmation', {
+          await fetch('/api/notify-booking', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
-              email: bookingData.email, 
               bookingData,
               price: getPrice(bookingData.service as 'Basic' | 'Premium'),
+              bookingId: bookingRef.id,
               promoCode: appliedPromo?.code || null
             })
           });
         } catch (e) {
-          console.error('Failed to send confirmation email', e);
+          console.error('Failed to send notification', e);
+        }
+
+        // Send Confirmation to Customer
+        const method = pricing.verificationMethod || 'sms';
+        const msg = lang === 'GE' 
+          ? `Luca's AutoSpa: თქვენი ჯავშანი დადასტურებულია! 📅 ${bookingData.date} | ⏰ ${bookingData.timeSlot}. მადლობა ნდობისთვის!`
+          : `Luca's AutoSpa: Your booking is confirmed! 📅 ${bookingData.date} | ⏰ ${bookingData.timeSlot}. Thank you!`;
+        
+        if (method === 'sms' && bookingData.phone) {
+          await handleSMSNotification(bookingData.phone, msg);
+        } else if (method === 'email' && bookingData.email) {
+          // Add handleEmailNotification to the main scope or use fetch directly
+          try {
+            await fetch('/api/send-email', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: bookingData.email, subject: 'ჯავშნის დადასტურება - Luca\'s AutoSpa', message: msg })
+            });
+          } catch (e) {
+            console.error('Failed to send Email confirmation', e);
+          }
         }
 
         setIsSuccess(true);
@@ -1539,11 +1703,15 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
           colors: ['#30c3fc', '#ffffff', '#2563eb']
         });
       } else {
-        setVerificationError(data.error || t.invalidCode);
+        setVerificationError(t.invalidCode);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Verification error:', error);
-      setVerificationError(t.verificationError);
+      if (error.code === 'auth/invalid-verification-code') {
+         setVerificationError(t.invalidCode);
+      } else {
+         setVerificationError(t.verificationError);
+      }
     } finally {
       setIsVerifying(false);
       setIsSubmitting(false);
@@ -1588,7 +1756,10 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-slate-950/80 backdrop-blur-xl border-b border-white/5 px-4 py-4">
         <div className="max-w-2xl mx-auto flex items-center relative min-h-[32px]">
-          <button onClick={onBack} className="p-2 hover:bg-white/10 rounded-full transition-all text-slate-400 active:scale-90 relative z-10">
+          <button 
+            onClick={step === 1 ? onBack : () => setStep(step - 1)} 
+            className="p-2 hover:bg-white/10 rounded-full transition-all text-slate-400 active:scale-90 relative z-10"
+          >
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-base font-black uppercase font-orbitron tracking-tight bg-gradient-to-r from-white to-[#30c3fc] bg-clip-text text-transparent absolute left-1/2 -translate-x-1/2 whitespace-nowrap">
@@ -1599,29 +1770,35 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
 
       <div className="max-w-2xl mx-auto px-4 pt-24 pb-0 space-y-6">
         {/* Progress Indicator */}
-        <div className="flex items-center justify-between px-2">
+        <div className="flex items-center justify-between px-2 pt-2">
           {steps.map((s, i) => (
             <React.Fragment key={s.id}>
-              <div style={{ textAlign: 'center' }} className="flex flex-col items-center gap-2 relative">
+              <div 
+                className="flex flex-col items-center gap-2 group cursor-pointer relative" 
+                onClick={() => (s.completed || s.id < step) && setStep(s.id)}
+              >
                 <div className={cn(
-                  "w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-500",
-                  s.completed ? "bg-green-500 text-slate-950" : s.id === currentStep ? "bg-blue-400 text-slate-950 shadow-lg shadow-blue-400/20" : "bg-slate-900 text-slate-500 border border-white/5"
+                  "w-12 h-12 rounded-[1.25rem] flex items-center justify-center transition-all duration-700 relative z-10",
+                  step === s.id ? "bg-blue-600 shadow-[0_0_30px_rgba(37,99,235,0.4)] scale-110" : 
+                  s.id < step ? "bg-blue-600/20 text-blue-400" : "bg-slate-900 border border-white/5 text-slate-600"
                 )}>
-                  {s.completed ? <CheckCircle className="w-5 h-5" /> : <s.icon className="w-5 h-5" />}
+                  {s.id < step ? <CheckCircle className="w-6 h-6" /> : <s.icon className={cn("w-6 h-6", step === s.id ? "text-white" : "")} />}
                 </div>
                 <span className={cn(
-                  "text-[10px] font-black uppercase tracking-wider transition-colors duration-500",
-                  s.id === currentStep ? "text-blue-400" : "text-slate-500"
-                )}>{s.label}</span>
+                  "text-[9px] font-black uppercase tracking-[0.2em] transition-all duration-500 text-center",
+                  step === s.id ? "text-blue-400 translate-y-0 opacity-100" : "text-slate-600 opacity-60"
+                )}>
+                  {s.label}
+                </span>
               </div>
               {i < steps.length - 1 && (
-                <div className="flex-1 h-[2px] mx-4 bg-slate-900 relative overflow-hidden">
+                <div className="flex-1 h-[2px] mx-2 mb-6 bg-slate-900 overflow-hidden rounded-full relative">
                   <motion.div 
-                    className="absolute inset-0 bg-blue-400"
+                    className="absolute inset-0 bg-blue-600 shadow-[0_0_15px_rgba(37,99,235,0.5)]"
                     initial={{ scaleX: 0 }}
-                    animate={{ scaleX: s.completed ? 1 : 0 }}
+                    animate={{ scaleX: i + 1 < step ? 1 : 0 }}
                     style={{ originX: 0 }}
-                    transition={{ duration: 0.5 }}
+                    transition={{ duration: 0.8, ease: "circOut" }}
                   />
                 </div>
               )}
@@ -1629,400 +1806,568 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
           ))}
         </div>
 
-        {/* Select Service */}
-        <motion.section 
-          id="plan-section" 
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="space-y-4"
-        >
-          <h2 className="text-xl font-black text-white tracking-tight">{t.chooseService}</h2>
-          <div className="space-y-3">
-            {[
-              { 
-                id: 'Basic', 
-                title: t.standardClean, 
-                price: getPrice('Basic'), 
-                originalPrice: pricing.basicPrice,
-                icon: Zap,
-                details: t.standardDetails
-              },
-              { 
-                id: 'Premium', 
-                title: t.premiumDeepClean, 
-                price: getPrice('Premium'), 
-                originalPrice: pricing.premiumPrice,
-                icon: Star,
-                details: t.premiumDetails
-              }
-            ].map((s) => (
-              <div key={s.id} className="space-y-2">
-                <button
-                  onClick={() => {
-                    setBookingData({ ...bookingData, service: s.id as any });
-                    setExpandedService(s.id);
-                    track('Service Selected', { service: s.id });
-                  }}
-                  className={cn(
-                    "w-full flex items-center justify-between p-4 rounded-2xl border transition-all duration-500 text-left relative overflow-hidden group",
-                    bookingData.service === s.id 
-                      ? "bg-blue-400/10 border-blue-400 ring-1 ring-blue-400/50 shadow-2xl shadow-blue-400/10" 
-                      : "bg-slate-900/40 backdrop-blur-xl border-white/5 hover:border-white/10"
-                  )}
-                >
-                  <div className="flex items-center gap-4 relative z-10">
-                    <div className={cn(
-                      "w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-500",
-                      bookingData.service === s.id ? "bg-blue-400 text-slate-950 shadow-xl shadow-blue-400/40 scale-110" : "bg-slate-950/50 text-slate-500"
-                    )}>
-                      <s.icon className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-lg font-black text-white mb-0.5">{s.title}</h3>
-                      </div>
-                      <div className="flex items-baseline gap-2">
-                        <p className={cn(
-                          "text-base font-black",
-                          bookingData.service === s.id ? "text-blue-400" : "text-slate-400"
-                        )}>{s.price}₾</p>
-                        {pricing.isSaleActive && (
-                          <p className="text-xs text-slate-600 line-through">{s.originalPrice}₾</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </button>
-                
-                <AnimatePresence>
-                  {(expandedService === s.id || expandedService === 'all') && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="overflow-hidden"
-                    >
-                      <div className="p-6 bg-slate-900/40 backdrop-blur-xl rounded-2xl border border-white/5 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
-                        {s.details.map((detail, idx) => (
-                          <motion.div 
-                            key={idx} 
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: idx * 0.05 }}
-                            className="flex items-center gap-3 text-xs text-slate-300 group/item"
-                          >
-                            <div className={cn(
-                              "w-5 h-5 rounded-lg flex items-center justify-center flex-shrink-0 transition-transform group-hover/item:scale-110",
-                              s.id === 'Premium' ? "bg-blue-400/20 text-blue-400" : "bg-slate-700/30 text-slate-500"
-                            )}>
-                              <CheckCircle className="w-3 h-3" />
-                            </div>
-                            <span className="font-medium">{detail}</span>
-                          </motion.div>
-                        ))}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            ))}
-          </div>
-
-          {/* Promo Code Input */}
-          <div className="pt-2">
-            {!appliedPromo ? (
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] ml-2">პრომო კოდი</label>
-                <div className="flex gap-2">
-                  <input 
-                    type="text" 
-                    placeholder="SAVE20"
-                    className="flex-1 bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-xl p-3 focus:border-blue-400 outline-none transition-all text-white text-sm uppercase"
-                    value={promoCodeInput}
-                    onChange={(e) => setPromoCodeInput(e.target.value)}
-                  />
-                  <Button 
-                    onClick={applyPromoCode} 
-                    disabled={isApplyingPromo || !promoCodeInput}
-                    className="px-6 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl"
-                  >
-                    {isApplyingPromo ? '...' : (lang === 'GE' ? 'გამოყენება' : 'Apply')}
-                  </Button>
-                </div>
-                {promoError && <p className="text-[10px] text-red-500 font-bold ml-2">{promoError}</p>}
-              </div>
-            ) : (
-              <div className="bg-green-500/10 border border-green-500/20 rounded-2xl p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-green-500/20 text-green-500 rounded-lg flex items-center justify-center">
-                    <Tag className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-black text-white uppercase tracking-wider">{appliedPromo.code}</p>
-                    <p className="text-[10px] text-green-500 font-bold">{appliedPromo.discount}% ფასდაკლება გამოყენებულია</p>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => {
-                    setAppliedPromo(null);
-                    setPromoCodeInput('');
-                  }}
-                  className="text-slate-500 hover:text-white transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            )}
-          </div>
-        </motion.section>
-
-        {/* Choose Date & Time */}
-        <motion.section 
-          id="date-section" 
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="space-y-4"
-        >
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-black text-white tracking-tight">{t.chooseDate}</h2>
-            <div className="flex items-center gap-2 bg-slate-900/40 backdrop-blur-xl p-1 rounded-xl border border-white/5">
-              <button 
-                onClick={() => setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
-                disabled={currentMonth.getMonth() === new Date().getMonth() && currentMonth.getFullYear() === new Date().getFullYear()}
-                className="p-1.5 hover:bg-white/5 rounded-lg disabled:opacity-20 transition-colors"
-              >
-                <ChevronLeft className="w-3.5 h-3.5 text-slate-400" />
-              </button>
-              <span className="text-[10px] font-black uppercase text-white px-1">{format(currentMonth, 'MMMM yyyy', { locale: lang === 'GE' ? ka : undefined })}</span>
-              <button 
-                onClick={() => setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}
-                disabled={currentMonth.getMonth() === new Date().getMonth() + 1}
-                className="p-1.5 hover:bg-white/5 rounded-lg disabled:opacity-20 transition-colors"
-              >
-                <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-              </button>
-            </div>
-          </div>
-
-          {/* Horizontal Date Picker */}
-          <div className="flex gap-3 overflow-x-auto px-4 pt-4 pb-6 no-scrollbar -mx-4">
-            {dates.map((date) => {
-              const isSelected = bookingData.date === format(date, 'yyyy-MM-dd');
-              return (
-                <button
-                  key={date.toISOString()}
-                  onClick={() => {
-                    setBookingData({ ...bookingData, date: format(date, 'yyyy-MM-dd'), timeSlot: undefined });
-                    track('Date Selected', { date: format(date, 'yyyy-MM-dd') });
-                  }}
-                  className={cn(
-                    "flex-shrink-0 w-14 h-20 rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all duration-500 border",
-                    isSelected 
-                      ? "bg-blue-400 border-blue-400 text-slate-950 shadow-2xl shadow-blue-400/30 scale-105" 
-                      : "bg-slate-900/40 backdrop-blur-xl border-white/5 text-slate-400 hover:border-white/10"
-                  )}
-                >
-                  <span className="text-[9px] font-black uppercase tracking-widest">{format(date, 'EEE', { locale: lang === 'GE' ? ka : undefined })}</span>
-                  <span className="text-lg font-black">{format(date, 'd')}</span>
-                  {isSelected && (
-                    <motion.div 
-                      layoutId="date-indicator"
-                      className="absolute -bottom-1 w-1 h-1 bg-white rounded-full"
-                    />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Time Slots */}
-          {bookingData.date && (
-            <motion.div 
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              className="space-y-4 pt-1"
+        <AnimatePresence mode="wait">
+          {step === 1 && (
+            <motion.section 
+              key="step1"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="space-y-6"
             >
-              <div className="flex items-center justify-center gap-3">
-                <div className="h-[1px] flex-1 bg-white/5" />
-                <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">{t.availableTimes}</span>
-                <div className="h-[1px] flex-1 bg-white/5" />
-              </div>
-
-              {isLoadingSlots ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 animate-pulse">
-                  {[...Array(6)].map((_, i) => (
-                    <div key={i} className="h-14 bg-slate-900/40 rounded-xl" />
-                  ))}
-                </div>
-              ) : availableSlots.length > 0 ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-1">
-                  {availableSlots.map((slot) => {
-                    const isSelected = bookingData.timeSlot === slot;
-                    return (
+              <div className="space-y-4">
+                <h2 className="text-xl font-black text-white tracking-tight">{t.chooseService}</h2>
+                <div className="space-y-3">
+                  {[
+                    { 
+                      id: 'Basic', 
+                      title: t.standardClean, 
+                      price: getPrice('Basic'), 
+                      originalPrice: pricing.basicPrice,
+                      icon: Zap,
+                      details: t.standardDetails
+                    },
+                    { 
+                      id: 'Premium', 
+                      title: t.premiumDeepClean, 
+                      price: getPrice('Premium'), 
+                      originalPrice: pricing.premiumPrice,
+                      icon: Star,
+                      details: t.premiumDetails
+                    }
+                  ].map((s) => (
+                    <div key={s.id} className="space-y-2">
                       <button
-                        key={slot}
                         onClick={() => {
-                          setBookingData({ ...bookingData, timeSlot: slot });
-                          track('Time Slot Selected', { timeSlot: slot });
+                          setBookingData({ ...bookingData, service: s.id as any });
+                          setExpandedService(s.id);
+                          track('Service Selected', { service: s.id });
                         }}
                         className={cn(
-                          "h-14 rounded-xl border transition-all duration-500 flex flex-col items-center justify-center gap-1 group relative overflow-hidden",
-                          isSelected 
-                            ? "bg-blue-400 border-blue-400 text-slate-950 shadow-2xl shadow-blue-400/30 scale-105" 
-                            : "bg-slate-900/40 backdrop-blur-xl border-white/5 text-white hover:border-white/10"
+                          "w-full flex items-center justify-between p-4 rounded-2xl border transition-all duration-500 text-left relative overflow-hidden group",
+                          bookingData.service === s.id 
+                            ? "bg-blue-400/10 border-blue-400 ring-1 ring-blue-400/50 shadow-2xl shadow-blue-400/10" 
+                            : "bg-slate-900/40 backdrop-blur-xl border-white/5 hover:border-white/10"
                         )}
                       >
-                        <span className="text-base font-black relative z-10">{slot}</span>
+                        <div className="flex items-center gap-4 relative z-10">
+                          <div className={cn(
+                            "w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-500",
+                            bookingData.service === s.id ? "bg-blue-400 text-slate-950 shadow-xl shadow-blue-400/40 scale-110" : "bg-slate-950/50 text-slate-500"
+                          )}>
+                            <s.icon className="w-6 h-6" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h3 className="text-lg font-black text-white mb-0.5">{s.title}</h3>
+                            </div>
+                            <div className="flex items-baseline gap-2">
+                              <p className={cn(
+                                "text-base font-black",
+                                bookingData.service === s.id ? "text-blue-400" : "text-slate-400"
+                              )}>{s.price}₾</p>
+                              {pricing.isSaleActive && (
+                                <p className="text-xs text-slate-600 line-through">{s.originalPrice}₾</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                      
+                      <AnimatePresence>
+                        {(expandedService === s.id || expandedService === 'all') && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="p-6 bg-slate-900/40 backdrop-blur-xl rounded-2xl border border-white/5 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+                              {s.details.map((detail, idx) => (
+                                <motion.div 
+                                  key={idx} 
+                                  initial={{ opacity: 0, x: -10 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  transition={{ delay: idx * 0.05 }}
+                                  className="flex items-center gap-3 text-xs text-slate-300 group/item"
+                                >
+                                  <div className={cn(
+                                    "w-5 h-5 rounded-lg flex items-center justify-center flex-shrink-0 transition-transform group-hover/item:scale-110",
+                                    s.id === 'Premium' ? "bg-blue-400/20 text-blue-400" : "bg-slate-700/30 text-slate-500"
+                                  )}>
+                                    <CheckCircle className="w-3 h-3" />
+                                  </div>
+                                  <span className="font-medium">{detail}</span>
+                                </motion.div>
+                              ))}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Promo Code Input */}
+                <div className="pt-2">
+                  {!appliedPromo ? (
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] ml-2">პრომო კოდი</label>
+                      <div className="flex gap-2">
+                        <input 
+                          type="text" 
+                          placeholder="SAVE20"
+                          className="flex-1 bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-xl p-3 focus:border-blue-400 outline-none transition-all text-white text-sm uppercase"
+                          value={promoCodeInput}
+                          onChange={(e) => setPromoCodeInput(e.target.value)}
+                        />
+                        <Button 
+                          onClick={applyPromoCode} 
+                          disabled={isApplyingPromo || !promoCodeInput}
+                          className="px-6 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl"
+                        >
+                          {isApplyingPromo ? '...' : (lang === 'GE' ? 'გამოყენება' : 'Apply')}
+                        </Button>
+                      </div>
+                      {promoError && <p className="text-[10px] text-red-500 font-bold ml-2">{promoError}</p>}
+                    </div>
+                  ) : (
+                    <div className="bg-green-500/10 border border-green-500/20 rounded-2xl p-4 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-green-500/20 text-green-500 rounded-lg flex items-center justify-center">
+                          <Tag className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-black text-white uppercase tracking-wider">{appliedPromo.code}</p>
+                          <p className="text-[10px] text-green-500 font-bold">{appliedPromo.discount}% ფასდაკლება გამოყენებულია</p>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => {
+                          setAppliedPromo(null);
+                          setPromoCodeInput('');
+                        }}
+                        className="text-slate-500 hover:text-white transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="pt-6">
+                <Button 
+                  onClick={() => setStep(2)} 
+                  disabled={!bookingData.service}
+                  className="w-full py-5 rounded-[2rem] bg-blue-600 hover:bg-blue-700 font-black text-lg shadow-2xl shadow-blue-600/20 flex gap-3"
+                >
+                  <span>{lang === 'GE' ? 'გაგრძელება' : 'Continue'}</span>
+                  <ChevronRight className="w-6 h-6" />
+                </Button>
+              </div>
+            </motion.section>
+          )}
+
+          {step === 2 && (
+            <motion.section 
+              key="step2"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="space-y-6"
+            >
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-black text-white tracking-tight">{t.chooseDate}</h2>
+                  <div className="flex items-center gap-2 bg-slate-900/40 backdrop-blur-xl p-1 rounded-xl border border-white/5">
+                    <button 
+                      onClick={() => setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
+                      disabled={currentMonth.getMonth() === new Date().getMonth() && currentMonth.getFullYear() === new Date().getFullYear()}
+                      className="p-1.5 hover:bg-white/5 rounded-lg disabled:opacity-20 transition-colors"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5 text-slate-400" />
+                    </button>
+                    <span className="text-[10px] font-black uppercase text-white px-1">{format(currentMonth, 'MMMM yyyy', { locale: lang === 'GE' ? ka : undefined })}</span>
+                    <button 
+                      onClick={() => setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}
+                      disabled={currentMonth.getMonth() === new Date().getMonth() + 1}
+                      className="p-1.5 hover:bg-white/5 rounded-lg disabled:opacity-20 transition-colors"
+                    >
+                      <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Horizontal Date Picker */}
+                <div className="flex gap-3 overflow-x-auto px-4 pt-4 pb-6 no-scrollbar -mx-4">
+                  {dates.map((date) => {
+                    const isSelected = bookingData.date === format(date, 'yyyy-MM-dd');
+                    return (
+                      <button
+                        key={date.toISOString()}
+                        onClick={() => {
+                          setBookingData({ ...bookingData, date: format(date, 'yyyy-MM-dd'), timeSlot: undefined });
+                          track('Date Selected', { date: format(date, 'yyyy-MM-dd') });
+                        }}
+                        className={cn(
+                          "flex-shrink-0 w-14 h-20 rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all duration-500 border",
+                          isSelected 
+                            ? "bg-blue-400 border-blue-400 text-slate-950 shadow-2xl shadow-blue-400/30 scale-105" 
+                            : "bg-slate-900/40 backdrop-blur-xl border-white/5 text-slate-400 hover:border-white/10"
+                        )}
+                      >
+                        <span className="text-[9px] font-black uppercase tracking-widest">{format(date, 'EEE', { locale: lang === 'GE' ? ka : undefined })}</span>
+                        <span className="text-lg font-black">{format(date, 'd')}</span>
+                        {isSelected && (
+                          <motion.div 
+                            layoutId="date-indicator"
+                            className="absolute -bottom-1 w-1 h-1 bg-white rounded-full"
+                          />
+                        )}
                       </button>
                     );
                   })}
                 </div>
-              ) : (
-                <div className="text-center py-8 bg-slate-900/40 backdrop-blur-xl rounded-2xl border border-dashed border-white/10">
-                  <p className="text-xs text-slate-500 font-medium">{t.noTimes}</p>
-                </div>
-              )}
-            </motion.div>
-          )}
-        </motion.section>
 
-        {/* Service Location */}
-        <motion.section 
-          id="location-section"
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="space-y-6"
-        >
-          <h2 className="text-xl font-black tracking-tight">{t.location}</h2>
-          
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] ml-2">{t.address}</label>
-              <div className="rounded-xl overflow-hidden shadow-2xl">
-                <MapPicker 
-                  initialLocation={bookingData.location}
-                  onLocationSelect={(address) => setBookingData({ ...bookingData, location: address })}
-                  t={t}
-                />
-              </div>
-            </div>
+                {/* Time Slots */}
+                {bookingData.date && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="space-y-4 pt-1"
+                  >
+                    <div className="flex items-center justify-center gap-3">
+                      <div className="h-[1px] flex-1 bg-white/5" />
+                      <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">{t.availableTimes}</span>
+                      <div className="h-[1px] flex-1 bg-white/5" />
+                    </div>
 
-            <div id="personal-info-section" className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] ml-2">{t.name}</label>
-                <input 
-                  type="text" 
-                  placeholder={t.namePlaceholder}
-                  className="w-full bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-xl p-3.5 focus:border-blue-400 outline-none transition-all text-white text-sm shadow-inner"
-                  value={bookingData.customerName || ''}
-                  onChange={(e) => setBookingData({ ...bookingData, customerName: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] ml-2">{t.phone}</label>
-                <div className="relative flex items-center bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden focus-within:border-blue-400 transition-all shadow-inner">
-                  <div className="pl-4 pr-3 py-3.5 text-white font-black text-sm border-r border-white/10 bg-white/5">
-                    +995
-                  </div>
-                  <input 
-                    type="tel" 
-                    placeholder="5..."
-                    className="flex-1 bg-transparent p-3.5 outline-none text-white text-sm"
-                    value={bookingData.phone || ''}
-                    onChange={(e) => {
-                      const val = e.target.value.replace(/\D/g, '');
-                      setBookingData({ ...bookingData, phone: val });
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] ml-2">{t.email}</label>
-              <input 
-                type="email" 
-                placeholder={t.emailPlaceholder}
-                className="w-full bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-xl p-3.5 focus:border-blue-400 outline-none transition-all text-white text-sm shadow-inner"
-                value={bookingData.email || ''}
-                onChange={(e) => setBookingData({ ...bookingData, email: e.target.value })}
-                disabled={showVerification}
-              />
-            </div>
-          </div>
-        </motion.section>
-
-        {/* Trust Badges */}
-        <motion.div 
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          className="grid grid-cols-3 gap-4 py-4 border-y border-white/5"
-        >
-          {[
-            { icon: ShieldCheck, label: t.secure },
-            { icon: Zap, label: t.fast },
-            { icon: Star, label: t.premium }
-          ].map((item, i) => (
-            <div key={i} className="flex flex-col items-center gap-2">
-              <div className="w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center text-blue-400 border border-white/5">
-                <item.icon className="w-5 h-5" />
-              </div>
-              <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">{item.label}</span>
-            </div>
-          ))}
-        </motion.div>
-
-        {/* Verification Box at the very bottom */}
-        <AnimatePresence>
-          {showVerification && (
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              className="space-y-4 p-6 bg-blue-600/10 border border-blue-600/20 rounded-[2.5rem] shadow-2xl relative z-10"
-            >
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-black text-blue-400 flex items-center gap-2 uppercase tracking-widest">
-                  <ShieldCheck className="w-5 h-5" /> {t.enterCode}
-                </label>
-                <button 
-                  onClick={() => setShowVerification(false)}
-                  className="text-[10px] font-black text-blue-400/60 hover:text-blue-400 uppercase tracking-widest transition-colors"
-                >
-                  {t.changeEmail}
-                </button>
-              </div>
-              <input 
-                type="text" 
-                maxLength={6}
-                placeholder="000000"
-                className={cn(
-                  "w-full bg-slate-950/50 border rounded-2xl p-5 text-center text-3xl font-black tracking-[0.5em] focus:border-blue-600 outline-none transition-all text-white shadow-inner",
-                  verificationError ? "border-red-500/50 bg-red-500/5" : "border-white/10"
+                    {isLoadingSlots ? (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 animate-pulse">
+                        {[...Array(6)].map((_, i) => (
+                          <div key={i} className="h-14 bg-slate-900/40 rounded-xl" />
+                        ))}
+                      </div>
+                    ) : availableSlots.length > 0 ? (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-1">
+                        {availableSlots.map((slot) => {
+                          const isSelected = bookingData.timeSlot === slot;
+                          return (
+                            <button
+                              key={slot}
+                              onClick={() => {
+                                setBookingData({ ...bookingData, timeSlot: slot });
+                                track('Time Slot Selected', { timeSlot: slot });
+                              }}
+                              className={cn(
+                                "h-14 rounded-xl border transition-all duration-500 flex flex-col items-center justify-center gap-1 group relative overflow-hidden",
+                                isSelected 
+                                  ? "bg-blue-400 border-blue-400 text-slate-950 shadow-2xl shadow-blue-400/30 scale-105" 
+                                  : "bg-slate-900/40 backdrop-blur-xl border-white/5 text-white hover:border-white/10"
+                              )}
+                            >
+                              <span className="text-base font-black relative z-10">{slot}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 bg-slate-900/40 backdrop-blur-xl rounded-2xl border border-dashed border-white/10">
+                        <p className="text-xs text-slate-500 font-medium">{t.noTimes}</p>
+                      </div>
+                    )}
+                  </motion.div>
                 )}
-                value={userCode}
-                onChange={(e) => {
-                  setUserCode(e.target.value.replace(/\D/g, ''));
-                  setVerificationError(null);
-                }}
-              />
-              {verificationError && (
-                <motion.p 
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  className="text-xs text-red-500 text-center font-bold"
+              </div>
+
+              <div className="flex gap-4 pt-6">
+                <Button 
+                  onClick={() => setStep(1)} 
+                  variant="ghost"
+                  className="flex-1 py-5 rounded-[2rem] border border-white/5 font-black text-lg gap-3"
                 >
-                  {verificationError}
-                </motion.p>
-              )}
-              <p className="text-[10px] text-slate-500 text-center uppercase tracking-widest font-bold">
-                {t.codeSent}
-              </p>
-            </motion.div>
+                  <ChevronLeft className="w-6 h-6" />
+                  <span>{lang === 'GE' ? 'უკან' : 'Back'}</span>
+                </Button>
+                <Button 
+                  onClick={() => setStep(3)} 
+                  disabled={!bookingData.date || !bookingData.timeSlot}
+                  className="flex-[2] py-5 rounded-[2rem] bg-blue-600 hover:bg-blue-700 font-black text-lg shadow-2xl shadow-blue-600/30 flex gap-3 relative overflow-hidden group"
+                >
+                  <span>{lang === 'GE' ? 'გაგრძელება' : 'Continue'}</span>
+                  <ChevronRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
+                </Button>
+              </div>
+            </motion.section>
+          )}
+
+          {step === 3 && (
+            <motion.section 
+              key="step3"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="space-y-6"
+            >
+              <div className="space-y-6">
+                <h2 className="text-xl font-black text-white tracking-tight">{t.location}</h2>
+                
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] ml-2">{t.address}</label>
+                    <div className="rounded-3xl overflow-hidden shadow-2xl border border-white/5 bg-slate-900 group">
+                      <MapPicker 
+                        initialLocation={bookingData.location}
+                        onLocationSelect={(address) => setBookingData({ ...bookingData, location: address })}
+                        t={t}
+                      />
+                    </div>
+                  </div>
+
+                  <div id="personal-info-section" className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] ml-2">{t.name}</label>
+                      <input 
+                        type="text" 
+                        placeholder={t.namePlaceholder}
+                        className="w-full bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-2xl p-4 focus:border-blue-400 outline-none transition-all text-white text-sm shadow-inner"
+                        value={bookingData.customerName || ''}
+                        onChange={(e) => setBookingData({ ...bookingData, customerName: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] ml-2">
+                        {pricing.verificationMethod === 'email' ? 'Email' : t.phone}
+                      </label>
+                      {pricing.verificationMethod === 'email' ? (
+                        <input 
+                          type="email" 
+                          placeholder="your@email.com"
+                          className="w-full bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-2xl p-4 focus:border-blue-400 outline-none transition-all text-white text-sm shadow-inner"
+                          value={bookingData.email || ''}
+                          onChange={(e) => setBookingData({ ...bookingData, email: e.target.value })}
+                        />
+                      ) : (
+                        <div className="relative flex items-center bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden focus-within:border-blue-400 transition-all shadow-inner">
+                          <div className="pl-4 pr-3 py-4 text-slate-500 font-black text-sm border-r border-white/10 bg-white/5">
+                            +995
+                          </div>
+                          <input 
+                            type="tel" 
+                            placeholder="5..."
+                            className="flex-1 bg-transparent p-4 outline-none text-white text-sm"
+                            value={bookingData.phone || ''}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(/\D/g, '');
+                              setBookingData({ ...bookingData, phone: val });
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {formError && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-500 text-xs font-bold text-center"
+                  >
+                    {formError}
+                  </motion.div>
+                )}
+
+                <div className="flex gap-4 pt-6">
+                  <Button 
+                    onClick={() => setStep(2)} 
+                    variant="ghost"
+                    className="flex-1 py-5 rounded-[1.5rem] border border-white/5 font-black text-lg gap-3"
+                  >
+                    <ChevronLeft className="w-6 h-6" />
+                    <span>{lang === 'GE' ? 'უკან' : 'Back'}</span>
+                  </Button>
+                  <Button 
+                    onClick={() => {
+                      if (bookingData.location && bookingData.customerName && bookingData.phone) {
+                        setStep(4);
+                        setFormError(null);
+                      } else {
+                        setFormError(t.fillAllFields || 'გთხოვთ შეავსოთ ყველა ველი');
+                      }
+                    }} 
+                    className="flex-[2] py-5 rounded-[1.5rem] bg-blue-600 hover:bg-blue-700 font-black text-lg shadow-2xl shadow-blue-600/30 flex gap-3 relative overflow-hidden group"
+                  >
+                    <span>{lang === 'GE' ? 'გაგრძელება' : 'Continue'}</span>
+                    <ChevronRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
+                  </Button>
+                </div>
+              </div>
+            </motion.section>
+          )}
+
+          {step === 4 && (
+            <motion.section 
+              key="step4"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="space-y-6"
+            >
+              <div className="space-y-6">
+                <h2 className="text-xl font-black text-white tracking-tight">{lang === 'GE' ? 'ჯავშნის დადასტურება' : 'Confirm Your Booking'}</h2>
+                
+                <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 space-y-6 overflow-hidden relative group">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-blue-400/5 blur-3xl rounded-full" />
+                  
+                  {/* Service Summary */}
+                  <div className="flex items-start gap-4 pb-6 border-b border-white/5">
+                    <div className="w-12 h-12 bg-blue-400/10 text-blue-400 rounded-2xl flex items-center justify-center flex-shrink-0">
+                      {bookingData.service === 'Premium' ? <Star className="w-6 h-6" /> : <Zap className="w-6 h-6" />}
+                    </div>
+                    <div>
+                      <h3 className="font-black text-white text-lg">
+                        {bookingData.service === 'Premium' ? t.premiumDeepClean : t.standardClean}
+                      </h3>
+                      <p className="text-blue-400 font-black text-xl">{getPrice(bookingData.service as any)}₾</p>
+                    </div>
+                  </div>
+
+                  {/* Date & Time Summary */}
+                  <div className="flex items-center gap-4 py-4">
+                    <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-slate-400">
+                      <Calendar className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t.chooseDate}</p>
+                      <p className="text-white font-medium">
+                        {bookingData.date ? format(parseISO(bookingData.date), 'EEEE, d MMMM', { locale: lang === 'GE' ? ka : undefined }) : ''}
+                      </p>
+                      <p className="text-slate-400 text-sm font-bold">{bookingData.timeSlot}</p>
+                    </div>
+                  </div>
+
+                  {/* Location Summary */}
+                  <div className="flex items-start gap-4 py-4">
+                    <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-slate-400">
+                      <MapPin className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t.location}</p>
+                      <p className="text-white text-sm line-clamp-2">{bookingData.location}</p>
+                    </div>
+                  </div>
+
+                  {/* Personal Summary */}
+                  <div className="flex items-center gap-4 py-4">
+                    <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-slate-400">
+                      <Users className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t.name}</p>
+                      <p className="text-white font-medium">{bookingData.customerName}</p>
+                      <p className="text-slate-400 text-xs">
+                        {pricing.verificationMethod === 'email' ? bookingData.email : bookingData.phone}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Verification Box */}
+                <AnimatePresence>
+                  {showVerification && (
+                    <motion.div 
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      className="space-y-4 p-6 bg-blue-600 border border-blue-500/50 rounded-3xl shadow-2xl relative z-10 overflow-hidden"
+                    >
+                      <div className="absolute top-0 right-0 p-8 bg-white/5 rounded-full -mr-10 -mt-10" />
+                      <div className="flex items-center justify-between relative z-10">
+                        <label className="text-sm font-black text-white flex items-center gap-2 uppercase tracking-widest">
+                          <ShieldCheck className="w-5 h-5" /> {t.enterCode}
+                        </label>
+                        <button 
+                          onClick={() => {
+                            setShowVerification(false);
+                            setConfirmationResult(null);
+                            setUserCode('');
+                          }}
+                          className="text-[10px] font-black text-white/60 hover:text-white uppercase tracking-widest transition-colors"
+                        >
+                          {t.changeEmail}
+                        </button>
+                      </div>
+                      <input 
+                        type="text" 
+                        maxLength={6}
+                        placeholder="000000"
+                        className={cn(
+                          "w-full bg-slate-950/40 border border-white/20 rounded-2xl p-5 text-center text-3xl font-black tracking-[0.5em] focus:border-white outline-none transition-all text-white shadow-inner relative z-10",
+                          verificationError ? "border-red-500 bg-red-500/10" : "border-white/10"
+                        )}
+                        value={userCode}
+                        onChange={(e) => {
+                          setUserCode(e.target.value.replace(/\D/g, ''));
+                          setVerificationError(null);
+                        }}
+                      />
+                      {verificationError && (
+                        <motion.p 
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          className="text-xs text-red-200 text-center font-bold relative z-10"
+                        >
+                          {verificationError}
+                        </motion.p>
+                      )}
+                      <p className="text-[10px] text-white/50 text-center uppercase tracking-widest font-bold relative z-10">
+                        {t.codeSent}
+                      </p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {formError && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-500 text-xs font-bold text-center"
+                  >
+                    {formError}
+                  </motion.div>
+                )}
+
+                <div className="flex gap-4 pt-6">
+                  <Button 
+                    onClick={() => setStep(3)} 
+                    variant="ghost"
+                    className="flex-1 py-5 rounded-[1.5rem] border border-white/5 font-black text-lg gap-3"
+                  >
+                    <ChevronLeft className="w-6 h-6" />
+                    <span>{lang === 'GE' ? 'უკან' : 'Back'}</span>
+                  </Button>
+                  <Button 
+                    onClick={() => handleBookingSubmit()} 
+                    disabled={isSubmitting || isVerifying || isSendingCode}
+                    className="flex-[2] py-5 rounded-[1.5rem] bg-blue-600 hover:bg-blue-700 font-black text-lg shadow-2xl shadow-blue-600/30 flex gap-3 relative overflow-hidden group"
+                  >
+                    {isSubmitting || isVerifying || isSendingCode ? (
+                      <span className="flex items-center gap-2">
+                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        {isSendingCode ? t.sendingCode : isVerifying ? t.verifying : t.processing}
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-3">
+                        {showVerification ? t.confirmBooking : t.verifyingBtn}
+                        <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
+                      </span>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </motion.section>
           )}
         </AnimatePresence>
       </div>
@@ -2259,41 +2604,6 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
           </div>
         )}
       </AnimatePresence>
-
-      {/* Sticky Bottom Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 p-4 md:p-6">
-        <div className="max-w-2xl mx-auto bg-slate-900/80 backdrop-blur-2xl border border-white/10 p-5 rounded-[2.5rem] shadow-2xl shadow-black/50">
-          <div className="flex items-center justify-between gap-6">
-            <div className="pl-2">
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-0.5">{t.total}</p>
-              <div className="flex items-baseline gap-1">
-                <p className="text-2xl font-black text-blue-400 leading-none">{bookingData.service ? getPrice(bookingData.service as any) : 0}</p>
-                <span className="text-sm font-black text-blue-400/60">₾</span>
-              </div>
-            </div>
-            <Button 
-              onClick={() => handleBookingSubmit()}
-              disabled={isSubmitting || isSendingCode || isVerifying || !bookingData.timeSlot || !bookingData.location || !bookingData.customerName || !bookingData.email}
-              className="flex-1 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-[2rem] font-black flex gap-3 shadow-xl shadow-blue-600/20 transition-all active:scale-95 disabled:opacity-50 h-14"
-            >
-              {isSendingCode ? t.sendingCode : isVerifying ? t.verifying : isSubmitting ? t.processing : (
-                <>
-                  <Zap className="w-5 h-5" /> {showVerification ? t.verifyingBtn : t.confirmBooking}
-                </>
-              )}
-            </Button>
-          </div>
-          {formError && (
-            <motion.p 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-[10px] text-red-500 text-center mt-3 font-bold uppercase tracking-wider"
-            >
-              {formError}
-            </motion.p>
-          )}
-        </div>
-      </div>
     </motion.div>
   );
 }
@@ -2537,14 +2847,47 @@ function AdminDashboard({ onBack, pricing }: { onBack: () => void, pricing: Pric
     return true;
   });
 
+  const handleSMSNotification = async (phone: string, message: string) => {
+    try {
+      await fetch('/api/send-sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, message })
+      });
+    } catch (e) {
+      console.error('Failed to send SMS notification', e);
+    }
+  };
+
+  const handleEmailNotification = async (email: string, subject: string, message: string) => {
+    try {
+      await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, subject, message })
+      });
+    } catch (e) {
+      console.error('Failed to send Email notification', e);
+    }
+  };
+
   const updateBookingStatus = async (id: string, status: Booking['status']) => {
     try {
       const booking = bookings.find(b => b.id === id);
+      const method = pricing.verificationMethod || 'sms';
       await updateDoc(doc(db, 'bookings', id), { status });
       
       if (booking) {
         if (status === 'cancelled') {
           await deleteDoc(doc(db, 'taken_slots', `${booking.date}_${booking.timeSlot}`));
+          
+          const message = `Luca's AutoSpa: თქვენი ჯავშანი გაუქმებულია. კითხვებისთვის მოგვწერეთ. / Your booking was cancelled.`;
+          if (method === 'sms' && booking.phone) {
+            await handleSMSNotification(booking.phone, message);
+          } else if (method === 'email' && booking.email) {
+            await handleEmailNotification(booking.email, 'ჯავშნის სტატუსი - Luca\'s AutoSpa', message);
+          }
+          
         } else {
           await setDoc(doc(db, 'taken_slots', `${booking.date}_${booking.timeSlot}`), {
             date: booking.date,
@@ -2556,21 +2899,13 @@ function AdminDashboard({ onBack, pricing }: { onBack: () => void, pricing: Pric
       
       if (status === 'completed' && booking) {
         track('Order Completed', { service: booking.service, bookingId: id });
-        try {
-          await fetch('/api/send-review-request', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: booking.email, customerName: booking.customerName })
-          });
-        } catch (e) { console.error(e); }
-      } else if (status === 'cancelled' && booking) {
-        try {
-          await fetch('/api/send-cancellation', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: booking.email, bookingData: booking })
-          });
-        } catch (e) { console.error(e); }
+        
+        const message = `Luca's AutoSpa: სერვისი დასრულებულია! გთხოვთ დაგვიტოვეთ რევიუ / Please review us: ${pricing.reviewLink || 'https://google.com'}`;
+        if (method === 'sms' && booking.phone) {
+          await handleSMSNotification(booking.phone, message);
+        } else if (method === 'email' && booking.email) {
+          await handleEmailNotification(booking.email, 'სერვისი დასრულებულია - Luca\'s AutoSpa', message);
+        }
       }
       setShowActionsId(null);
     } catch (error) {
@@ -2746,12 +3081,16 @@ function AdminDashboard({ onBack, pricing }: { onBack: () => void, pricing: Pric
                             <div>
                               <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">საკონტაქტო</p>
                               <div className="space-y-1">
-                                <a href={`tel:${booking.phone}`} className="flex items-center gap-2 text-sm text-blue-400 hover:underline">
-                                  <Phone className="w-3.5 h-3.5" /> {booking.phone}
-                                </a>
-                                <a href={`mailto:${booking.email}`} className="flex items-center gap-2 text-sm text-blue-400 hover:underline">
-                                  <Mail className="w-3.5 h-3.5" /> {booking.email}
-                                </a>
+                                {booking.phone && (
+                                  <a href={`tel:${booking.phone}`} className="flex items-center gap-2 text-sm text-blue-400 hover:underline">
+                                    <Phone className="w-3.5 h-3.5" /> {booking.phone}
+                                  </a>
+                                )}
+                                {booking.email && (
+                                  <a href={`mailto:${booking.email}`} className="flex items-center gap-2 text-sm text-indigo-400 hover:underline">
+                                    <Mail className="w-3.5 h-3.5" /> {booking.email}
+                                  </a>
+                                )}
                               </div>
                             </div>
                             <div>
@@ -2957,101 +3296,192 @@ function PricingManager({ pricing, onBack }: { pricing: PricingSettings, onBack:
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Basic Service */}
+        {/* Services */}
         <Card className="bg-slate-900 border-slate-800 p-6 space-y-6">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-blue-600/10 text-blue-500 rounded-xl flex items-center justify-center">
               <Zap className="w-5 h-5" />
             </div>
-            <h3 className="text-xl font-bold text-white">ინტერიერის წმენდა</h3>
+            <h3 className="text-xl font-bold text-white">სერვისების ფასები</h3>
           </div>
           
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">ფასი (₾)</label>
-              <input 
-                type="number"
-                value={localPricing.basicPrice}
-                onChange={(e) => setLocalPricing({ ...localPricing, basicPrice: Number(e.target.value) })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all"
-              />
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500">ინტერიერი (₾)</label>
+                <input 
+                  type="number"
+                  value={localPricing.basicPrice}
+                  onChange={(e) => setLocalPricing({ ...localPricing, basicPrice: Number(e.target.value) })}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500">ინტერიერი -%</label>
+                <input 
+                  type="number"
+                  value={localPricing.basicSalePercentage || 0}
+                  onChange={(e) => setLocalPricing({ ...localPricing, basicSalePercentage: Number(e.target.value) })}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all"
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">ფასდაკლება (%)</label>
-              <input 
-                type="number"
-                value={localPricing.basicSalePercentage || 0}
-                onChange={(e) => setLocalPricing({ ...localPricing, basicSalePercentage: Number(e.target.value) })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all"
-              />
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500">პრემიუმი (₾)</label>
+                <input 
+                  type="number"
+                  value={localPricing.premiumPrice}
+                  onChange={(e) => setLocalPricing({ ...localPricing, premiumPrice: Number(e.target.value) })}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500">პრემიუმი -%</label>
+                <input 
+                  type="number"
+                  value={localPricing.premiumSalePercentage || 0}
+                  onChange={(e) => setLocalPricing({ ...localPricing, premiumSalePercentage: Number(e.target.value) })}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all"
+                />
+              </div>
             </div>
           </div>
         </Card>
 
-        {/* Premium Service */}
+        {/* Global Sale */}
         <Card className="bg-slate-900 border-slate-800 p-6 space-y-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-600/10 text-blue-500 rounded-xl flex items-center justify-center">
-              <Zap className="w-5 h-5" />
-            </div>
-            <h3 className="text-xl font-bold text-white">პრემიუმ დითეილინგი</h3>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">ფასი (₾)</label>
-              <input 
-                type="number"
-                value={localPricing.premiumPrice}
-                onChange={(e) => setLocalPricing({ ...localPricing, premiumPrice: Number(e.target.value) })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">ფასდაკლება (%)</label>
-              <input 
-                type="number"
-                value={localPricing.premiumSalePercentage || 0}
-                onChange={(e) => setLocalPricing({ ...localPricing, premiumSalePercentage: Number(e.target.value) })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all"
-              />
-            </div>
-          </div>
-        </Card>
-
-        {/* Global Sale Settings */}
-        <Card className="bg-slate-900 border-slate-800 p-6 space-y-6 md:col-span-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-blue-600/10 text-blue-500 rounded-xl flex items-center justify-center">
                 <Tag className="w-5 h-5" />
               </div>
-              <h3 className="text-xl font-bold text-white">ფასდაკლების აქტივაცია</h3>
+              <h3 className="text-xl font-bold text-white">აქცია</h3>
             </div>
+            <button 
+              onClick={() => setLocalPricing({ ...localPricing, isSaleActive: !localPricing.isSaleActive })}
+              className={cn(
+                "w-12 h-6 rounded-full transition-all relative",
+                localPricing.isSaleActive ? "bg-blue-600" : "bg-slate-800"
+              )}
+            >
+              <div className={cn(
+                "absolute top-1 w-4 h-4 rounded-full bg-white transition-all",
+                localPricing.isSaleActive ? "left-7" : "left-1"
+              )} />
+            </button>
+          </div>
+          <div className="p-4 bg-blue-600/5 border border-blue-600/10 rounded-2xl">
+            <p className="text-xs text-slate-400">აქტიური აქციის დროს გამოყენებული იქნება ზემოთ მითითებული პროცენტები.</p>
+          </div>
+        </Card>
+
+        {/* Verification Settings */}
+        <Card className="bg-slate-900 border-slate-800 p-6 space-y-6 md:col-span-2">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-slate-400">{localPricing.isSaleActive ? 'აქტიურია' : 'გამორთულია'}</span>
+              <div className="w-10 h-10 bg-indigo-600/10 text-indigo-500 rounded-xl flex items-center justify-center">
+                <ShieldCheck className="w-5 h-5" />
+              </div>
+              <h3 className="text-xl font-bold text-white">ვერიფიკაციის მეთოდი</h3>
+            </div>
+            <div className="flex p-1 bg-slate-950 rounded-xl border border-white/5">
               <button 
-                onClick={() => setLocalPricing({ ...localPricing, isSaleActive: !localPricing.isSaleActive })}
+                onClick={() => setLocalPricing({ ...localPricing, verificationMethod: 'sms' })}
                 className={cn(
-                  "w-12 h-6 rounded-full transition-all relative",
-                  localPricing.isSaleActive ? "bg-blue-600" : "bg-slate-800"
+                  "px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2",
+                  localPricing.verificationMethod === 'sms' ? "bg-indigo-600 text-white shadow-lg" : "text-slate-500 hover:text-slate-300"
                 )}
               >
-                <div className={cn(
-                  "absolute top-1 w-4 h-4 rounded-full bg-white transition-all",
-                  localPricing.isSaleActive ? "left-7" : "left-1"
-                )} />
+                <Smartphone className="w-3 h-3" /> SMS
+              </button>
+              <button 
+                onClick={() => setLocalPricing({ ...localPricing, verificationMethod: 'email' })}
+                className={cn(
+                  "px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2",
+                  localPricing.verificationMethod === 'email' ? "bg-indigo-600 text-white shadow-lg" : "text-slate-500 hover:text-slate-300"
+                )}
+              >
+                <Mail className="w-3 h-3" /> EMAIL
               </button>
             </div>
           </div>
 
-          <div className="p-4 bg-blue-600/5 border border-blue-600/10 rounded-2xl flex items-center gap-4">
-            <div className="w-12 h-12 bg-blue-600/10 text-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
-              <span className="text-lg font-black">?</span>
+          {localPricing.verificationMethod === 'email' && (
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-white/5"
+            >
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Resend API Key</label>
+                <input 
+                  type="password"
+                  value={localPricing.resendApiKey || ''}
+                  onChange={(e) => setLocalPricing({ ...localPricing, resendApiKey: e.target.value })}
+                  placeholder="re_..."
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-indigo-600 transition-all"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">გამგზავნი Email</label>
+                <input 
+                  type="email"
+                  value={localPricing.resendSenderEmail || ''}
+                  onChange={(e) => setLocalPricing({ ...localPricing, resendSenderEmail: e.target.value })}
+                  placeholder="onboarding@resend.dev"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-indigo-600 transition-all"
+                />
+              </div>
+            </motion.div>
+          )}
+        </Card>
+
+        {/* SMS Notifications */}
+        <Card className="bg-slate-900 border-slate-800 p-6 space-y-6 md:col-span-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-600/10 text-blue-500 rounded-xl flex items-center justify-center">
+                <Smartphone className="w-5 h-5" />
+              </div>
+              <h3 className="text-xl font-bold text-white">SMS შეტყობინებები (SMSOffice)</h3>
             </div>
-            <p className="text-xs text-slate-400">
-              ფასდაკლების გააქტიურების შემთხვევაში, თითოეულ სერვისზე გამოყენებული იქნება მისთვის მითითებული ინდივიდუალური ფასდაკლების პროცენტი.
-            </p>
+            <button 
+              onClick={() => setLocalPricing({ ...localPricing, isSmsEnabled: !localPricing.isSmsEnabled })}
+              className={cn(
+                "w-12 h-6 rounded-full transition-all relative",
+                localPricing.isSmsEnabled ? "bg-blue-600" : "bg-slate-800"
+              )}
+            >
+              <div className={cn(
+                "absolute top-1 w-4 h-4 rounded-full bg-white transition-all",
+                localPricing.isSmsEnabled ? "left-7" : "left-1"
+              )} />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">SMS API Key</label>
+              <input 
+                type="password"
+                value={localPricing.smsApiKey || ''}
+                onChange={(e) => setLocalPricing({ ...localPricing, smsApiKey: e.target.value })}
+                placeholder="API Key"
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">რევიუ ლინკი</label>
+              <input 
+                type="text"
+                value={localPricing.reviewLink || ''}
+                onChange={(e) => setLocalPricing({ ...localPricing, reviewLink: e.target.value })}
+                placeholder="https://g.page/..."
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all"
+              />
+            </div>
           </div>
         </Card>
 
@@ -3064,62 +3494,50 @@ function PricingManager({ pricing, onBack }: { pricing: PricingSettings, onBack:
               </div>
               <h3 className="text-xl font-bold text-white">WhatsApp შეტყობინებები (უფასო)</h3>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-slate-400">{localPricing.isWhatsappEnabled ? 'ჩართულია' : 'გამორთულია'}</span>
-              <button 
-                onClick={() => setLocalPricing({ ...localPricing, isWhatsappEnabled: !localPricing.isWhatsappEnabled })}
-                className={cn(
-                  "w-12 h-6 rounded-full transition-all relative",
-                  localPricing.isWhatsappEnabled ? "bg-green-600" : "bg-slate-800"
-                )}
-              >
-                <div className={cn(
-                  "absolute top-1 w-4 h-4 rounded-full bg-white transition-all",
-                  localPricing.isWhatsappEnabled ? "left-7" : "left-1"
-                )} />
-              </button>
-            </div>
+            <button 
+              onClick={() => setLocalPricing({ ...localPricing, isWhatsappEnabled: !localPricing.isWhatsappEnabled })}
+              className={cn(
+                "w-12 h-6 rounded-full transition-all relative",
+                localPricing.isWhatsappEnabled ? "bg-green-600" : "bg-slate-800"
+              )}
+            >
+              <div className={cn(
+                "absolute top-1 w-4 h-4 rounded-full bg-white transition-all",
+                localPricing.isWhatsappEnabled ? "left-7" : "left-1"
+              )} />
+            </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">ტელეფონის ნომერი (მაგ: +995...)</label>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">WhatsApp ნომერი</label>
               <input 
                 type="text"
                 value={localPricing.whatsappNumber || ''}
                 onChange={(e) => setLocalPricing({ ...localPricing, whatsappNumber: e.target.value })}
-                placeholder="+995591952473"
+                placeholder="+995..."
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-green-600 transition-all"
               />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">CallMeBot API Key</label>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">CallMeBot API Key</label>
               <input 
-                type="text"
+                type="password"
                 value={localPricing.whatsappApiKey || ''}
                 onChange={(e) => setLocalPricing({ ...localPricing, whatsappApiKey: e.target.value })}
-                placeholder="123456"
+                placeholder="API Key"
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-green-600 transition-all"
               />
             </div>
           </div>
-
-          <div className="p-4 bg-green-600/5 border border-green-600/10 rounded-2xl space-y-3">
-            <p className="text-xs text-slate-300 font-bold">როგორ მივიღოთ API Key:</p>
-            <ol className="text-[11px] text-slate-400 space-y-1 list-decimal ml-4">
-              <li>დაამატეთ <b>+34 644 20 44 15</b> თქვენს კონტაქტებში (WhatsApp).</li>
-              <li>გააგზავნეთ შეტყობინება: <b>I allow callmebot to send me messages</b></li>
-              <li>დაელოდეთ პასუხს API Key-ით და ჩაწერეთ ზემოთ მოცემულ ველში.</li>
-            </ol>
-          </div>
         </Card>
       </div>
 
-      <div className="flex justify-center md:justify-end pt-4">
+      <div className="flex justify-end pt-4">
         <Button 
           onClick={handleSave} 
           disabled={isSaving}
-          className="w-full md:w-auto px-12 py-4 rounded-2xl font-bold text-base md:text-lg shadow-xl shadow-blue-600/20"
+          className="px-12 py-4 rounded-2xl font-bold text-lg shadow-xl shadow-blue-600/20"
         >
           {isSaving ? 'ინახება...' : 'ცვლილებების შენახვა'}
         </Button>

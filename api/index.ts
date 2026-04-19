@@ -1,12 +1,13 @@
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { Resend } from 'resend';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, addDoc, doc, getDoc, updateDoc, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
 import dotenv from 'dotenv';
 import fs from 'fs';
 import * as ics from 'ics';
+import { Resend } from 'resend';
+import { serverTimestamp, setDoc, deleteDoc } from 'firebase/firestore';
 
 dotenv.config();
 
@@ -44,97 +45,109 @@ if (firebaseConfig) {
 
 const CALENDAR_SECRET = "7f8a9b0c1d2e3f4g5h6i7j8k9l0m1n2o3p4q5r6s7t8u9v0w1x2y3z";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 export const app = express();
 app.use(express.json());
 
 // API Routes
-app.post('/api/send-verification', async (req, res) => {
+app.post('/api/send-verification-email', async (req, res) => {
   try {
-    const { email } = req.body;
-    if (!email) return res.status(400).json({ error: 'Email is required' });
-    if (!db) return res.status(500).json({ error: 'Database not initialized' });
-    if (!process.env.RESEND_API_KEY) return res.status(500).json({ error: 'RESEND_API_KEY missing' });
+    const { email, lang } = req.body;
+    if (!db) throw new Error('Database not initialized');
+
+    const pricingSnap = await getDoc(doc(db, 'settings', 'pricing'));
+    if (!pricingSnap.exists()) throw new Error('Pricing settings not found');
+    const pricing = pricingSnap.data();
+
+    if (!pricing.resendApiKey) throw new Error('Resend API key not configured');
 
     const code = Math.floor(100000 + Math.random() * 900000).toString();
-    const expires = Date.now() + 10 * 60 * 1000;
+    const resend = new Resend(pricing.resendApiKey);
 
-    const docRef = await addDoc(collection(db, 'verifications'), {
-      email,
+    // Save code to Firestore (expiring in 10 mins)
+    await setDoc(doc(db, 'verification_codes', email), {
       code,
-      expires,
-      used: false
+      expiresAt: Date.now() + 10 * 60 * 1000
     });
 
-    const { error } = await resend.emails.send({
-      from: "Luca's AutoSpa <hello@lucasautospa.ge>",
-      to: [email],
-      subject: "თქვენი ვერიფიკაციის კოდი - Luca's AutoSpa",
-      html: `
-        <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1e293b; background-color: #f8fafc;">
-          <div style="background-color: #ffffff; border-radius: 24px; padding: 48px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0; text-align: center;">
-            <div style="margin-bottom: 32px;">
-              <img src="https://iili.io/BOm6Gaf.jpg" alt="Luca's AutoSpa Logo" style="width: 80px; height: 80px; border-radius: 20px; margin-bottom: 16px; object-fit: cover; border: 2px solid #f1f5f9;" />
-              <div style="height: 4px; width: 60px; background-color: #2563eb; margin: 16px auto; border-radius: 2px;"></div>
-            </div>
-            
-            <h2 style="font-size: 22px; font-weight: 700; color: #0f172a; margin-top: 0; margin-bottom: 16px;">ვერიფიკაციის კოდი</h2>
-            <p style="color: #64748b; font-size: 16px; line-height: 1.6; margin-bottom: 32px;">მოგესალმებით, თქვენი ჯავშნის დასასრულებლად გამოიყენეთ შემდეგი კოდი:</p>
-            
-            <div style="background-color: #f1f5f9; border-radius: 16px; padding: 32px; margin-bottom: 24px; text-align: center;">
-              <span style="font-family: 'Courier New', Courier, monospace; font-size: 48px; font-weight: 800; letter-spacing: 8px; color: #2563eb;">${code}</span>
-            </div>
-            
-            <p style="color: #94a3b8; font-size: 14px; margin-bottom: 0;">კოდი ძალაშია 10 წუთის განმავლობაში.</p>
-            
-            <div style="margin-top: 48px; padding-top: 32px; border-top: 1px solid #f1f5f9;">
-              <p style="color: #1e293b; font-weight: 700; margin-bottom: 4px; font-size: 15px;">საუკეთესო სურვილებით,</p>
-              <p style="color: #2563eb; font-weight: 600; margin-top: 0; font-size: 16px;">Luca's AutoSpa-ს გუნდი</p>
-            </div>
-          </div>
-          
-          <div style="text-align: center; margin-top: 32px;">
-            <p style="color: #94a3b8; font-size: 12px;">&copy; ${new Date().getFullYear()} Luca's AutoSpa. ყველა უფლება დაცულია.</p>
-            <p style="color: #cbd5e1; font-size: 11px; margin-top: 8px;">ეს არის ავტომატური შეტყობინება, გთხოვთ ნუ უპასუხებთ.</p>
-          </div>
-        </div>
-      `
+    const subject = lang === 'GE' ? 'ვერიფიკაციის კოდი - Luca\'s AutoSpa' : 'Verification Code - Luca\'s AutoSpa';
+    const text = lang === 'GE' 
+      ? `თქვენი ვერიფიკაციის კოდია: ${code}` 
+      : `Your verification code is: ${code}`;
+
+    await resend.emails.send({
+      from: pricing.resendSenderEmail || 'onboarding@resend.dev',
+      to: email,
+      subject: subject,
+      text: text,
     });
 
-    if (error) throw error;
-    res.json({ verificationId: docRef.id });
-  } catch (error: any) {
-    console.error('API Error:', error);
-    res.status(500).json({ error: error.message || 'Internal server error' });
-  }
-});
-
-app.post('/api/verify-code', async (req, res) => {
-  try {
-    const { verificationId, code } = req.body;
-    if (!verificationId || !code) return res.status(400).json({ error: 'Missing parameters' });
-    if (!db) return res.status(500).json({ error: 'Database not initialized' });
-
-    const docRef = doc(db, 'verifications', verificationId);
-    const docSnap = await getDoc(docRef);
-
-    if (!docSnap.exists()) return res.status(404).json({ error: 'Not found' });
-    const data = docSnap.data();
-    if (data.used) return res.status(400).json({ error: 'Used' });
-    if (Date.now() > data.expires) return res.status(400).json({ error: 'Expired' });
-    if (data.code !== code) return res.status(400).json({ error: 'Invalid' });
-
-    await updateDoc(docRef, { used: true });
     res.json({ success: true });
   } catch (error: any) {
-    res.status(500).json({ error: error.message || 'Internal error' });
+    console.error('Send verification email error:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
-app.post('/api/send-confirmation', async (req, res) => {
+app.post('/api/verify-email-code', async (req, res) => {
   try {
-    const { email, bookingData, price, bookingId, promoCode } = req.body;
+    const { email, code } = req.body;
+    if (!db) throw new Error('Database not initialized');
+
+    const docRef = doc(db, 'verification_codes', email);
+    const docSnap = await getDoc(docRef);
+
+    if (!docSnap.exists()) {
+      throw new Error('Verification code expired or not found');
+    }
+
+    const data = docSnap.data();
+    if (data.expiresAt < Date.now()) {
+      await deleteDoc(docRef);
+      throw new Error('Verification code expired');
+    }
+
+    if (data.code !== code) {
+      throw new Error('Invalid verification code');
+    }
+
+    // Success - delete the code
+    await deleteDoc(docRef);
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.post('/api/send-email', async (req, res) => {
+  try {
+    const { email, subject, message } = req.body;
+    if (!db) throw new Error('Database not initialized');
+
+    const pricingSnap = await getDoc(doc(db, 'settings', 'pricing'));
+    if (!pricingSnap.exists()) throw new Error('Pricing settings not found');
+    const pricing = pricingSnap.data();
+
+    if (!pricing.resendApiKey) throw new Error('Resend API key not configured');
+
+    const resend = new Resend(pricing.resendApiKey);
+
+    await resend.emails.send({
+      from: pricing.resendSenderEmail || 'onboarding@resend.dev',
+      to: email,
+      subject: subject,
+      text: message,
+    });
+
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('Send email error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/notify-booking', async (req, res) => {
+  try {
+    const { bookingData, price, bookingId, promoCode } = req.body;
     const serviceName = bookingData.service === 'Premium' ? 'პრემიუმ დითეილინგი' : 'სტანდარტული წმენდა';
     
     // Add the system secret to the booking so it's visible to the calendar feed
@@ -148,70 +161,6 @@ app.post('/api/send-confirmation', async (req, res) => {
       }
     }
     
-    const { error } = await resend.emails.send({
-      from: "Luca's AutoSpa <hello@lucasautospa.ge>",
-      to: [email],
-      subject: "ჯავშანი დადასტურებულია - Luca's AutoSpa",
-      html: `
-        <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1e293b; background-color: #f8fafc;">
-          <div style="background-color: #ffffff; border-radius: 24px; padding: 48px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0;">
-            <div style="text-align: center; margin-bottom: 32px;">
-              <img src="https://iili.io/BOm6Gaf.jpg" alt="Luca's AutoSpa Logo" style="width: 80px; height: 80px; border-radius: 20px; margin-bottom: 16px; object-fit: cover; border: 2px solid #f1f5f9;" />
-              <div style="height: 4px; width: 60px; background-color: #2563eb; margin: 16px auto; border-radius: 2px;"></div>
-              <h2 style="font-size: 22px; font-weight: 700; color: #0f172a; margin-top: 0; margin-bottom: 12px;">ჯავშანი დადასტურებულია!</h2>
-              <p style="color: #64748b; font-size: 16px; line-height: 1.6; margin: 0;">გმადლობთ, რომ აირჩიეთ ჩვენი სერვისი. თქვენი ჯავშნის დეტალები მოცენულია ქვემოთ:</p>
-            </div>
-
-            <div style="background-color: #f8fafc; border: 1px solid #f1f5f9; border-radius: 20px; padding: 32px; margin-bottom: 32px;">
-              <table style="width: 100%; border-collapse: collapse;">
-                <tr>
-                  <td style="padding: 12px 0; color: #64748b; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; width: 35%; border-bottom: 1px solid #f1f5f9;">სერვისი</td>
-                  <td style="padding: 12px 0; color: #0f172a; font-size: 15px; font-weight: 700; border-bottom: 1px solid #f1f5f9;">${serviceName}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 12px 0; color: #64748b; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9;">ფასი</td>
-                  <td style="padding: 12px 0; color: #0f172a; font-size: 18px; font-weight: 800; border-bottom: 1px solid #f1f5f9;">${price}₾ ${promoCode ? `<span style="font-size: 12px; color: #10b981; font-weight: 600;">(პრომო: ${promoCode})</span>` : ''}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 12px 0; color: #64748b; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9;">თარიღი</td>
-                  <td style="padding: 12px 0; color: #0f172a; font-size: 15px; font-weight: 700; border-bottom: 1px solid #f1f5f9;">${bookingData.date}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 12px 0; color: #64748b; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9;">დრო</td>
-                  <td style="padding: 12px 0; color: #0f172a; font-size: 15px; font-weight: 700; border-bottom: 1px solid #f1f5f9;">${bookingData.timeSlot} PM</td>
-                </tr>
-                <tr>
-                  <td style="padding: 12px 0; color: #64748b; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9;">მისამართი</td>
-                  <td style="padding: 12px 0; color: #0f172a; font-size: 14px; font-weight: 600; border-bottom: 1px solid #f1f5f9; line-height: 1.4;">${bookingData.location}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 12px 0; color: #64748b; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9;">სახელი</td>
-                  <td style="padding: 12px 0; color: #0f172a; font-size: 15px; font-weight: 700; border-bottom: 1px solid #f1f5f9;">${bookingData.customerName}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 12px 0; color: #64748b; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">ტელეფონი</td>
-                  <td style="padding: 12px 0; color: #0f172a; font-size: 15px; font-weight: 700;">${bookingData.phone}</td>
-                </tr>
-              </table>
-            </div>
-
-            <div style="text-align: center; padding: 24px; background-color: #f1f5f9; border-radius: 16px;">
-              <p style="color: #475569; font-size: 14px; line-height: 1.6; margin: 0;">
-                თუ გსურთ ჯავშნის შეცვლა ან გაუქმება, გთხოვთ დაგვიკავშირდეთ ნომერზე: 
-                <br />
-                <a href="tel:+995591952473" style="color: #2563eb; text-decoration: none; font-weight: 700; font-size: 16px;">+995 591 952 473</a>
-              </p>
-            </div>
-          </div>
-          
-          <div style="text-align: center; margin-top: 32px;">
-            <p style="color: #94a3b8; font-size: 12px;">&copy; ${new Date().getFullYear()} Luca's AutoSpa. ყველა უფლება დაცულია.</p>
-            <p style="color: #cbd5e1; font-size: 11px; margin-top: 8px;">ეს არის ავტომატური შეტყობინება, გთხოვთ ნუ უპასუხებთ.</p>
-          </div>
-        </div>
-      `
-    });
-
     // Send WhatsApp Notification to Admin
     if (db) {
       try {
@@ -220,7 +169,8 @@ app.post('/api/send-confirmation', async (req, res) => {
           const pricing = pricingSnap.data();
           if (pricing.isWhatsappEnabled && pricing.whatsappNumber && pricing.whatsappApiKey) {
             const promoInfo = promoCode ? `\n🎟 პრომო: ${promoCode}` : '';
-            const message = `🚗 *ახალი ჯავშანი!* \n\n👤 კლიენტი: ${bookingData.customerName}\n📞 ტელ: ${bookingData.phone}\n🛠 სერვისი: ${serviceName}\n📅 თარიღი: ${bookingData.date}\n⏰ დრო: ${bookingData.timeSlot}\n📍 მისამართი: ${bookingData.location}\n💰 ფასი: ${price}₾${promoInfo}`;
+            const contactInfo = bookingData.phone ? `📞 ტელ: ${bookingData.phone}` : `📧 Email: ${bookingData.email}`;
+            const message = `🚗 *ახალი ჯავშანი!* \n\n👤 კლიენტი: ${bookingData.customerName}\n${contactInfo}\n🛠 სერვისი: ${serviceName}\n📅 თარიღი: ${bookingData.date}\n⏰ დრო: ${bookingData.timeSlot}\n📍 მისამართი: ${bookingData.location}\n💰 ფასი: ${price}₾${promoInfo}`;
             
             const whatsappUrl = `https://api.callmebot.com/whatsapp.php?phone=${pricing.whatsappNumber.replace('+', '')}&text=${encodeURIComponent(message)}&apikey=${pricing.whatsappApiKey}`;
             
@@ -233,116 +183,33 @@ app.post('/api/send-confirmation', async (req, res) => {
       }
     }
 
-    if (error) throw error;
     res.json({ success: true });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
 });
 
-app.post('/api/send-review-request', async (req, res) => {
+app.post('/api/send-sms', async (req, res) => {
   try {
-    const { email, customerName } = req.body;
-    const { error } = await resend.emails.send({
-      from: "Luca's AutoSpa <hello@lucasautospa.ge>",
-      to: [email],
-      subject: "როგორ მოგეწონათ ჩვენი სერვისი? - Luca's AutoSpa",
-      html: `
-        <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1e293b; background-color: #f8fafc;">
-          <div style="background-color: #ffffff; border-radius: 24px; padding: 48px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0; text-align: center;">
-            <div style="margin-bottom: 32px;">
-              <div style="display: inline-block; padding: 4px; background: linear-gradient(135deg, #2563eb, #3b82f6); border-radius: 24px; margin-bottom: 16px;">
-                <img src="https://iili.io/BOm6Gaf.jpg" alt="Luca's AutoSpa Logo" style="width: 80px; height: 80px; border-radius: 20px; display: block; object-fit: cover; border: 2px solid #ffffff;" />
-              </div>
-              <h1 style="color: #0f172a; margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.025em;">Luca's <span style="color: #2563eb;">AutoSpa</span></h1>
-            </div>
-            
-            <h2 style="font-size: 24px; font-weight: 700; color: #0f172a; margin-top: 0; margin-bottom: 16px;">დიდი მადლობა, ${customerName}!</h2>
-            <p style="color: #475569; font-size: 16px; line-height: 1.6; margin-bottom: 32px;">
-              იმედი გვაქვს, კმაყოფილი დარჩით ჩვენი მომსახურებით. თქვენი აზრი ჩვენთვის ძალიან მნიშვნელოვანია და გვეხმარება განვითარებაში.
-            </p>
-
-            <div style="background-color: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 20px; padding: 32px; margin-bottom: 32px;">
-              <p style="color: #1e293b; font-size: 15px; font-weight: 700; margin-top: 0; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">როგორ შეგვაფასებდით?</p>
-              <p style="color: #64748b; font-size: 14px; line-height: 1.6; margin-bottom: 24px;">
-                დაგვიტოვეთ მოკლე შეფასება Google-ზე. ამით ძალიან დაგვეხმარებით!
-              </p>
-              <a href="https://g.page/r/Cc7gXgecIBlIEBM/review" style="background-color: #2563eb; color: #ffffff; padding: 16px 32px; border-radius: 12px; font-weight: 700; text-decoration: none; display: inline-block; font-size: 16px;">დაგვიტოვეთ შეფასება</a>
-            </div>
-
-            <div style="margin-top: 40px; padding-top: 32px; border-top: 1px solid #f1f5f9;">
-              <p style="color: #64748b; font-size: 14px; margin-bottom: 4px;">კითხვების შემთხვევაში დაგვიკავშირდით:</p>
-              <a href="tel:+995591952473" style="color: #2563eb; text-decoration: none; font-weight: 700;">+995 591 952 473</a>
-            </div>
-          </div>
-          
-          <div style="text-align: center; margin-top: 32px;">
-            <p style="color: #94a3b8; font-size: 12px;">&copy; ${new Date().getFullYear()} Luca's AutoSpa. ყველა უფლება დაცულია.</p>
-          </div>
-        </div>
-      `
-    });
-    if (error) throw error;
-    res.json({ success: true });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.post('/api/send-cancellation', async (req, res) => {
-  try {
-    const { email, bookingData } = req.body;
-    const serviceName = bookingData.service === 'Premium' ? 'პრემიუმ დითეილინგი' : 'სტანდარტული წმენდა';
+    const { phone, message } = req.body;
     
-    const { error } = await resend.emails.send({
-      from: "Luca's AutoSpa <hello@lucasautospa.ge>",
-      to: [email],
-      subject: "ჯავშანი გაუქმებულია - Luca's AutoSpa",
-      html: `
-        <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; color: #1e293b; background-color: #f8fafc;">
-          <div style="background-color: #ffffff; border-radius: 24px; padding: 48px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0;">
-            <div style="text-align: center; margin-bottom: 32px;">
-              <img src="https://iili.io/BOm6Gaf.jpg" alt="Luca's AutoSpa Logo" style="width: 80px; height: 80px; border-radius: 20px; margin-bottom: 16px; object-fit: cover; border: 2px solid #f1f5f9;" />
-              <h1 style="color: #ef4444; margin: 0; font-size: 32px; font-weight: 800; letter-spacing: -0.025em; text-transform: uppercase;">Luca's <span style="color: #1e293b;">AutoSpa</span></h1>
-              <div style="height: 4px; width: 60px; background-color: #ef4444; margin: 16px auto; border-radius: 2px;"></div>
-              <h2 style="font-size: 22px; font-weight: 700; color: #0f172a; margin-top: 0; margin-bottom: 12px;">თქვენი ჯავშანი გაუქმებულია</h2>
-              <p style="color: #64748b; font-size: 16px; line-height: 1.6; margin: 0;">გაცნობებთ, რომ თქვენი ჯავშანი გაუქმდა. დეტალები მოცემულია ქვემოთ:</p>
-            </div>
-
-            <div style="background-color: #fef2f2; border: 1px solid #fee2e2; border-radius: 20px; padding: 32px; margin-bottom: 32px;">
-              <table style="width: 100%; border-collapse: collapse;">
-                <tr>
-                  <td style="padding: 12px 0; color: #64748b; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; width: 35%; border-bottom: 1px solid #fee2e2;">სერვისი</td>
-                  <td style="padding: 12px 0; color: #0f172a; font-size: 15px; font-weight: 700; border-bottom: 1px solid #fee2e2;">${serviceName}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 12px 0; color: #64748b; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #fee2e2;">თარიღი</td>
-                  <td style="padding: 12px 0; color: #0f172a; font-size: 15px; font-weight: 700; border-bottom: 1px solid #fee2e2;">${bookingData.date}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 12px 0; color: #64748b; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">დრო</td>
-                  <td style="padding: 12px 0; color: #0f172a; font-size: 15px; font-weight: 700;">${bookingData.timeSlot} PM</td>
-                </tr>
-              </table>
-            </div>
-
-            <div style="text-align: center; padding: 24px; background-color: #f1f5f9; border-radius: 16px;">
-              <p style="color: #475569; font-size: 14px; line-height: 1.6; margin: 0;">
-                თუ ჯავშანი შეცდომით გაუქმდა ან გაქვთ კითხვები, გთხოვთ დაგვიკავშირდეთ ნომერზე: 
-                <br />
-                <a href="tel:+995591952473" style="color: #2563eb; text-decoration: none; font-weight: 700; font-size: 16px;">+995 591 952 473</a>
-              </p>
-            </div>
-          </div>
+    if (db) {
+      const pricingSnap = await getDoc(doc(db, 'settings', 'pricing'));
+      if (pricingSnap.exists()) {
+        const pricing = pricingSnap.data();
+        
+        // This is a placeholder for an SMS provider like SMSOffice.ge or Twilio
+        // If pricing.smsApiKey is set, we could trigger it here.
+        if (pricing.isSmsEnabled && pricing.smsApiKey) {
+          console.log(`Sending SMS to ${phone}: ${message}`);
           
-          <div style="text-align: center; margin-top: 32px;">
-            <p style="color: #94a3b8; font-size: 12px;">&copy; ${new Date().getFullYear()} Luca's AutoSpa. ყველა უფლება დაცულია.</p>
-            <p style="color: #cbd5e1; font-size: 11px; margin-top: 8px;">ეს არის ავტომატური შეტყობინება, გთხოვთ ნუ უპასუხებთ.</p>
-          </div>
-        </div>
-      `
-    });
-    if (error) throw error;
+          // Example for a common Georgian provider (SMSOffice)
+          // const smsUrl = `https://smsoffice.ge/api/v2/send/?key=${pricing.smsApiKey}&destination=${phone.replace('+', '')}&sender=AutoSpa&content=${encodeURIComponent(message)}`;
+          // await fetch(smsUrl);
+        }
+      }
+    }
+
     res.json({ success: true });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -374,7 +241,7 @@ app.get('/api/calendar.ics', async (req, res) => {
         start: [year, month, day, hour, minute],
         duration: { hours: 3 },
         title: `${serviceName} - ${data.customerName}`,
-        description: `Customer: ${data.customerName}\nPhone: ${data.phone}\nEmail: ${data.email}\nService: ${serviceName}\nLocation: ${data.location}`,
+        description: `Customer: ${data.customerName}\nPhone: ${data.phone}\nService: ${serviceName}\nLocation: ${data.location}`,
         location: data.location,
         status: data.status === 'pending' ? 'TENTATIVE' : 'CONFIRMED',
         categories: ['AutoSpa', 'Booking'],

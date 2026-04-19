@@ -582,8 +582,8 @@ export default function App() {
   const [lang, setLang] = useState<Language>('GE');
   const t = translations[lang];
   const [pricing, setPricing] = useState<PricingSettings>({
-    basicPrice: 89,
-    premiumPrice: 149,
+    basicPrice: 59,
+    premiumPrice: 100,
     salePercentage: 20,
     isSaleActive: false,
     isSmsEnabled: true,

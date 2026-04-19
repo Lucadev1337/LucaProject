@@ -583,7 +583,7 @@ export default function App() {
   const t = translations[lang];
   const [pricing, setPricing] = useState<PricingSettings>({
     basicPrice: 59,
-    premiumPrice: 100,
+    premiumPrice: 119,
     salePercentage: 20,
     isSaleActive: false,
     isSmsEnabled: true,
@@ -834,8 +834,9 @@ function PublicSite({ onBookNow, pricing, t, lang }: { onBookNow: (plan?: 'Basic
   const y = useTransform(scrollY, [0, 500], [0, 150]);
   const [currentSlide, setCurrentSlide] = useState(0);
   const heroImages = [
-    "https://iili.io/BODqC3x.png",
-    "https://iili.io/BODqXGs.png",
+    "https://iili.io/BgUTxQ1.jpg",
+    "https://iili.io/BgUTnTB.jpg",
+    "https://iili.io/BgUTohP.jpg",
     
   ];
 

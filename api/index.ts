@@ -169,8 +169,9 @@ app.post('/api/notify-booking', async (req, res) => {
           const pricing = pricingSnap.data();
           if (pricing.isWhatsappEnabled && pricing.whatsappNumber && pricing.whatsappApiKey) {
             const promoInfo = promoCode ? `\n🎟 პრომო: ${promoCode}` : '';
+            const carInfo = bookingData.carModel ? `\n🚗 მანქანა: ${bookingData.carModel}` : '';
             const contactInfo = bookingData.phone ? `📞 ტელ: ${bookingData.phone}` : `📧 Email: ${bookingData.email}`;
-            const message = `🚗 *ახალი ჯავშანი!* \n\n👤 კლიენტი: ${bookingData.customerName}\n${contactInfo}\n🛠 სერვისი: ${serviceName}\n📅 თარიღი: ${bookingData.date}\n⏰ დრო: ${bookingData.timeSlot}\n📍 მისამართი: ${bookingData.location}\n💰 ფასი: ${price}₾${promoInfo}`;
+            const message = `🚗 *ახალი ჯავშანი!* \n\n👤 კლიენტი: ${bookingData.customerName}${carInfo}\n${contactInfo}\n🛠 სერვისი: ${serviceName}\n📅 თარიღი: ${bookingData.date}\n⏰ დრო: ${bookingData.timeSlot}\n📍 მისამართი: ${bookingData.location}\n💰 ფასი: ${price}₾${promoInfo}`;
             
             const whatsappUrl = `https://api.callmebot.com/whatsapp.php?phone=${pricing.whatsappNumber.replace('+', '')}&text=${encodeURIComponent(message)}&apikey=${pricing.whatsappApiKey}`;
             

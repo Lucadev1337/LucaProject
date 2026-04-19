@@ -163,6 +163,9 @@ const translations = {
     termsOfService: "წესები და პირობები",
     agreeToTerms: "ვეთანხმები წესებსა და პირობებს",
     readTerms: "წაიკითხეთ წესები და პირობები",
+    acceptAndConfirm: "დათანხმება და დადასტურება",
+    carModel: "ავტომობილის მოდელი",
+    carModelPlaceholder: "მაგ: Toyota Camry",
     errorService: "გთხოვთ აირჩიოთ სერვისი",
     errorDateTime: "გთხოვთ აირჩიოთ თარიღი და დრო",
     errorLocation: "გთხოვთ მიუთითოთ მომსახურების მისამართი",
@@ -269,6 +272,9 @@ const translations = {
     termsOfService: "Terms of Service",
     agreeToTerms: "I agree to the Terms of Service",
     readTerms: "Read Terms of Service",
+    acceptAndConfirm: "Accept and Confirm",
+    carModel: "Car Model",
+    carModelPlaceholder: "e.g., Toyota Camry",
     errorService: "Please select a service",
     errorDateTime: "Please select a date and time",
     errorLocation: "Please specify the service address",
@@ -307,12 +313,15 @@ const translations = {
 interface Booking {
   id: string;
   customerName: string;
+  carModel: string;
   phone: string;
   email?: string;
   service: 'Basic' | 'Premium';
   date: string;
   timeSlot: string;
   location: string;
+  lat?: number;
+  lng?: number;
   status: 'pending' | 'completed' | 'cancelled';
   createdAt: any;
 }
@@ -427,13 +436,13 @@ function ChangeView({ center, zoom }: { center: [number, number], zoom: number }
   return null;
 }
 
-function MapPicker({ onLocationSelect, initialLocation, t }: { onLocationSelect: (address: string, lat?: number, lng?: number) => void, initialLocation?: string, t: any }) {
-  const [marker, setMarker] = useState<[number, number] | null>(null);
+function MapPicker({ onLocationSelect, initialLocation, initialLat, initialLng, t }: { onLocationSelect: (address: string, lat?: number, lng?: number) => void, initialLocation?: string, initialLat?: number, initialLng?: number, t: any }) {
+  const [marker, setMarker] = useState<[number, number] | null>(initialLat && initialLng ? [initialLat, initialLng] : null);
   const [address, setAddress] = useState(initialLocation || '');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(initialLocation || '');
   const [isSearching, setIsSearching] = useState(false);
-  const [mapCenter, setMapCenter] = useState<[number, number]>(TBILISI_CENTER);
-  const [zoom, setZoom] = useState(13);
+  const [mapCenter, setMapCenter] = useState<[number, number]>(initialLat && initialLng ? [initialLat, initialLng] : TBILISI_CENTER);
+  const [zoom, setZoom] = useState(initialLat && initialLng ? 16 : 13);
 
   const handleMapClick = async (e: L.LeafletMouseEvent) => {
     const { lat, lng } = e.latlng;
@@ -1225,11 +1234,10 @@ function PublicSite({ onBookNow, pricing, t, lang }: { onBookNow: (plan?: 'Basic
 // --- Booking Page ---
 
 function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { onBack: () => void, pricing: PricingSettings, t: any, lang: Language, initialPlan?: 'Basic' | 'Premium', onViewTerms?: () => void, key?: string }) {
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
-
   const [step, setStep] = useState(1);
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [step]);
   const [bookingData, setBookingData] = useState<Partial<Booking>>({
     service: initialPlan,
     status: 'pending',
@@ -1293,7 +1301,8 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
   const [showVerification, setShowVerification] = useState(false);
   const [verificationError, setVerificationError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
-  const [recaptchaSize, setRecaptchaSize] = useState<'invisible' | 'normal'>('invisible');
+  const [isCaptchaVerified, setIsCaptchaVerified] = useState(false);
+  const [recaptchaSize, setRecaptchaSize] = useState<'invisible' | 'normal'>('normal');
   const [expandedService, setExpandedService] = useState<string | 'all' | null>(initialPlan ? initialPlan : 'all');
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [showTermsPopup, setShowTermsPopup] = useState(false);
@@ -1303,46 +1312,85 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
   const [isApplyingPromo, setIsApplyingPromo] = useState(false);
 
   useEffect(() => {
-    // Warm up reCAPTCHA early so it doesn't "load too late"
-    if (pricing.verificationMethod === 'sms') {
+    // Only initialize reCAPTCHA when we are on the final step, using SMS, and not yet in verification input view
+    if (pricing.verificationMethod === 'sms' && step === 5 && !showVerification) {
       const initRecaptcha = async () => {
         try {
           const container = document.getElementById('recaptcha-container');
+          if (!container) return;
+
+          // Ensure full cleanup of any stale instances
           if (window.recaptchaVerifier) {
-            try { window.recaptchaVerifier.clear(); } catch (e) {}
+            try { 
+              window.recaptchaVerifier.clear(); 
+            } catch (e) {}
+            window.recaptchaVerifier = null;
           }
-          if (container) container.innerHTML = '';
+          
+          container.innerHTML = '';
+          setIsCaptchaVerified(false); // Reset on re-init
           
           window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-            'size': 'invisible'
+            'size': 'normal',
+            'callback': () => {
+              console.log('reCAPTCHA solved');
+              setIsCaptchaVerified(true);
+            },
+            'expired-callback': () => {
+               console.warn('reCAPTCHA expired');
+               setIsCaptchaVerified(false);
+               if (window.recaptchaVerifier) {
+                 try { window.recaptchaVerifier.clear(); } catch(e){}
+                 window.recaptchaVerifier = null;
+               }
+            }
           });
           
           await window.recaptchaVerifier.render();
-          console.log('reCAPTCHA warmed up');
+          console.log('reCAPTCHA initialized');
         } catch (e) {
-          console.error('reCAPTCHA warmup failed:', e);
+          console.error('reCAPTCHA init error:', e);
         }
       };
-      initRecaptcha();
-    }
-
-    return () => {
+      
+      const timer = setTimeout(initRecaptcha, 400); 
+      return () => {
+        clearTimeout(timer);
+        if (window.recaptchaVerifier) {
+          try { window.recaptchaVerifier.clear(); } catch (e) {}
+          window.recaptchaVerifier = null;
+        }
+        setIsCaptchaVerified(false);
+      };
+    } else {
+      // Cleanup if we leave step 5 or show verification UI
       if (window.recaptchaVerifier) {
-        try {
-          window.recaptchaVerifier.clear();
-        } catch (e) {}
+        try { window.recaptchaVerifier.clear(); } catch (e) {}
+        window.recaptchaVerifier = null;
+      }
+      // Note: we don't necessarily want to reset isCaptchaVerified here 
+      // because we might have just solved it and are now sending the code.
+    }
+  }, [pricing.verificationMethod, step, showVerification]);
+
+  useEffect(() => {
+    return () => {
+      // Cleanup on unmount
+      if (window.recaptchaVerifier) {
+        try { window.recaptchaVerifier.clear(); } catch (e) {}
+        window.recaptchaVerifier = null;
       }
     };
-  }, [pricing.verificationMethod]);
+  }, []);
 
   const steps = [
     { id: 1, label: t.chooseService, icon: Zap, completed: !!bookingData.service },
     { id: 2, label: t.chooseDate, icon: Calendar, completed: !!(bookingData.date && bookingData.timeSlot) },
-    { id: 3, label: t.location, icon: MapPin, completed: !!(bookingData.location && bookingData.customerName && (pricing.verificationMethod === 'email' ? bookingData.email : bookingData.phone)) },
-    { id: 4, label: lang === 'GE' ? 'დადასტურება' : 'Confirm', icon: ShieldCheck, completed: false }
+    { id: 3, label: t.location, icon: MapPin, completed: !!bookingData.location },
+    { id: 4, label: t.name, icon: Users, completed: !!(bookingData.customerName && bookingData.carModel && (pricing.verificationMethod === 'email' ? !!bookingData.email : !!bookingData.phone)) }
   ];
 
-  const currentStep = steps.find(s => !s.completed)?.id || 3;
+  const currentStep = steps.find(s => !s.completed)?.id || 1;
 
   useEffect(() => {
     const findSoonestAvailable = async () => {
@@ -1475,43 +1523,44 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
           phoneNumber = `+995${cleanPhone}`;
         }
         
-        // Defensive check: if it fails with -39, it's often an environment/staging mismatch.
-        // We ensure a fresh container and a fresh verifier.
-        const container = document.getElementById('recaptcha-container');
-        if (container) container.innerHTML = '';
+        // Use the pre-warmed verifier to avoid "reCAPTCHA has already been rendered" error
+        let appVerifier = window.recaptchaVerifier;
         
-        if (window.recaptchaVerifier) {
-          try { window.recaptchaVerifier.clear(); } catch(e) {}
+        if (!appVerifier) {
+          const container = document.getElementById('recaptcha-container');
+          if (container) container.innerHTML = '';
+          window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+            'size': recaptchaSize
+          });
+          appVerifier = window.recaptchaVerifier;
         }
-
-        // Try invisible first, but provide a way to fall back if it fails repeatedly
-        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-          'size': recaptchaSize,
-          'callback': (response: any) => {
-             console.log('reCAPTCHA solved');
-          },
-          'expired-callback': () => {
-             console.warn('reCAPTCHA expired');
-             if (window.recaptchaVerifier) window.recaptchaVerifier.clear();
-          }
-        });
-
-        const appVerifier = window.recaptchaVerifier;
         
         try {
           const result = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+          
+          // CRITICAL: Clear verifier BEFORE updating state that removes the container element
+          if (window.recaptchaVerifier) {
+            try { window.recaptchaVerifier.clear(); } catch (e) {}
+            window.recaptchaVerifier = null;
+          }
+          
           setConfirmationResult(result);
           setShowVerification(true);
           track('SMS Verification Sent', { phone: phoneNumber });
         } catch (smsError: any) {
           console.error('SMS Error inside block:', smsError);
-          // If we hit -39, let's try to clear and maybe show a different error or retry once
-          if (smsError.message.includes('-39') || smsError.code?.includes('internal-error')) {
-            console.log('Detected -39, attempting visible fallback/retry preparation');
-            if (window.recaptchaVerifier) window.recaptchaVerifier.clear();
-            if (container) container.innerHTML = '';
-            setRecaptchaSize('normal'); // Force visible on next attempt
-            throw smsError;
+          const errorMsg = smsError.message || '';
+          
+          if (errorMsg.includes('-39') || errorMsg.includes('reCAPTCHA')) {
+            setVerificationError(lang === 'GE' 
+              ? 'ვერიფიკაციის შეცდომა. გთხოვთ დაადასტუროთ reCAPTCHA (რობოტის შემოწმება).' 
+              : 'Verification error. Please complete the reCAPTCHA checkbox.');
+            
+            // On reCAPTCHA errors, it's often best to reset the verifier
+            if (window.recaptchaVerifier) {
+              try { window.recaptchaVerifier.clear(); } catch (e) {}
+              window.recaptchaVerifier = null;
+            }
           }
           throw smsError;
         }
@@ -1536,15 +1585,19 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
       }
     } catch (error: any) {
       console.error('Verification Code error:', error);
-      if (error.code === 'auth/invalid-phone-number') {
+      const errorCode = error.code || '';
+      
+      if (errorCode === 'auth/invalid-phone-number') {
         setFormError(lang === 'GE' ? 'არასწორი ტელეფონის ნომერი' : 'Invalid phone number');
-      } else if (error.code === 'auth/too-many-requests') {
-        setFormError(lang === 'GE' ? 'ძალიან ბევრი მცდელობა. სცადეთ მოგვიანებით' : 'Too many requests. Try again later');
-      } else if (error.code === 'auth/operation-not-allowed') {
+      } else if (errorCode === 'auth/too-many-requests') {
+        setFormError(lang === 'GE' 
+          ? 'ძალიან ბევრი მცდელობა. უსაფრთხოების მიზნით, სთხოვეთ მომხმარებელს სცადოს 15-30 წუთში ან გამოიყენეთ Email ვერიფიკაცია.' 
+          : 'Too many requests. For security, please try again in 15-30 minutes or use Email verification.');
+      } else if (errorCode === 'auth/operation-not-allowed') {
         setFormError(lang === 'GE' 
           ? 'Phone Auth არ არის ჩართული Firebase კონსოლში. გთხოვთ ჩრთოთ Authentication > Sign-in method-დან.' 
           : 'Phone Auth is not enabled in Firebase Console. Please enable it in Authentication > Sign-in method.');
-      } else if (error.message.includes('-39')) {
+      } else if (error.message?.includes('-39')) {
         setFormError(lang === 'GE' 
           ? 'Firebase Error -39: კავშირის პრობლემა. გთხოვთ შეამოწმოთ: 1. Firebase Console-ში Authorized Domains. 2. SMS სერვისი თუ ჩართულია თქვენს რეგიონში. 3. სცადეთ Email ვერიფიკაცია.' 
           : 'Firebase Error -39: Connection problem. Please check: 1. Authorized Domains in Firebase Console. 2. If SMS is enabled for your region. 3. Try Email Verification instead.');
@@ -1769,12 +1822,6 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
       </header>
 
       <div className="max-w-2xl mx-auto px-4 pt-24 pb-0 space-y-6">
-        {/* Consolidated reCAPTCHA Container - Hidden unless forced visible by -39 error */}
-        <div id="recaptcha-container" className={cn(
-          "flex justify-center",
-          recaptchaSize === 'invisible' ? "w-0 h-0 overflow-hidden" : "mb-6 py-4 bg-slate-900/40 rounded-3xl border border-white/5 animate-in fade-in slide-in-from-top-4"
-        )}></div>
-
         {/* Progress Indicator */}
         <div className="flex items-center justify-between px-2 pt-2">
           {steps.map((s, i) => (
@@ -2122,55 +2169,14 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] ml-2">{t.address}</label>
-                    <div className="rounded-3xl overflow-hidden shadow-2xl border border-white/5 bg-slate-900 group">
+                    <div className="rounded-3xl overflow-hidden shadow-2xl border border-white/5 bg-slate-900 group font-sans">
                       <MapPicker 
                         initialLocation={bookingData.location}
-                        onLocationSelect={(address) => setBookingData({ ...bookingData, location: address })}
+                        initialLat={bookingData.lat}
+                        initialLng={bookingData.lng}
+                        onLocationSelect={(address, lat, lng) => setBookingData({ ...bookingData, location: address, lat, lng })}
                         t={t}
                       />
-                    </div>
-                  </div>
-
-                  <div id="personal-info-section" className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] ml-2">{t.name}</label>
-                      <input 
-                        type="text" 
-                        placeholder={t.namePlaceholder}
-                        className="w-full bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-2xl p-4 focus:border-blue-400 outline-none transition-all text-white text-sm shadow-inner"
-                        value={bookingData.customerName || ''}
-                        onChange={(e) => setBookingData({ ...bookingData, customerName: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] ml-2">
-                        {pricing.verificationMethod === 'email' ? 'Email' : t.phone}
-                      </label>
-                      {pricing.verificationMethod === 'email' ? (
-                        <input 
-                          type="email" 
-                          placeholder="your@email.com"
-                          className="w-full bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-2xl p-4 focus:border-blue-400 outline-none transition-all text-white text-sm shadow-inner"
-                          value={bookingData.email || ''}
-                          onChange={(e) => setBookingData({ ...bookingData, email: e.target.value })}
-                        />
-                      ) : (
-                        <div className="relative flex items-center bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden focus-within:border-blue-400 transition-all shadow-inner">
-                          <div className="pl-4 pr-3 py-4 text-slate-500 font-black text-sm border-r border-white/10 bg-white/5">
-                            +995
-                          </div>
-                          <input 
-                            type="tel" 
-                            placeholder="5..."
-                            className="flex-1 bg-transparent p-4 outline-none text-white text-sm"
-                            value={bookingData.phone || ''}
-                            onChange={(e) => {
-                              const val = e.target.value.replace(/\D/g, '');
-                              setBookingData({ ...bookingData, phone: val });
-                            }}
-                          />
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -2196,12 +2202,11 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                   </Button>
                   <Button 
                     onClick={() => {
-                      const isContactValid = pricing.verificationMethod === 'email' ? !!bookingData.email : !!bookingData.phone;
-                      if (bookingData.location && bookingData.customerName && isContactValid) {
+                      if (bookingData.location) {
                         setStep(4);
                         setFormError(null);
                       } else {
-                        setFormError(t.fillAllFields || 'გთხოვთ შეავსოთ ყველა ველი');
+                        setFormError(t.errorLocation);
                       }
                     }} 
                     className="flex-[2] py-5 rounded-[1.5rem] bg-blue-600 hover:bg-blue-700 font-black text-lg shadow-2xl shadow-blue-600/30 flex gap-3 relative overflow-hidden group"
@@ -2217,6 +2222,109 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
           {step === 4 && (
             <motion.section 
               key="step4"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="space-y-6"
+            >
+              <div className="space-y-6">
+                <h2 className="text-xl font-black text-white tracking-tight">{lang === 'GE' ? 'საკონტაქტო ინფორმაცია' : 'Contact Information'}</h2>
+                
+                <div id="personal-info-section" className="grid grid-cols-1 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] ml-2">{t.name}</label>
+                    <input 
+                      type="text" 
+                      placeholder={t.namePlaceholder}
+                      className="w-full bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-2xl p-4 focus:border-blue-400 outline-none transition-all text-white text-base shadow-inner"
+                      value={bookingData.customerName || ''}
+                      onChange={(e) => setBookingData({ ...bookingData, customerName: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] ml-2">{t.carModel}</label>
+                    <input 
+                      type="text" 
+                      placeholder={t.carModelPlaceholder}
+                      className="w-full bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-2xl p-4 focus:border-blue-400 outline-none transition-all text-white text-base shadow-inner"
+                      value={bookingData.carModel || ''}
+                      onChange={(e) => setBookingData({ ...bookingData, carModel: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] ml-2">
+                      {pricing.verificationMethod === 'email' ? 'Email' : t.phone}
+                    </label>
+                    {pricing.verificationMethod === 'email' ? (
+                      <input 
+                        type="email" 
+                        placeholder="your@email.com"
+                        className="w-full bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-2xl p-4 focus:border-blue-400 outline-none transition-all text-white text-base shadow-inner"
+                        value={bookingData.email || ''}
+                        onChange={(e) => setBookingData({ ...bookingData, email: e.target.value })}
+                      />
+                    ) : (
+                      <div className="relative flex items-center bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden focus-within:border-blue-400 transition-all shadow-inner">
+                        <div className="pl-6 pr-4 py-4 text-slate-500 font-bold text-base border-r border-white/10 bg-white/5">
+                          +995
+                        </div>
+                        <input 
+                          type="tel" 
+                          placeholder="5..."
+                          className="flex-1 bg-transparent p-4 outline-none text-white text-base"
+                          value={bookingData.phone || ''}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/\D/g, '');
+                            setBookingData({ ...bookingData, phone: val });
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {formError && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-500 text-xs font-bold text-center"
+                  >
+                    {formError}
+                  </motion.div>
+                )}
+
+                <div className="flex gap-4 pt-6">
+                  <Button 
+                    onClick={() => setStep(3)} 
+                    variant="ghost"
+                    className="flex-1 py-5 rounded-[1.5rem] border border-white/5 font-black text-lg gap-3"
+                  >
+                    <ChevronLeft className="w-6 h-6" />
+                    <span>{lang === 'GE' ? 'უკან' : 'Back'}</span>
+                  </Button>
+                  <Button 
+                    onClick={() => {
+                      const isContactValid = pricing.verificationMethod === 'email' ? !!bookingData.email : !!bookingData.phone;
+                      if (bookingData.customerName && bookingData.carModel && isContactValid) {
+                        setStep(5);
+                        setFormError(null);
+                      } else {
+                        setFormError(t.fillAllFields || 'გთხოვთ შეავსოთ ყველა ველი');
+                      }
+                    }} 
+                    className="flex-[2] py-5 rounded-[1.5rem] bg-blue-600 hover:bg-blue-700 font-black text-lg shadow-2xl shadow-blue-600/30 flex gap-3 relative overflow-hidden group"
+                  >
+                    <span>{lang === 'GE' ? 'გაგრძელება' : 'Continue'}</span>
+                    <ChevronRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
+                  </Button>
+                </div>
+              </div>
+            </motion.section>
+          )}
+
+          {step === 5 && (
+            <motion.section 
+              key="step5"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
@@ -2272,8 +2380,8 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                       <Users className="w-5 h-5" />
                     </div>
                     <div>
-                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t.name}</p>
-                      <p className="text-white font-medium">{bookingData.customerName}</p>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t.name} & {t.carModel}</p>
+                      <p className="text-white font-medium">{bookingData.customerName} - <span className="text-blue-400">{bookingData.carModel}</span></p>
                       <p className="text-slate-400 text-xs">
                         {pricing.verificationMethod === 'email' ? bookingData.email : bookingData.phone}
                       </p>
@@ -2363,11 +2471,19 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                   </motion.div>
                 )}
 
-                {/* Visible reCAPTCHA container for fallback was here, consolidated above */}
+                {/* VISIBLE RECAPTCHA CHECKBOX */}
+                {pricing.verificationMethod === 'sms' && !showVerification && (
+                  <div className="flex flex-col items-center gap-3 py-6 animate-in fade-in slide-in-from-bottom-4">
+                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">
+                      {lang === 'GE' ? 'დაადასტურეთ ვერიფიკაცია' : 'Complete Verification'}
+                    </p>
+                    <div id="recaptcha-container" className="rounded-2xl overflow-hidden border border-white/5 bg-slate-900/40 p-1"></div>
+                  </div>
+                )}
 
                 <div className="flex gap-4 pt-6">
                   <Button 
-                    onClick={() => setStep(3)} 
+                    onClick={() => setStep(4)} 
                     variant="ghost"
                     className="flex-1 py-5 rounded-[1.5rem] border border-white/5 font-black text-lg gap-3"
                   >
@@ -2376,8 +2492,8 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                   </Button>
                   <Button 
                     onClick={() => handleBookingSubmit()} 
-                    disabled={isSubmitting || isVerifying || isSendingCode}
-                    className="flex-[2] py-5 rounded-[1.5rem] bg-blue-600 hover:bg-blue-700 font-black text-lg shadow-2xl shadow-blue-600/30 flex gap-3 relative overflow-hidden group"
+                    disabled={isSubmitting || isVerifying || isSendingCode || (pricing.verificationMethod === 'sms' && !isCaptchaVerified && !showVerification)}
+                    className="flex-[2] py-5 rounded-[1.5rem] bg-blue-600 hover:bg-blue-700 font-black text-lg shadow-2xl shadow-blue-600/30 flex gap-3 relative overflow-hidden group disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed"
                   >
                     {isSubmitting || isVerifying || isSendingCode ? (
                       <span className="flex items-center gap-2">

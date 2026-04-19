@@ -41,6 +41,7 @@ import {
   ChevronRight, 
   Star, 
   ShieldCheck, 
+  ShieldAlert,
   Zap, 
   Tag,
   ArrowRight,
@@ -654,49 +655,56 @@ export default function App() {
                   </span>
                 </div>
                 
-                <div className="flex items-center gap-4">
-                  {/* Language Switcher */}
-                  <button 
-                    onClick={() => setLang(lang === 'GE' ? 'EN' : 'GE')}
-                    className="p-2 hover:bg-slate-800 rounded-xl transition-all active:scale-90 border border-slate-800"
-                    title={lang === 'GE' ? 'Switch to English' : 'გადართვა ქართულზე'}
-                  >
-                    {lang === 'GE' ? (
-                      <img src="https://flagcdn.com/w40/gb.png" alt="UK Flag" className="w-6 h-4 object-cover rounded-sm" />
-                    ) : (
-                      <img src="https://flagcdn.com/w40/ge.png" alt="Georgia Flag" className="w-6 h-4 object-cover rounded-sm" />
-                    )}
-                  </button>
-
-                  {isAdmin && view !== 'admin' && (
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => setView(view === 'admin' ? 'public' : 'admin')}
-                      className="flex gap-2 text-slate-300 hover:text-white hover:bg-slate-800"
+                  <div className="flex items-center gap-4">
+                    {/* Language Switcher */}
+                    <button 
+                      onClick={() => setLang(lang === 'GE' ? 'EN' : 'GE')}
+                      className="p-2 hover:bg-slate-800 rounded-xl transition-all active:scale-90 border border-slate-800"
+                      title={lang === 'GE' ? 'Switch to English' : 'გადართვა ქართულზე'}
                     >
-                      {view === 'admin' ? <Zap className="w-4 h-4" /> : <LayoutDashboard className="w-4 h-4" />}
-                      <span>{view === 'admin' ? t.viewSite : t.adminPanel}</span>
-                    </Button>
-                  )}
-                  {user ? (
-                    <div className="flex items-center gap-3">
-                      {!isAdmin && <span className="hidden lg:inline text-xs text-red-500 font-medium">არაადმინისტრატორი</span>}
-                      <span className="hidden md:inline text-xs text-slate-400">{user.email}</span>
-                      {!isAdmin && <img src={user.photoURL || ''} alt="User Profile" className="w-8 h-8 rounded-full border border-slate-700" referrerPolicy="no-referrer" />}
-                      <Button variant="ghost" size="sm" onClick={logout} className="p-2 text-slate-400 hover:text-white hover:bg-slate-800">
-                        <LogOut className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    // Admin login button removed as requested, accessible via /dash
-                    view === 'admin' && (
-                      <Button variant="primary" size="sm" onClick={login} className="gap-2">
-                        <ShieldCheck className="w-4 h-4" /> ადმინ შესვლა
-                      </Button>
-                    )
-                  )}
-                </div>
+                      {lang === 'GE' ? (
+                        <img src="https://flagcdn.com/w40/gb.png" alt="UK Flag" className="w-6 h-4 object-cover rounded-sm" />
+                      ) : (
+                        <img src="https://flagcdn.com/w40/ge.png" alt="Georgia Flag" className="w-6 h-4 object-cover rounded-sm" />
+                      )}
+                    </button>
+
+                    {isAdmin && (
+                      <>
+                        {view !== 'admin' && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => setView('admin')}
+                            className="flex gap-2 text-slate-300 hover:text-white hover:bg-slate-800"
+                          >
+                            <LayoutDashboard className="w-4 h-4" />
+                            <span>{t.adminPanel}</span>
+                          </Button>
+                        )}
+                        <div className="flex items-center gap-3">
+                          <span className="hidden md:inline text-xs text-slate-400">{user?.email}</span>
+                          <Button variant="ghost" size="sm" onClick={logout} className="p-2 text-slate-400 hover:text-white hover:bg-slate-800">
+                            <LogOut className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </>
+                    )}
+
+                    {!isAdmin && view === 'admin' && (
+                      <div className="flex items-center gap-3">
+                        {!user ? (
+                          <Button variant="primary" size="sm" onClick={login} className="gap-2">
+                            <ShieldCheck className="w-4 h-4" /> ადმინ შესვლა
+                          </Button>
+                        ) : (
+                          <Button variant="ghost" size="sm" onClick={logout} className="p-2 text-slate-400 hover:text-white hover:bg-slate-800">
+                            <LogOut className="w-4 h-4" /> {lang === 'GE' ? 'გამოსვლა' : 'Logout'}
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </div>
               </div>
             </div>
           </nav>
@@ -727,8 +735,15 @@ export default function App() {
               />
             ) : view === 'terms' ? (
               <TermsOfService key="terms" onBack={() => setView('public')} t={t} />
-            ) : (
+            ) : isAdmin ? (
               <AdminDashboard key="admin" onBack={() => setView('public')} pricing={pricing} />
+            ) : (
+              <div className="min-h-[60vh] flex flex-col items-center justify-center p-8 text-center">
+                <ShieldAlert className="w-16 h-16 text-red-500 mb-4" />
+                <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
+                <p className="text-slate-400 mb-6">You do not have permission to access the admin panel.</p>
+                <Button onClick={() => setView('public')}>Back to Home</Button>
+              </div>
             )}
           </AnimatePresence>
         </main>

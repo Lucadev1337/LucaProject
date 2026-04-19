@@ -58,7 +58,8 @@ import {
   ChevronLeft,
   Check,
   Users,
-  Smartphone
+  Smartphone,
+  ChevronDown
 } from 'lucide-react';
 import { format, addDays, startOfToday, isSameDay, parseISO } from 'date-fns';
 import { ka } from 'date-fns/locale';
@@ -642,7 +643,8 @@ export default function App() {
 
   return (
     <div className={cn(
-        "min-h-screen font-sans transition-colors duration-300 bg-slate-950 text-slate-100"
+        "min-h-screen font-sans transition-colors duration-300 bg-slate-950 text-slate-100",
+        lang === 'GE' && "lang-ge"
       )}>
         {/* Navigation - Hidden on booking page */}
         {view !== 'booking' && (
@@ -1319,7 +1321,7 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
   const [formError, setFormError] = useState<string | null>(null);
   const [isCaptchaVerified, setIsCaptchaVerified] = useState(false);
   const [recaptchaSize, setRecaptchaSize] = useState<'invisible' | 'normal'>('normal');
-  const [expandedService, setExpandedService] = useState<string | 'all' | null>(initialPlan ? initialPlan : 'all');
+  const [expandedService, setExpandedService] = useState<string | 'all' | null>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [showTermsPopup, setShowTermsPopup] = useState(false);
   const [promoCodeInput, setPromoCodeInput] = useState('');
@@ -1403,7 +1405,7 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
     { id: 1, label: t.chooseService, icon: Zap, completed: !!bookingData.service },
     { id: 2, label: t.chooseDate, icon: Calendar, completed: !!(bookingData.date && bookingData.timeSlot) },
     { id: 3, label: t.location, icon: MapPin, completed: !!bookingData.location },
-    { id: 4, label: t.name, icon: Users, completed: !!(bookingData.customerName && bookingData.carModel && (pricing.verificationMethod === 'email' ? !!bookingData.email : !!bookingData.phone)) }
+    { id: 4, label: lang === 'GE' ? 'საკონტაქტო ინფორმაცია' : 'Contact Info', icon: Users, completed: !!(bookingData.customerName && bookingData.carModel && (pricing.verificationMethod === 'email' ? !!bookingData.email : !!bookingData.phone)) }
   ];
 
   const currentStep = steps.find(s => !s.completed)?.id || 1;
@@ -1893,7 +1895,6 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                       title: t.standardClean, 
                       price: getPrice('Basic'), 
                       originalPrice: pricing.basicPrice,
-                      icon: Zap,
                       details: t.standardDetails
                     },
                     { 
@@ -1901,7 +1902,6 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                       title: t.premiumDeepClean, 
                       price: getPrice('Premium'), 
                       originalPrice: pricing.premiumPrice,
-                      icon: Star,
                       details: t.premiumDetails
                     }
                   ].map((s) => (
@@ -1909,27 +1909,34 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                       <button
                         onClick={() => {
                           setBookingData({ ...bookingData, service: s.id as any });
-                          setExpandedService(s.id);
+                          setExpandedService(expandedService === s.id ? null : s.id);
                           track('Service Selected', { service: s.id });
                         }}
                         className={cn(
-                          "w-full flex items-center justify-between p-4 rounded-2xl border transition-all duration-500 text-left relative overflow-hidden group",
+                          "w-full flex items-center justify-between p-4 rounded-[1.5rem] border transition-all duration-500 text-left relative overflow-hidden group",
                           bookingData.service === s.id 
                             ? "bg-blue-400/10 border-blue-400 ring-1 ring-blue-400/50 shadow-2xl shadow-blue-400/10" 
                             : "bg-slate-900/40 backdrop-blur-xl border-white/5 hover:border-white/10"
                         )}
                       >
-                        <div className="flex items-center gap-4 relative z-10">
+                        <div className="flex items-center gap-4 relative z-10 w-full">
                           <div className={cn(
-                            "w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-500",
-                            bookingData.service === s.id ? "bg-blue-400 text-slate-950 shadow-xl shadow-blue-400/40 scale-110" : "bg-slate-950/50 text-slate-500"
+                            "w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all duration-300",
+                            bookingData.service === s.id ? "bg-blue-600 border-blue-600 shadow-lg shadow-blue-500/20" : "bg-transparent border-white/10"
                           )}>
-                            <s.icon className="w-6 h-6" />
+                            {bookingData.service === s.id && (
+                              <motion.div
+                                initial={{ scale: 0, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                              >
+                                <Check className="w-4 h-4 text-white" strokeWidth={3} />
+                              </motion.div>
+                            )}
                           </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <h3 className="text-lg font-black text-white mb-0.5">{s.title}</h3>
-                            </div>
+
+                          <div className="flex-1">
+                            <h3 className="text-lg font-black text-white">{s.title}</h3>
                             <div className="flex items-baseline gap-2">
                               <p className={cn(
                                 "text-base font-black",
@@ -1940,11 +1947,18 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                               )}
                             </div>
                           </div>
+
+                          <div className={cn(
+                            "p-2 rounded-full transition-all duration-300",
+                            expandedService === s.id ? "bg-blue-600/10 text-blue-400 rotate-180" : "text-slate-600"
+                          )}>
+                            <ChevronDown className="w-5 h-5" />
+                          </div>
                         </div>
                       </button>
                       
                       <AnimatePresence>
-                        {(expandedService === s.id || expandedService === 'all') && (
+                        {expandedService === s.id && (
                           <motion.div
                             initial={{ height: 0, opacity: 0 }}
                             animate={{ height: 'auto', opacity: 1 }}
@@ -1975,53 +1989,6 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                       </AnimatePresence>
                     </div>
                   ))}
-                </div>
-
-                {/* Promo Code Input */}
-                <div className="pt-2">
-                  {!appliedPromo ? (
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] ml-2">პრომო კოდი</label>
-                      <div className="flex gap-2">
-                        <input 
-                          type="text" 
-                          placeholder="SAVE20"
-                          className="flex-1 bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-xl p-3 focus:border-blue-400 outline-none transition-all text-white text-sm uppercase"
-                          value={promoCodeInput}
-                          onChange={(e) => setPromoCodeInput(e.target.value)}
-                        />
-                        <Button 
-                          onClick={applyPromoCode} 
-                          disabled={isApplyingPromo || !promoCodeInput}
-                          className="px-6 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl"
-                        >
-                          {isApplyingPromo ? '...' : (lang === 'GE' ? 'გამოყენება' : 'Apply')}
-                        </Button>
-                      </div>
-                      {promoError && <p className="text-[10px] text-red-500 font-bold ml-2">{promoError}</p>}
-                    </div>
-                  ) : (
-                    <div className="bg-green-500/10 border border-green-500/20 rounded-2xl p-4 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-green-500/20 text-green-500 rounded-lg flex items-center justify-center">
-                          <Tag className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <p className="text-xs font-black text-white uppercase tracking-wider">{appliedPromo.code}</p>
-                          <p className="text-[10px] text-green-500 font-bold">{appliedPromo.discount}% ფასდაკლება გამოყენებულია</p>
-                        </div>
-                      </div>
-                      <button 
-                        onClick={() => {
-                          setAppliedPromo(null);
-                          setPromoCodeInput('');
-                        }}
-                        className="text-slate-500 hover:text-white transition-colors"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  )}
                 </div>
               </div>
 
@@ -2294,6 +2261,57 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                             setBookingData({ ...bookingData, phone: val });
                           }}
                         />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Promo Code Input (Optional) - Moved from Step 1 to Step 4 */}
+                  <div className="pt-4 border-t border-white/5">
+                    {!appliedPromo ? (
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] ml-2">
+                          {lang === 'GE' ? 'პრომო კოდი (არასავალდებულო)' : 'Promo Code (Optional)'}
+                        </label>
+                        <div className="flex gap-2">
+                          <input 
+                            type="text" 
+                            placeholder="SAVE20"
+                            className="flex-1 bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-xl p-4 focus:border-blue-400 outline-none transition-all text-white text-sm uppercase"
+                            value={promoCodeInput}
+                            onChange={(e) => setPromoCodeInput(e.target.value)}
+                          />
+                          <Button 
+                            onClick={applyPromoCode} 
+                            disabled={isApplyingPromo || !promoCodeInput}
+                            className="px-6 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl"
+                          >
+                            {isApplyingPromo ? '...' : (lang === 'GE' ? 'გამოყენება' : 'Apply')}
+                          </Button>
+                        </div>
+                        {promoError && <p className="text-[10px] text-red-500 font-bold ml-2">{promoError}</p>}
+                      </div>
+                    ) : (
+                      <div className="bg-green-500/10 border border-green-500/20 rounded-2xl p-4 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-green-500/20 text-green-500 rounded-lg flex items-center justify-center">
+                            <Tag className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <p className="text-xs font-black text-white uppercase tracking-wider">{appliedPromo.code}</p>
+                            <p className="text-[10px] text-green-500 font-bold">
+                              {lang === 'GE' ? `${appliedPromo.discount}% ფასდაკლება გამოყენებულია` : `${appliedPromo.discount}% Discount Applied`}
+                            </p>
+                          </div>
+                        </div>
+                        <button 
+                          onClick={() => {
+                            setAppliedPromo(null);
+                            setPromoCodeInput('');
+                          }}
+                          className="text-slate-500 hover:text-white transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
                       </div>
                     )}
                   </div>

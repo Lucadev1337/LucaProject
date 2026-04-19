@@ -22,22 +22,11 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
     match /taken_slots/{slotId} {
-      allow read, create: if true;
-      allow update, delete: if isAdmin();
+      allow read, create, update: if true;
+      allow delete: if isAdmin();
     }
-    match /verifications/{verificationId} {
-      // Allow creation of verification records (server-side via Client SDK)
-      allow create: if request.resource.data.keys().hasAll(['email', 'code', 'expires', 'used']) &&
-                      request.resource.data.used == false;
-      
-      // Allow reading by ID for verification
-      allow get: if true; 
-      
-      // Allow marking as used
-      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['used']) &&
-                      request.resource.data.used == true;
-                      
-      allow list, delete: if false;
+    match /verification_codes/{email} {
+      allow read, write: if true;
     }
     match /settings/pricing {
       allow read: if true;

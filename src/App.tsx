@@ -799,7 +799,6 @@ export default function App() {
             <MessageCircle className="w-5 h-5" />
           </a>
         )}
-        <div id="recaptcha-container"></div>
       </div>
   );
 }
@@ -1294,6 +1293,7 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
   const [showVerification, setShowVerification] = useState(false);
   const [verificationError, setVerificationError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  const [recaptchaSize, setRecaptchaSize] = useState<'invisible' | 'normal'>('invisible');
   const [expandedService, setExpandedService] = useState<string | 'all' | null>(initialPlan ? initialPlan : 'all');
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [showTermsPopup, setShowTermsPopup] = useState(false);
@@ -1486,12 +1486,13 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
 
         // Try invisible first, but provide a way to fall back if it fails repeatedly
         window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-          'size': 'invisible',
+          'size': recaptchaSize,
           'callback': (response: any) => {
              console.log('reCAPTCHA solved');
           },
           'expired-callback': () => {
              console.warn('reCAPTCHA expired');
+             if (window.recaptchaVerifier) window.recaptchaVerifier.clear();
           }
         });
 
@@ -1509,8 +1510,7 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
             console.log('Detected -39, attempting visible fallback/retry preparation');
             if (window.recaptchaVerifier) window.recaptchaVerifier.clear();
             if (container) container.innerHTML = '';
-            
-            // Re-throw to be caught by the outer catch, but with better context
+            setRecaptchaSize('normal'); // Force visible on next attempt
             throw smsError;
           }
           throw smsError;
@@ -1582,7 +1582,7 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
       setFormError(t.errorDateTime);
       return;
     }
-    const isContactValid = pricing.verificationMethod === 'email' ? bookingData.email : bookingData.phone;
+    const isContactValid = pricing.verificationMethod === 'email' ? !!bookingData.email : !!bookingData.phone;
     if (!bookingData.location || !bookingData.customerName || !isContactValid) {
       setStep(3);
       setFormError(t.fillAllFields);
@@ -1769,6 +1769,12 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
       </header>
 
       <div className="max-w-2xl mx-auto px-4 pt-24 pb-0 space-y-6">
+        {/* Consolidated reCAPTCHA Container - Hidden unless forced visible by -39 error */}
+        <div id="recaptcha-container" className={cn(
+          "flex justify-center",
+          recaptchaSize === 'invisible' ? "w-0 h-0 overflow-hidden" : "mb-6 py-4 bg-slate-900/40 rounded-3xl border border-white/5 animate-in fade-in slide-in-from-top-4"
+        )}></div>
+
         {/* Progress Indicator */}
         <div className="flex items-center justify-between px-2 pt-2">
           {steps.map((s, i) => (
@@ -2190,7 +2196,8 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                   </Button>
                   <Button 
                     onClick={() => {
-                      if (bookingData.location && bookingData.customerName && bookingData.phone) {
+                      const isContactValid = pricing.verificationMethod === 'email' ? !!bookingData.email : !!bookingData.phone;
+                      if (bookingData.location && bookingData.customerName && isContactValid) {
                         setStep(4);
                         setFormError(null);
                       } else {
@@ -2333,11 +2340,30 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                   <motion.div 
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-500 text-xs font-bold text-center"
+                    className="p-5 bg-red-500/10 border border-red-500/20 rounded-3xl text-red-500 text-xs font-bold space-y-3"
                   >
-                    {formError}
+                    <p className="text-center">{formError}</p>
+                    
+                    {pricing.verificationMethod === 'sms' && (
+                      <div className="flex flex-col gap-2">
+                        {recaptchaSize === 'normal' && (
+                          <p className="text-[10px] text-red-500/70 text-center uppercase tracking-widest mt-2">
+                            {lang === 'GE' 
+                              ? 'გთხოვთ დაადასტუროთ რობოტის შემოწმება ქვემოთ' 
+                              : 'Please solve the reCAPTCHA below'}
+                          </p>
+                        )}
+                        <p className="text-[10px] text-slate-500 text-center uppercase leading-relaxed">
+                          {lang === 'GE' 
+                            ? 'თუ პრობლემა გრძელდება, ადმინ პანელიდან გადადით Email ვერიფიკაციაზე' 
+                            : 'If issues persist, switch to Email verification in Admin Panel'}
+                        </p>
+                      </div>
+                    )}
                   </motion.div>
                 )}
+
+                {/* Visible reCAPTCHA container for fallback was here, consolidated above */}
 
                 <div className="flex gap-4 pt-6">
                   <Button 

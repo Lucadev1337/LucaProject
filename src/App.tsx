@@ -539,6 +539,10 @@ function MapPicker({ onLocationSelect, initialLocation, initialLat, initialLng, 
 
 // --- Components ---
 
+const Skeleton = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
+  <div className={cn("animate-pulse bg-slate-800 rounded-lg", className)} {...props} />
+);
+
 const Button = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'outline' | 'ghost', size?: 'sm' | 'md' | 'lg' }>(
   ({ className, variant = 'primary', size = 'md', ...props }, ref) => {
     const variants = {
@@ -582,6 +586,7 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [lang, setLang] = useState<Language>('GE');
   const t = translations[lang];
+  const [isPricingLoading, setIsPricingLoading] = useState(true);
   const [pricing, setPricing] = useState<PricingSettings>({
     basicPrice: 59,
     premiumPrice: 119,
@@ -606,7 +611,12 @@ export default function App() {
     const unsubPricing = onSnapshot(doc(db, 'settings', 'pricing'), (doc) => {
       if (doc.exists()) {
         setPricing(doc.data() as PricingSettings);
+        setIsPricingLoading(false);
+      } else {
+        setIsPricingLoading(false);
       }
+    }, () => {
+      setIsPricingLoading(false);
     });
 
     // Simple routing for /dash
@@ -724,6 +734,7 @@ export default function App() {
                 pricing={pricing} 
                 t={t} 
                 lang={lang} 
+                isLoading={isPricingLoading}
               />
             ) : view === 'booking' ? (
               <BookingPage 
@@ -831,7 +842,7 @@ export default function App() {
 
 // --- Public Site ---
 
-function PublicSite({ onBookNow, pricing, t, lang }: { onBookNow: (plan?: 'Basic' | 'Premium') => void, pricing: PricingSettings, t: any, lang: Language, key?: string }) {
+function PublicSite({ onBookNow, pricing, t, lang, isLoading }: { onBookNow: (plan?: 'Basic' | 'Premium') => void, pricing: PricingSettings, t: any, lang: Language, isLoading?: boolean, key?: string }) {
   const { scrollY } = useScroll();
   const y = useTransform(scrollY, [0, 500], [0, 150]);
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -920,7 +931,11 @@ function PublicSite({ onBookNow, pricing, t, lang }: { onBookNow: (plan?: 'Basic
             </div>
             <div className="mt-12 flex items-center gap-6">
               <div className="flex -space-x-3">
-                {pricing.heroReviews && pricing.heroReviews.length > 0 ? (
+                {isLoading ? (
+                  [1, 2, 3].map(i => (
+                    <Skeleton key={i} className="w-10 h-10 rounded-full border-2 border-slate-900" />
+                  ))
+                ) : pricing.heroReviews && pricing.heroReviews.length > 0 ? (
                   pricing.heroReviews.map((review, i) => (
                     <a 
                       key={i} 
@@ -937,17 +952,7 @@ function PublicSite({ onBookNow, pricing, t, lang }: { onBookNow: (plan?: 'Basic
                       />
                     </a>
                   ))
-                ) : (
-                  [1, 2, 3].map(i => (
-                    <img 
-                      key={i} 
-                      src={`https://picsum.photos/seed/user${i}/100/100`} 
-                      className="w-10 h-10 rounded-full border-2 border-slate-900 shadow-sm" 
-                      referrerPolicy="no-referrer"
-                      alt="Happy Customer"
-                    />
-                  ))
-                )}
+                ) : null}
               </div>
               <div className="w-[1px] h-8 bg-white/10" />
               <div className="text-sm">
@@ -1072,13 +1077,19 @@ function PublicSite({ onBookNow, pricing, t, lang }: { onBookNow: (plan?: 'Basic
                   <div className="mb-6">
                     <h3 className="text-xl font-black mb-3 text-white">{t.standardClean}</h3>
                     <div className="flex items-baseline gap-2">
-                      {pricing.isSaleActive ? (
-                        <>
-                          <span className="text-3xl font-black text-white">{getPrice(pricing.basicPrice, 'Basic')}₾</span>
-                          <span className="text-lg text-slate-500 line-through">{pricing.basicPrice}₾</span>
-                        </>
+                      {isLoading ? (
+                        <Skeleton className="h-10 w-24" />
                       ) : (
-                        <span className="text-3xl font-black text-white">{pricing.basicPrice}₾</span>
+                        <>
+                          {pricing.isSaleActive ? (
+                            <>
+                              <span className="text-3xl font-black text-white">{getPrice(pricing.basicPrice, 'Basic')}₾</span>
+                              <span className="text-lg text-slate-500 line-through">{pricing.basicPrice}₾</span>
+                            </>
+                          ) : (
+                            <span className="text-3xl font-black text-white">{pricing.basicPrice}₾</span>
+                          )}
+                        </>
                       )}
                       <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{t.perService}</span>
                     </div>
@@ -1120,13 +1131,19 @@ function PublicSite({ onBookNow, pricing, t, lang }: { onBookNow: (plan?: 'Basic
                   <div className="mb-6">
                     <h3 className="text-xl font-black mb-3 text-white">{t.premiumDeepClean}</h3>
                     <div className="flex items-baseline gap-2">
-                      {pricing.isSaleActive ? (
-                        <>
-                          <span className="text-3xl font-black text-white">{getPrice(pricing.premiumPrice, 'Premium')}₾</span>
-                          <span className="text-lg text-slate-500 line-through">{pricing.premiumPrice}₾</span>
-                        </>
+                      {isLoading ? (
+                        <Skeleton className="h-10 w-24" />
                       ) : (
-                        <span className="text-3xl font-black text-white">{pricing.premiumPrice}₾</span>
+                        <>
+                          {pricing.isSaleActive ? (
+                            <>
+                              <span className="text-3xl font-black text-white">{getPrice(pricing.premiumPrice, 'Premium')}₾</span>
+                              <span className="text-lg text-slate-500 line-through">{pricing.premiumPrice}₾</span>
+                            </>
+                          ) : (
+                            <span className="text-3xl font-black text-white">{pricing.premiumPrice}₾</span>
+                          )}
+                        </>
                       )}
                       <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{t.perService}</span>
                     </div>
@@ -3206,7 +3223,20 @@ function AdminDashboard({ onBack, pricing }: { onBack: () => void, pricing: Pric
           </div>
 
           {isLoading ? (
-            <div className="text-center py-20 text-slate-500">ჯავშნები იტვირთება...</div>
+            <div className="grid grid-cols-1 gap-3">
+              {[1, 2, 3, 4, 5].map(i => (
+                <Card key={i} className="p-4 bg-slate-900 border-slate-800">
+                  <div className="flex items-center gap-4">
+                    <Skeleton className="w-2 h-10 rounded-full" />
+                    <div className="space-y-2 flex-1">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-3 w-48" />
+                    </div>
+                    <Skeleton className="h-6 w-20 rounded-full" />
+                  </div>
+                </Card>
+              ))}
+            </div>
           ) : filteredBookings.length === 0 ? (
             <Card className="text-center py-20 bg-slate-900 border-slate-800">
               <Calendar className="w-12 h-12 text-slate-700 mx-auto mb-4" />

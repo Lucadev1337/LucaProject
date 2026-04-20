@@ -1664,6 +1664,23 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
           console.error('Failed to send notification', e);
         }
 
+        // Send Confirmation to Customer
+        const msg = lang === 'GE' 
+          ? `Luca's AutoSpa: თქვენი ჯავშანი დადასტურებულია! 📅 ${bookingData.date} | ⏰ ${bookingData.timeSlot}. მადლობა ნდობისთვის!`
+          : `Luca's AutoSpa: Your booking is confirmed! 📅 ${bookingData.date} | ⏰ ${bookingData.timeSlot}. Thank you!`;
+        
+        if (currentMethod === 'email' && bookingData.email) {
+          try {
+            await fetch('/api/send-email', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: bookingData.email, subject: 'ჯავშნის დადასტურება - Luca\'s AutoSpa', message: msg })
+            });
+          } catch (e) {
+            console.error('Failed to send Email confirmation', e);
+          }
+        }
+
         setIsSuccess(true);
         confetti({
           particleCount: 150,

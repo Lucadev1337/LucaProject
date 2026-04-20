@@ -1,13 +1,11 @@
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, addDoc, doc, getDoc, updateDoc, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
+import admin from 'firebase-admin';
 import dotenv from 'dotenv';
 import fs from 'fs';
 import * as ics from 'ics';
 import { Resend } from 'resend';
-import { serverTimestamp, setDoc, deleteDoc } from 'firebase/firestore';
 
 dotenv.config();
 
@@ -31,15 +29,23 @@ try {
   console.error('CRITICAL: Failed to load firebase-applet-config.json:', error);
 }
 
-// Initialize Firebase
-let db: any = null;
+// Initialize Firebase Admin
+let db: admin.firestore.Firestore | null = null;
 if (firebaseConfig) {
   try {
-    const firebaseApp = initializeApp(firebaseConfig);
-    db = getFirestore(firebaseApp, firebaseConfig.firestoreDatabaseId);
-    console.log('Firebase Initialized Successfully');
+    if (!admin.apps.length) {
+      admin.initializeApp({
+        projectId: firebaseConfig.projectId,
+      });
+    }
+    // Use named database if specified, otherwise default
+    db = firebaseConfig.firestoreDatabaseId 
+      ? admin.firestore(firebaseConfig.firestoreDatabaseId) 
+      : admin.firestore();
+    
+    console.log('Firebase Admin Initialized Successfully');
   } catch (e) {
-    console.error('CRITICAL: Firebase init error:', e);
+    console.error('CRITICAL: Firebase Admin init error:', e);
   }
 }
 
@@ -49,113 +55,61 @@ export const app = express();
 app.use(express.json());
 
 // API Routes
-app.post('/api/send-verification-email', async (req, res) => {
-  try {
-    const { email, lang } = req.body;
-    if (!db) throw new Error('Database not initialized');
-
-    const pricingSnap = await getDoc(doc(db, 'settings', 'pricing'));
-    if (!pricingSnap.exists()) throw new Error('Pricing settings not found');
-    const pricing = pricingSnap.data();
-
-    if (!pricing.resendApiKey) throw new Error('Resend API key not configured');
-
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    const resend = new Resend(pricing.resendApiKey);
-
-    // Save code to Firestore (expiring in 10 mins)
-    await setDoc(doc(db, 'verification_codes', email), {
-      code,
-      expiresAt: Date.now() + 10 * 60 * 1000
-    });
-
-    const subject = lang === 'GE' ? 'ვერიფიკაციის კოდი - Luca\'s AutoSpa' : 'Verification Code - Luca\'s AutoSpa';
-    const text = lang === 'GE' 
-      ? `თქვენი ვერიფიკაციის კოდია: ${code}` 
-      : `Your verification code is: ${code}`;
-
-    await resend.emails.send({
-      from: pricing.resendSenderEmail || 'onboarding@resend.dev',
-      to: email,
-      subject: subject,
-      text: text,
-    });
-
-    res.json({ success: true });
-  } catch (error: any) {
-    console.error('Send verification email error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.post('/api/verify-email-code', async (req, res) => {
-  try {
-    const { email, code } = req.body;
-    if (!db) throw new Error('Database not initialized');
-
-    const docRef = doc(db, 'verification_codes', email);
-    const docSnap = await getDoc(docRef);
-
-    if (!docSnap.exists()) {
-      throw new Error('Verification code expired or not found');
-    }
-
-    const data = docSnap.data();
-    if (data.expiresAt < Date.now()) {
-      await deleteDoc(docRef);
-      throw new Error('Verification code expired');
-    }
-
-    if (data.code !== code) {
-      throw new Error('Invalid verification code');
-    }
-
-    // Success - delete the code
-    await deleteDoc(docRef);
-    res.json({ success: true });
-  } catch (error: any) {
-    res.status(400).json({ error: error.message });
-  }
-});
-
 app.post('/api/send-otp', async (req, res) => {
   try {
     const { phone, lang, method, email } = req.body;
     if (!db) throw new Error('Database not initialized');
 
-    const pricingSnap = await getDoc(doc(db, 'settings', 'pricing'));
-    if (!pricingSnap.exists()) throw new Error('Pricing settings not found');
-    const pricing = pricingSnap.data();
+    const pricingSnap = await db.collection('settings').doc('pricing').get();
+    if (!pricingSnap.exists) throw new Error('Pricing settings not found');
+    const pricing = pricingSnap.data() || {};
 
     // Verification Logic for different methods
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     const verificationKey = method === 'email' ? email : phone;
     
     // Save code to Firestore (expiring in 10 mins)
-    await setDoc(doc(db, 'verification_codes', verificationKey), {
+    await db.collection('verification_codes').doc(verificationKey).set({
       code,
       expiresAt: Date.now() + 10 * 60 * 1000
     });
 
-    const message = lang === 'GE' 
-      ? `თქვენი ვერიფიკაციის კოდია: ${code}` 
-      : `Your verification code is: ${code}`;
+    const messageText = lang === 'GE' 
+      ? `${code} არის თქვენი ვერიფიკაციის კოდი.` 
+      : `${code} is your verification code.`;
 
     if (method === 'email') {
       if (!pricing.resendApiKey) throw new Error('Email verification not configured');
       const resend = new Resend(pricing.resendApiKey);
+      
+      const html = `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
+          <h2 style="color: #4f46e5; text-align: center;">Luca's AutoSpa</h2>
+          <div style="background-color: #f8fafc; padding: 30px; border-radius: 8px; text-align: center;">
+            <p style="font-size: 16px; color: #475569; margin-bottom: 8px;">${lang === 'GE' ? 'თქვენი ვერიფიკაციის კოდია:' : 'Your verification code is:'}</p>
+            <h1 style="font-size: 48px; letter-spacing: 4px; color: #1e293b; margin: 0;">${code}</h1>
+          </div>
+          <p style="font-size: 14px; color: #64748b; text-align: center; margin-top: 20px;">
+            ${lang === 'GE' ? 'ეს კოდი ვალიდურია 10 წუთის განმავლობაში.' : 'This code is valid for 10 minutes.'}
+          </p>
+        </div>
+      `;
+
       await resend.emails.send({
-        from: pricing.resendSenderEmail || 'onboarding@resend.dev',
+        from: `Luca's AutoSpa <${pricing.resendSenderEmail || 'onboarding@resend.dev'}>`,
         to: email,
         subject: lang === 'GE' ? 'ვერიფიკაციის კოდი' : 'Verification Code',
-        text: message,
+        text: messageText,
+        html: html
       });
-    } else if (method === 'viber' || method === 'whatsapp') {
-      const vResponse = await sendMultiChannelHelper(pricing, phone, message, method);
-      const vData = vResponse.ok ? {} : await (vResponse as Response).json().catch(() => ({}));
+    } else if (method === 'whatsapp') {
+      const vResponse = await sendMultiChannelHelper(pricing, phone, messageText, method);
       if (!vResponse.ok) {
-        console.error('Provider error:', vData);
-        throw new Error('Failed to reach verification provider');
+        const response = vResponse as any;
+        const errorText = typeof response.text === 'function' ? await response.text().catch(() => 'No body') : 'No body';
+        console.error('Provider error status:', response.status);
+        console.error('Provider error body:', errorText);
+        throw new Error(`Failed to reach verification provider: ${response.status} ${errorText}`);
       }
     } else {
       throw new Error('Invalid verification method');
@@ -163,7 +117,7 @@ app.post('/api/send-otp', async (req, res) => {
 
     res.json({ success: true });
   } catch (error: any) {
-    console.error('Send SMS OTP error:', error);
+    console.error('Send OTP error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -173,16 +127,16 @@ app.post('/api/verify-otp', async (req, res) => {
     const { key, code } = req.body;
     if (!db) throw new Error('Database not initialized');
 
-    const docRef = doc(db, 'verification_codes', key);
-    const docSnap = await getDoc(docRef);
+    const docRef = db.collection('verification_codes').doc(key);
+    const docSnap = await docRef.get();
 
-    if (!docSnap.exists()) {
+    if (!docSnap.exists) {
       throw new Error('Verification code expired or not found');
     }
 
-    const data = docSnap.data();
+    const data = docSnap.data() || {};
     if (data.expiresAt < Date.now()) {
-      await deleteDoc(docRef);
+      await docRef.delete();
       throw new Error('Verification code expired');
     }
 
@@ -191,81 +145,204 @@ app.post('/api/verify-otp', async (req, res) => {
     }
 
     // Success
-    await deleteDoc(docRef);
+    await docRef.delete();
     res.json({ success: true });
   } catch (error: any) {
     res.status(400).json({ error: error.message });
   }
 });
 
-app.post('/api/send-email', async (req, res) => {
+app.post('/api/notify-booking', async (req, res) => {
   try {
-    const { email, subject, message } = req.body;
-    if (!db) throw new Error('Database not initialized');
+    const { bookingData, price, bookingId, promoCode, customerMethod, customerEmail, lang } = req.body;
+    const serviceName = bookingData.service === 'Premium' ? (lang === 'GE' ? 'პრემიუმ დითეილინგი' : 'Premium Detailing') : (lang === 'GE' ? 'სტანდარტული წმენდა' : 'Standard Cleaning');
+    
+    // Add the system secret for calendar
+    if (bookingId && db) {
+      try {
+        await db.collection('bookings').doc(bookingId).update({
+          calendarSecret: CALENDAR_SECRET,
+          verificationMethod: customerMethod,
+          customerEmail: customerEmail || bookingData.email || null
+        });
+      } catch (e) {
+        console.error('Failed to update booking metadata', e);
+      }
+    }
+    
+    // 1. Send Admin Notification (WhatsApp)
+    if (db) {
+      try {
+        const pricingSnap = await db.collection('settings').doc('pricing').get();
+        if (pricingSnap.exists) {
+          const pricing = pricingSnap.data() || {};
+          
+          // ADMIN NOTIFICATION
+          if (pricing.isWhatsappEnabled && pricing.whatsappNumber) {
+            const promoInfo = promoCode ? `\n🎟 პრომო: ${promoCode}` : '';
+            const carInfo = bookingData.carModel ? `\n🚗 მანქანა: ${bookingData.carModel}` : '';
+            const contactInfo = bookingData.phone ? `📞 ტელ: ${bookingData.phone}` : '';
+            const adminMessage = `🚗 *ახალი ჯავშანი!* \n\n👤 კლიენტი: ${bookingData.customerName}${carInfo}\n${contactInfo}${customerEmail ? `\n📧 Email: ${customerEmail}` : ''}\n🛠 სერვისი: ${serviceName}\n📅 თარიღი: ${bookingData.date}\n⏰ დრო: ${bookingData.timeSlot}\n📍 მისამართი: ${bookingData.location}\n💰 ფასი: ${price}₾${promoInfo}`;
+            
+            await sendMultiChannelHelper(pricing, pricing.whatsappNumber, adminMessage, 'whatsapp');
+          }
 
-    const pricingSnap = await getDoc(doc(db, 'settings', 'pricing'));
-    if (!pricingSnap.exists()) throw new Error('Pricing settings not found');
-    const pricing = pricingSnap.data();
+          // 2. CUSTOMER CONFIRMATION
+          const promoLine = promoCode ? (lang === 'GE' ? `\n🎟 პრომო კოდი: ${promoCode}` : `\n🎟 Promo Code: ${promoCode}`) : '';
+          const customerMessage = lang === 'GE'
+            ? `✅ ჯავშანი დადასტურებულია!\n\n👤 კლიენტი: ${bookingData.customerName}\n🚗 მანქანა: ${bookingData.carModel || '-'}\n🛠 სერვისი: ${serviceName}\n📅 თარიღი: ${bookingData.date}\n⏰ დრო: ${bookingData.timeSlot}\n📍 მისამართი: ${bookingData.location}\n💰 გადასახდელი თანხა: ${price}₾${promoLine}\n\nგმადლობთ, რომ გვირჩევთ!`
+            : `✅ Booking Confirmed!\n\n👤 Client: ${bookingData.customerName}\n🚗 Car: ${bookingData.carModel || '-'}\n🛠 Service: ${serviceName}\n📅 Date: ${bookingData.date}\n⏰ Time: ${bookingData.timeSlot}\n📍 Address: ${bookingData.location}\n💰 Total Price: ${price}₾${promoLine}\n\nThank you for choosing us!`;
 
-    if (!pricing.resendApiKey) throw new Error('Resend API key not configured');
+          if (customerMethod === 'whatsapp' && bookingData.phone) {
+            await sendMultiChannelHelper(pricing, bookingData.phone, customerMessage, 'whatsapp');
+          } else if (customerMethod === 'email' && customerEmail) {
+            if (pricing.resendApiKey) {
+              const resend = new Resend(pricing.resendApiKey);
+              const html = `
+                <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #f1f5f9; border-radius: 24px; background-color: #ffffff;">
+                  <div style="text-align: center; padding-bottom: 24px;">
+                    <h1 style="color: #4f46e5; margin: 0; font-size: 28px; font-weight: 900;">Luca's AutoSpa</h1>
+                    <p style="color: #64748b; margin-top: 8px; font-size: 14px;">${lang === 'GE' ? 'ჯავშანი წარმატებით დადასტურდა' : 'Your booking has been confirmed'}</p>
+                  </div>
 
-    const resend = new Resend(pricing.resendApiKey);
+                  <div style="background-color: #f8fafc; padding: 32px; border-radius: 20px; border: 1px solid #e2e8f0;">
+                    <div style="margin-bottom: 20px; border-bottom: 1px solid #e2e8f0; padding-bottom: 20px;">
+                      <span style="display: block; font-size: 12px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; margin-bottom: 4px;">${lang === 'GE' ? 'კლიენტი' : 'Client'}</span>
+                      <span style="font-size: 18px; color: #1e293b; font-weight: 600;">${bookingData.customerName}</span>
+                    </div>
 
-    await resend.emails.send({
-      from: pricing.resendSenderEmail || 'onboarding@resend.dev',
-      to: email,
-      subject: subject,
-      text: message,
-    });
+                    <div style="display: block; gap: 20px; margin-bottom: 20px;">
+                      <div style="margin-bottom: 12px; display: inline-block; width: 45%;">
+                        <span style="display: block; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: bold;">${lang === 'GE' ? 'თარიღი' : 'Date'}</span>
+                        <span style="font-size: 15px; color: #1e293b; font-weight: 500;">${bookingData.date}</span>
+                      </div>
+                      <div style="margin-bottom: 12px; display: inline-block; width: 45%;">
+                        <span style="display: block; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: bold;">${lang === 'GE' ? 'დრო' : 'Time'}</span>
+                        <span style="font-size: 15px; color: #1e293b; font-weight: 500;">${bookingData.timeSlot}</span>
+                      </div>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                      <span style="display: block; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: bold;">${lang === 'GE' ? 'ავტომობილი' : 'Vehicle'}</span>
+                      <span style="font-size: 15px; color: #1e293b; font-weight: 500;">${bookingData.carModel || '-'}</span>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                      <span style="display: block; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: bold;">${lang === 'GE' ? 'მომსახურება' : 'Service'}</span>
+                      <span style="font-size: 15px; color: #1e293b; font-weight: 500;">${serviceName}</span>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                      <span style="display: block; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: bold;">${lang === 'GE' ? 'მდებარეობა' : 'Location'}</span>
+                      <span style="font-size: 15px; color: #1e293b; font-weight: 500;">${bookingData.location}</span>
+                    </div>
+
+                    <div style="margin-top: 24px; padding-top: 24px; border-top: 2px dashed #e2e8f0;">
+                       <div style="display: flex; justify-content: space-between; align-items: center;">
+                         <div>
+                           <span style="display: block; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: bold;">${lang === 'GE' ? 'სრული საფასური' : 'Total Amount'}</span>
+                           <span style="font-size: 24px; color: #4f46e5; font-weight: 900;">${price}₾</span>
+                         </div>
+                         ${promoCode ? `<span style="background-color: #ecfdf5; color: #059669; padding: 4px 12px; border-radius: 99px; font-size: 12px; font-weight: bold; border: 1px solid #10b98120;">${promoCode} Applied</span>` : ''}
+                       </div>
+                    </div>
+                  </div>
+
+                  <div style="text-align: center; margin-top: 32px;">
+                    <p style="color: #64748b; font-size: 14px; margin-bottom: 24px;">${lang === 'GE' ? 'გმადლობთ Luca\'s AutoSpa-ს არჩევისთვის!' : 'Thank you for choosing Luca\'s AutoSpa!'}</p>
+                    <div style="font-size: 12px; color: #94a3b8;">
+                      © 2024 Luca's AutoSpa. ${lang === 'GE' ? 'ყველა უფლება დაცულია.' : 'All rights reserved.'}
+                    </div>
+                  </div>
+                </div>
+              `;
+              await resend.emails.send({
+                from: `Luca's AutoSpa <${pricing.resendSenderEmail || 'onboarding@resend.dev'}>`,
+                to: customerEmail,
+                subject: lang === 'GE' ? 'ჯავშნის დადასტურება - Luca\'s AutoSpa' : 'Booking Confirmation - Luca\'s AutoSpa',
+                text: customerMessage,
+                html: html
+              });
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Failed to process notifications', e);
+      }
+    }
 
     res.json({ success: true });
   } catch (error: any) {
-    console.error('Send email error:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-app.post('/api/notify-booking', async (req, res) => {
+app.post('/api/finish-booking-notification', async (req, res) => {
   try {
-    const { bookingData, price, bookingId, promoCode } = req.body;
-    const serviceName = bookingData.service === 'Premium' ? 'პრემიუმ დითეილინგი' : 'სტანდარტული წმენდა';
+    const { bookingId, lang } = req.body;
+    if (!db) throw new Error('Database not initialized');
+
+    const bookingSnap = await db.collection('bookings').doc(bookingId).get();
+    if (!bookingSnap.exists) throw new Error('Booking not found');
+    const booking = bookingSnap.data() || {};
+
+    const pricingSnap = await db.collection('settings').doc('pricing').get();
+    const pricing = pricingSnap.exists ? pricingSnap.data() : {};
     
-    // Add the system secret to the booking so it's visible to the calendar feed
-    if (bookingId && db) {
-      try {
-        await updateDoc(doc(db, 'bookings', bookingId), {
-          calendarSecret: CALENDAR_SECRET
+    const reviewLink = pricing?.reviewLink || 'https://g.page/r/YOUR_REVIEW_LINK';
+    const method = booking.verificationMethod || 'whatsapp';
+    
+    const messageText = lang === 'GE'
+      ? `🙏 გმადლობთ, რომ ისარგებლეთ ჩვენი სერვისით! იმედია კმაყოფილი დარჩით.\n\nგთხოვთ, დაგვიტოვოთ შეფასება Google-ზე: ${reviewLink}`
+      : `🙏 Thank you for using our service! We hope you're satisfied.\n\nPlease leave us a review on Google: ${reviewLink}`;
+
+    if (method === 'whatsapp' && booking.phone) {
+      await sendMultiChannelHelper(pricing, booking.phone, messageText, 'whatsapp');
+    } else if (method === 'email' && booking.customerEmail) {
+      if (pricing?.resendApiKey) {
+        const resend = new Resend(pricing.resendApiKey);
+        const html = `
+          <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; text-align: center; border: 1px solid #f1f5f9; border-radius: 24px; background-color: #ffffff;">
+            <div style="padding: 24px 0;">
+              <h1 style="color: #4f46e5; margin: 0; font-size: 28px; font-weight: 900;">Luca's AutoSpa</h1>
+              <p style="color: #64748b; margin-top: 8px; font-size: 16px; font-weight: 500;">${lang === 'GE' ? 'მომსახურება დასრულებულია!' : 'Service Completed!'}</p>
+            </div>
+
+            <div style="background-color: #f8fafc; padding: 40px 20px; border-radius: 20px; border: 1px solid #e2e8f0; margin: 20px 0;">
+              <div style="font-size: 48px; margin-bottom: 20px;">✨</div>
+              <h2 style="color: #1e293b; margin-bottom: 12px; font-size: 22px;">${lang === 'GE' ? 'გმადლობთ ნდობისთვის!' : 'Thanks for your trust!'}</h2>
+              <p style="color: #64748b; line-height: 1.6; margin-bottom: 32px;">
+                ${lang === 'GE' 
+                  ? 'გვიხარია, რომ Luca\'s AutoSpa აირჩიეთ. თქვენი აზრი ჩვენთვის ძალიან მნიშვნელოვანია.' 
+                  : 'We\'re glad you chose Luca\'s AutoSpa. Your feedback helps us improve our service.'}
+              </p>
+              
+              <a href="${reviewLink}" style="display: inline-block; background-color: #4f46e5; color: #ffffff; padding: 16px 32px; text-decoration: none; border-radius: 16px; font-weight: bold; font-size: 16px; box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);">
+                ${lang === 'GE' ? 'დაგვიწერეთ შეფასება Google-ზე' : 'Rate us on Google'}
+              </a>
+            </div>
+
+            <div style="text-align: center; margin-top: 32px;">
+              <p style="color: #64748b; font-size: 14px;">${lang === 'GE' ? 'კიდევ გელოდებით!' : 'See you next time!'}</p>
+              <div style="font-size: 12px; color: #94a3b8; margin-top: 24px;">
+                © 2024 Luca's AutoSpa. ${lang === 'GE' ? 'ყველა უფლება დაცულია.' : 'All rights reserved.'}
+              </div>
+            </div>
+          </div>
+        `;
+        await resend.emails.send({
+          from: `Luca's AutoSpa <${pricing.resendSenderEmail || 'onboarding@resend.dev'}>`,
+          to: booking.customerEmail,
+          subject: lang === 'GE' ? 'როგორ მოგეწონათ ჩვენი მომსახურება? - Luca\'s AutoSpa' : 'How was your experience? - Luca\'s AutoSpa',
+          text: messageText,
+          html: html
         });
-      } catch (e) {
-        console.error('Failed to add calendar secret to booking', e);
-      }
-    }
-    
-    // Send WhatsApp Notification to Admin
-    if (db) {
-      try {
-        const pricingSnap = await getDoc(doc(db, 'settings', 'pricing'));
-        if (pricingSnap.exists()) {
-          const pricing = pricingSnap.data();
-          if (pricing.isWhatsappEnabled && pricing.whatsappNumber && pricing.whatsappApiKey) {
-            const promoInfo = promoCode ? `\n🎟 პრომო: ${promoCode}` : '';
-            const carInfo = bookingData.carModel ? `\n🚗 მანქანა: ${bookingData.carModel}` : '';
-            const contactInfo = bookingData.phone ? `📞 ტელ: ${bookingData.phone}` : `📧 Email: ${bookingData.email}`;
-            const message = `🚗 *ახალი ჯავშანი!* \n\n👤 კლიენტი: ${bookingData.customerName}${carInfo}\n${contactInfo}\n🛠 სერვისი: ${serviceName}\n📅 თარიღი: ${bookingData.date}\n⏰ დრო: ${bookingData.timeSlot}\n📍 მისამართი: ${bookingData.location}\n💰 ფასი: ${price}₾${promoInfo}`;
-            
-            const whatsappUrl = `https://api.callmebot.com/whatsapp.php?phone=${pricing.whatsappNumber.replace('+', '')}&text=${encodeURIComponent(message)}&apikey=${pricing.whatsappApiKey}`;
-            
-            await fetch(whatsappUrl);
-            console.log('WhatsApp notification sent');
-          }
-        }
-      } catch (e) {
-        console.error('Failed to send WhatsApp notification', e);
       }
     }
 
     res.json({ success: true });
   } catch (error: any) {
+    console.error('Finish notification error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -274,15 +351,13 @@ app.get('/api/calendar.ics', async (req, res) => {
   try {
     if (!db) return res.status(500).json({ error: 'Database not initialized' });
 
-    // Fetch all pending and completed bookings using the system secret to bypass admin rules
-    const bookingsQuery = query(
-      collection(db, 'bookings'),
-      where('status', 'in', ['pending', 'completed']),
-      where('calendarSecret', '==', CALENDAR_SECRET),
-      orderBy('date', 'desc'),
-      limit(1000)
-    );
-    const bookingsSnap = await getDocs(bookingsQuery);
+    // Fetch all pending and completed bookings
+    const bookingsSnap = await db.collection('bookings')
+      .where('status', 'in', ['pending', 'completed'])
+      .where('calendarSecret', '==', CALENDAR_SECRET)
+      .orderBy('date', 'desc')
+      .limit(1000)
+      .get();
     
     const events: ics.EventAttributes[] = bookingsSnap.docs.map(doc => {
       const data = doc.data();
@@ -329,64 +404,65 @@ app.get('/api/calendar.ics', async (req, res) => {
   }
 });
 
-const sendMultiChannelHelper = async (pricing: any, phone: string, message: string, method: string) => {
-  const provider = pricing.smsProvider || 'smsto'; // Default to international SMS.to
+const sendMultiChannelHelper = async (pricing: any, phone: string, message: string, method: 'whatsapp' | 'sms') => {
   const senderId = pricing.smsSender || 'AutoSpa';
 
-  if (method === 'email') return { ok: true }; // Handled separately
+  // Normalize phone number - ensure it has the 995 prefix if it's a Georgian number
+  let normalizedPhone = phone.replace(/\D/g, ''); // Remove all non-digits
+  if (normalizedPhone.length === 9 && (normalizedPhone.startsWith('5') || normalizedPhone.startsWith('7'))) {
+    normalizedPhone = `995${normalizedPhone}`;
+  } else if (!normalizedPhone.startsWith('995') && normalizedPhone.length === 9) {
+     // Fallback for other georgian mobile formats if any
+     normalizedPhone = `995${normalizedPhone}`;
+  }
 
   if (method === 'whatsapp') {
-    // Priority 1: SMS.to (International)
-    if (provider === 'smsto' && pricing.smsApiKey) {
-      return fetch(`https://api.sms.to/whatsapp/send`, {
+    // WASender (wasenderapi.com)
+    if (pricing.waSenderApiKey) {
+      const payload: any = { 
+        to: normalizedPhone, 
+        text: message 
+      };
+      if (pricing.waSenderInstanceId) {
+        payload.instance_id = pricing.waSenderInstanceId;
+      }
+
+      return fetch(`https://www.wasenderapi.com/api/send-message`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${pricing.smsApiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message, to: phone, sender_id: senderId })
+        headers: { 
+          'Authorization': `Bearer ${pricing.waSenderApiKey}`, 
+          'Content-Type': 'application/json' 
+        },
+        body: JSON.stringify(payload)
       });
     }
 
-    // Priority 2: Twilio
-    if (provider === 'twilio' && pricing.twilioSid && pricing.twilioToken) {
-       const auth = Buffer.from(`${pricing.twilioSid}:${pricing.twilioToken}`).toString('base64');
-       const params = new URLSearchParams();
-       params.append('To', `whatsapp:${phone}`);
-       params.append('From', `whatsapp:${pricing.twilioFrom}`);
-       params.append('Body', message);
-       return fetch(`https://api.twilio.com/2010-04-01/Accounts/${pricing.twilioSid}/Messages.json`, {
-         method: 'POST',
-         headers: { 'Authorization': `Basic ${auth}`, 'Content-Type': 'application/x-www-form-urlencoded' },
-         body: params
-       });
-    }
-  }
-
-  if (method === 'viber') {
-    // SMS.to implementation for Viber
-    if (provider === 'smsto' && pricing.smsApiKey) {
-       return fetch(`https://api.sms.to/viber/send`, {
-         method: 'POST',
-         headers: { 'Authorization': `Bearer ${pricing.smsApiKey}`, 'Content-Type': 'application/json' },
-         body: JSON.stringify({ message, to: phone, sender_id: senderId })
-       });
+    // CallMeBot (Fallback)
+    if (pricing.whatsappApiKey) {
+      const whatsappUrl = `https://api.callmebot.com/whatsapp.php?phone=${normalizedPhone}&text=${encodeURIComponent(message)}&apikey=${pricing.whatsappApiKey}`;
+      return fetch(whatsappUrl);
     }
     
-    // Vonage
-    if (provider === 'vonage' && pricing.vonageApiKey && pricing.vonageApiSecret) {
-       // Vonage Messages API for Viber
-       const auth = Buffer.from(`${pricing.vonageApiKey}:${pricing.vonageApiSecret}`).toString('base64');
-       return fetch(`https://api.nexmo.com/v1/messages`, {
-         method: 'POST',
-         headers: { 'Authorization': `Basic ${auth}`, 'Content-Type': 'application/json' },
-         body: JSON.stringify({
-           from: { type: 'viber', number: senderId },
-           to: { type: 'viber', number: phone.replace('+', '') },
-           message: { content: { type: 'text', text: message } }
-         })
-       });
+    // SMS.to (WhatsApp)
+    if (pricing.smsApiKey) {
+      return fetch(`https://api.sms.to/whatsapp/send`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${pricing.smsApiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message, to: normalizedPhone, sender_id: senderId })
+      });
     }
   }
 
-  throw new Error('No international provider configured for this method (Viber/WhatsApp)');
+  // Fallback to SMS if method is sms or everything else fails
+  if (pricing.smsApiKey) {
+    return fetch(`https://api.sms.to/sms/send`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${pricing.smsApiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message, to: normalizedPhone, sender_id: senderId })
+    });
+  }
+
+  return { ok: false, status: 400, text: async () => 'No provider configured' } as any;
 };
 
 // SPA Fallback

@@ -368,7 +368,9 @@ interface PricingSettings {
   isWhatsappVerificationEnabled?: boolean;
   isViberVerificationEnabled?: boolean;
   isEmailVerificationEnabled?: boolean;
-  smsProvider?: 'twilio' | 'smsto' | 'vonage';
+  smsProvider?: 'twilio' | 'smsto' | 'vonage' | 'wasender';
+  waSenderApiKey?: string;
+  waSenderInstanceId?: string;
   twilioSid?: string;
   twilioToken?: string;
   twilioFrom?: string;
@@ -1357,9 +1359,10 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
   const [appliedPromo, setAppliedPromo] = useState<PromoCode | null>(null);
   const [promoError, setPromoError] = useState<string | null>(null);
   const [isApplyingPromo, setIsApplyingPromo] = useState(false);
-  const [sessionVerificationMethod, setSessionVerificationMethod] = useState<'whatsapp' | 'viber' | 'email' | null>(null);
+  const [emailPopup, setEmailPopup] = useState(false);
+  const [sessionVerificationMethod, setSessionVerificationMethod] = useState<'whatsapp' | 'email' | null>(null);
   
-  const currentMethod = sessionVerificationMethod || (pricing.isEmailVerificationEnabled ? 'email' : pricing.isViberVerificationEnabled ? 'viber' : 'whatsapp');
+  const currentMethod = sessionVerificationMethod || 'whatsapp';
 
   useEffect(() => {
     return () => {
@@ -1489,19 +1492,20 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
     }
   };
 
-  const sendVerificationCode = async (method?: string) => {
+  const sendVerificationCode = async (method: 'whatsapp' | 'email', emailOverride?: string) => {
     setIsSendingCode(true);
     setFormError(null);
     try {
-      const activeMethod = method || currentMethod;
-      setSessionVerificationMethod(activeMethod as any);
+      setSessionVerificationMethod(method);
+      const targetEmail = emailOverride || bookingData.email;
 
-      if (activeMethod === 'email') {
+      if (method === 'email') {
+        if (!targetEmail) throw new Error('Email is required');
         const response = await fetch('/api/send-otp', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
-            email: bookingData.email,
+            email: targetEmail,
             lang,
             method: 'email'
           })
@@ -1513,7 +1517,9 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
         }
         
         setShowVerification(true);
-        track('Email Verification Sent', { email: bookingData.email });
+        setEmailPopup(false);
+        setBookingData(prev => ({ ...prev, email: targetEmail }));
+        track('Email Verification Sent', { email: targetEmail });
       } else {
         let phoneNumber = bookingData.phone!;
         if (!phoneNumber.startsWith('+')) {
@@ -1527,7 +1533,7 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
           body: JSON.stringify({ 
             phone: phoneNumber,
             lang,
-            method: activeMethod
+            method: 'whatsapp'
           })
         });
         
@@ -1537,13 +1543,13 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
         }
         
         setShowVerification(true);
-        track(`${activeMethod.toUpperCase()} Verification Sent`, { phone: phoneNumber });
+        track(`WHATSAPP Verification Sent`, { phone: phoneNumber });
       }
     } catch (error: any) {
       console.error('Verification Code error:', error);
-      setFormError(lang === 'GE' 
+      setFormError(error.message || (lang === 'GE' 
         ? 'დაფიქსირდა შეცდომა. გთხოვთ სცადოთ მოგვიანებით.' 
-        : 'An error occurred. Please try again later.');
+        : 'An error occurred. Please try again later.'));
     } finally {
       setIsSendingCode(false);
     }
@@ -1563,8 +1569,8 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
       setFormError(t.errorDateTime);
       return;
     }
-    const isContactValid = currentMethod === 'email' ? !!bookingData.email : !!bookingData.phone;
-    if (!bookingData.location || !bookingData.customerName || !isContactValid) {
+    // Phone was required in step 4
+    if (!bookingData.location || !bookingData.customerName || !bookingData.phone) {
       setStep(3);
       setFormError(t.fillAllFields);
       return;
@@ -1575,7 +1581,7 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
     }
 
     if (!showVerification) {
-      await sendVerificationCode();
+      setFormError(lang === 'GE' ? 'გთხოვთ ჯერ გაიაროთ ვერიფიკაცია' : 'Please verify first');
       return;
     }
 
@@ -1616,6 +1622,8 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
           promoCode: appliedPromo?.code || null,
           discountAmount: appliedPromo ? appliedPromo.discount : 0,
           finalPrice: getPrice(bookingData.service as any),
+          verificationMethod: sessionVerificationMethod,
+          customerEmail: bookingData.email || null,
           createdAt: serverTimestamp()
         });
         
@@ -1623,7 +1631,8 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
         track('Booking Confirmed', {
           service: bookingData.service || 'Unknown',
           price: getPrice(bookingData.service as any),
-          promoCode: appliedPromo?.code || null
+          promoCode: appliedPromo?.code || null,
+          method: sessionVerificationMethod
         });
         
         // Also mark slot as taken in public collection
@@ -1639,31 +1648,20 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
-              bookingData,
+              bookingData: {
+                ...bookingData,
+                verificationMethod: sessionVerificationMethod,
+                customerEmail: bookingData.email || null
+              },
               price: getPrice(bookingData.service as 'Basic' | 'Premium'),
               bookingId: bookingRef.id,
-              promoCode: appliedPromo?.code || null
+              promoCode: appliedPromo?.code || null,
+              customerMethod: sessionVerificationMethod,
+              customerEmail: bookingData.email || null
             })
           });
         } catch (e) {
           console.error('Failed to send notification', e);
-        }
-
-        // Send Confirmation to Customer
-        const msg = lang === 'GE' 
-          ? `Luca's AutoSpa: თქვენი ჯავშანი დადასტურებულია! 📅 ${bookingData.date} | ⏰ ${bookingData.timeSlot}. მადლობა ნდობისთვის!`
-          : `Luca's AutoSpa: Your booking is confirmed! 📅 ${bookingData.date} | ⏰ ${bookingData.timeSlot}. Thank you!`;
-        
-        if (currentMethod === 'email' && bookingData.email) {
-          try {
-            await fetch('/api/send-email', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ email: bookingData.email, subject: 'ჯავშნის დადასტურება - Luca\'s AutoSpa', message: msg })
-            });
-          } catch (e) {
-            console.error('Failed to send Email confirmation', e);
-          }
         }
 
         setIsSuccess(true);
@@ -2134,33 +2132,23 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] ml-2">
-                      {currentMethod === 'email' ? 'Email' : t.phone}
+                      {t.phone}
                     </label>
-                    {currentMethod === 'email' ? (
-                      <input 
-                        type="email" 
-                        placeholder="your@email.com"
-                        className="w-full bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-2xl p-4 focus:border-blue-400 outline-none transition-all text-white text-base shadow-inner"
-                        value={bookingData.email || ''}
-                        onChange={(e) => setBookingData({ ...bookingData, email: e.target.value })}
-                      />
-                    ) : (
-                      <div className="relative flex items-center bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden focus-within:border-blue-400 transition-all shadow-inner">
-                        <div className="pl-6 pr-4 py-4 text-slate-500 font-bold text-base border-r border-white/10 bg-white/5">
-                          +995
-                        </div>
-                        <input 
-                          type="tel" 
-                          placeholder="5..."
-                          className="flex-1 bg-transparent p-4 outline-none text-white text-base"
-                          value={bookingData.phone || ''}
-                          onChange={(e) => {
-                            const val = e.target.value.replace(/\D/g, '');
-                            setBookingData({ ...bookingData, phone: val });
-                          }}
-                        />
+                    <div className="relative flex items-center bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden focus-within:border-blue-400 transition-all shadow-inner">
+                      <div className="pl-6 pr-4 py-4 text-slate-500 font-bold text-base border-r border-white/10 bg-white/5">
+                        +995
                       </div>
-                    )}
+                      <input 
+                        type="tel" 
+                        placeholder="5..."
+                        className="flex-1 bg-transparent p-4 outline-none text-white text-base"
+                        value={bookingData.phone || ''}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/\D/g, '');
+                          setBookingData({ ...bookingData, phone: val });
+                        }}
+                      />
+                    </div>
                   </div>
 
                   {/* Promo Code Input (Optional) - Moved from Step 1 to Step 4 */}
@@ -2236,8 +2224,7 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                   </Button>
                   <Button 
                     onClick={() => {
-                      const isContactValid = currentMethod === 'email' ? !!bookingData.email : !!bookingData.phone;
-                      if (bookingData.customerName && bookingData.carModel && isContactValid) {
+                      if (bookingData.customerName && bookingData.carModel && bookingData.phone) {
                         setStep(5);
                         setFormError(null);
                       } else {
@@ -2314,50 +2301,41 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                     <div>
                       <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t.name} & {t.carModel}</p>
                       <p className="text-white font-medium">{bookingData.customerName} - <span className="text-blue-400">{bookingData.carModel}</span></p>
-                      <p className="text-slate-400 text-xs">
-                        {currentMethod === 'email' ? bookingData.email : bookingData.phone}
-                      </p>
+                      <p className="text-slate-400 text-xs text-mono">+995 {bookingData.phone}</p>
+                      {bookingData.email && (
+                        <p className="text-slate-500 text-[10px] italic">{bookingData.email}</p>
+                      )}
                     </div>
                   </div>
                 </div>
 
-                {/* Verification Selection or Code Entry */}
+                {/* Verification Buttons */}
                 {!showVerification ? (
                   <div className="space-y-4">
                     <p className="text-[10px] text-slate-500 text-center uppercase tracking-widest font-black">
-                      {t.chooseVerificationMethod}
+                      {lang === 'GE' ? 'აირჩიეთ დადასტურების მეთოდი' : 'Choose Verification Method'}
                     </p>
-                    <div className="grid grid-cols-1 gap-2">
-                       {pricing.isWhatsappVerificationEnabled && (
-                        <Button 
-                          onClick={() => sendVerificationCode('whatsapp')}
-                          disabled={isSendingCode}
-                          className="w-full py-4 rounded-2xl bg-green-500/10 hover:bg-green-500/20 border border-green-500/20 text-green-400 text-xs font-black uppercase tracking-widest flex items-center justify-center gap-3 transition-all"
-                        >
-                          <MessageCircle className="w-4 h-4" />
-                          {t.whatsapp}
-                        </Button>
-                      )}
-                      {pricing.isViberVerificationEnabled && (
-                        <Button 
-                          onClick={() => sendVerificationCode('viber')}
-                          disabled={isSendingCode}
-                          className="w-full py-4 rounded-2xl bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-purple-400 text-xs font-black uppercase tracking-widest flex items-center justify-center gap-3 transition-all"
-                        >
-                          <Smartphone className="w-4 h-4" />
-                          {t.viber}
-                        </Button>
-                      )}
-                      {pricing.isEmailVerificationEnabled && (
-                        <Button 
-                          onClick={() => sendVerificationCode('email')}
-                          disabled={isSendingCode}
-                          className="w-full py-4 rounded-2xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 text-indigo-400 text-xs font-black uppercase tracking-widest flex items-center justify-center gap-3 transition-all"
-                        >
-                          <Mail className="w-4 h-4" />
-                          {t.email}
-                        </Button>
-                      )}
+                    <div className="grid grid-cols-2 gap-3">
+                      <Button 
+                        onClick={() => sendVerificationCode('whatsapp')}
+                        disabled={isSendingCode}
+                        className="py-6 rounded-3xl bg-green-500/10 hover:bg-green-500/20 border border-green-500/20 text-green-400 text-[10px] font-black uppercase tracking-widest flex flex-col items-center justify-center gap-2 transition-all h-auto group"
+                      >
+                        <div className="p-3 bg-green-500/10 rounded-2xl group-hover:scale-110 transition-transform">
+                          <MessageCircle className="w-6 h-6" />
+                        </div>
+                        {lang === 'GE' ? 'WhatsApp-ით' : 'via WhatsApp'}
+                      </Button>
+                      <Button 
+                        onClick={() => setEmailPopup(true)}
+                        disabled={isSendingCode}
+                        className="py-6 rounded-3xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 text-indigo-400 text-[10px] font-black uppercase tracking-widest flex flex-col items-center justify-center gap-2 transition-all h-auto group"
+                      >
+                        <div className="p-3 bg-indigo-500/10 rounded-2xl group-hover:scale-110 transition-transform">
+                          <Mail className="w-6 h-6" />
+                        </div>
+                        {lang === 'GE' ? 'Email-ით' : 'via Email'}
+                      </Button>
                     </div>
                   </div>
                 ) : (
@@ -2687,6 +2665,84 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                 >
                   {t.cancel}
                 </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Email Input Popup */}
+      <AnimatePresence>
+        {emailPopup && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setEmailPopup(false)}
+              className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-md bg-slate-900 border border-indigo-500/20 rounded-[2.5rem] shadow-2xl overflow-hidden shadow-indigo-500/10"
+            >
+              <div className="p-8 space-y-6">
+                <div className="w-16 h-16 bg-indigo-500/10 text-indigo-400 rounded-2xl flex items-center justify-center mx-auto scale-110">
+                  <Mail className="w-8 h-8" />
+                </div>
+                
+                <div className="text-center space-y-2">
+                  <h3 className="text-2xl font-black text-white tracking-tight">
+                    {lang === 'GE' ? 'შეიყვანეთ ელ-ფოსტა' : 'Enter Email Address'}
+                  </h3>
+                  <p className="text-slate-400 text-sm font-medium">
+                    {lang === 'GE' ? 'დადასტურების კოდი გაიგზავნება მითითებულ ელ-ფოსტაზე' : 'A verification code will be sent to your email'}
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <input 
+                      type="email" 
+                      placeholder="your@email.com"
+                      autoFocus
+                      className="w-full bg-slate-950/40 border border-white/10 rounded-2xl p-5 focus:border-indigo-400 outline-none transition-all text-white text-lg shadow-inner text-center"
+                      value={bookingData.email || ''}
+                      onChange={(e) => setBookingData({ ...bookingData, email: e.target.value })}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && bookingData.email) {
+                          sendVerificationCode('email');
+                        }
+                      }}
+                    />
+                  </div>
+
+                  <div className="flex gap-3">
+                    <Button 
+                      onClick={() => setEmailPopup(false)}
+                      variant="ghost"
+                      className="flex-1 py-4 rounded-2xl border border-white/5 font-bold text-slate-400"
+                    >
+                      {lang === 'GE' ? 'გაუქმება' : 'Cancel'}
+                    </Button>
+                    <Button 
+                      onClick={() => sendVerificationCode('email')}
+                      disabled={isSendingCode || !bookingData.email}
+                      className="flex-[2] py-4 rounded-2xl bg-indigo-600 hover:bg-indigo-700 font-black text-white shadow-xl shadow-indigo-600/20 flex gap-2 items-center justify-center"
+                    >
+                      {isSendingCode ? (
+                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      ) : (
+                        <>
+                          <span>{lang === 'GE' ? 'კოდის გაგზავნა' : 'Send Code'}</span>
+                          <ChevronRight className="w-5 h-5" />
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
               </div>
             </motion.div>
           </div>
@@ -3461,61 +3517,20 @@ function PricingManager({ pricing, onBack }: { pricing: PricingSettings, onBack:
           </div>
         </Card>
 
-        {/* Verification Settings */}
+        {/* Communication Settings */}
         <Card className="bg-slate-900 border-slate-800 p-6 space-y-6 md:col-span-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-indigo-600/10 text-indigo-500 rounded-xl flex items-center justify-center">
-                <ShieldCheck className="w-5 h-5" />
-              </div>
-              <h3 className="text-xl font-bold text-white">ვერიფიკაციის მეთოდი</h3>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-indigo-600/10 text-indigo-500 rounded-xl flex items-center justify-center">
+              <Smartphone className="w-5 h-5" />
             </div>
-            <div className="flex p-1 bg-slate-950 rounded-xl border border-white/5">
-              <button 
-                onClick={() => setLocalPricing({ ...localPricing, verificationMethod: 'sms' })}
-                className={cn(
-                  "px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2",
-                  localPricing.verificationMethod === 'sms' ? "bg-indigo-600 text-white shadow-lg" : "text-slate-500 hover:text-slate-300"
-                )}
-              >
-                <ChevronDown className="w-3 h-3" /> MULTI-CHOICE
-              </button>
-            </div>
+            <h3 className="text-xl font-bold text-white">კომუნიკაცია და ვერიფიკაცია</h3>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-slate-950/50 rounded-2xl border border-white/5">
-            {[
-              { id: 'isEmailVerificationEnabled', label: 'Email', icon: Mail, color: 'text-indigo-400' },
-              { id: 'isWhatsappVerificationEnabled', label: 'WhatsApp', icon: MessageCircle, color: 'text-green-400' },
-              { id: 'isViberVerificationEnabled', label: 'Viber', icon: Smartphone, color: 'text-purple-400' },
-              { id: 'isSmsEnabled', label: 'SMS', icon: Smartphone, color: 'text-blue-400' },
-            ].map((m) => (
-              <button
-                key={m.id}
-                onClick={() => setLocalPricing({ ...localPricing, [m.id]: !localPricing[m.id as keyof PricingSettings] })}
-                className={cn(
-                  "p-4 rounded-xl border transition-all flex flex-col items-center gap-3",
-                  localPricing[m.id as keyof PricingSettings] 
-                    ? "bg-slate-900 border-white/20 shadow-lg" 
-                    : "bg-slate-950 border-white/5 opacity-50 grayscale"
-                )}
-              >
-                <m.icon className={cn("w-6 h-6", m.color)} />
-                <span className="text-[10px] font-black uppercase tracking-widest text-white">{m.label}</span>
-                <div className={cn(
-                  "w-2 h-2 rounded-full",
-                  localPricing[m.id as keyof PricingSettings] ? "bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]" : "bg-slate-700"
-                )} />
-              </button>
-            ))}
-          </div>
-
-          {localPricing.isEmailVerificationEnabled && (
-            <motion.div 
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-white/5"
-            >
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-slate-950/50 rounded-2xl border border-white/5">
+            <div className="space-y-4">
+              <h4 className="text-sm font-bold text-slate-400 uppercase flex items-center gap-2">
+                <Mail className="w-4 h-4" /> Email Settings (Resend.com)
+              </h4>
               <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Resend API Key</label>
                 <input 
@@ -3523,7 +3538,7 @@ function PricingManager({ pricing, onBack }: { pricing: PricingSettings, onBack:
                   value={localPricing.resendApiKey || ''}
                   onChange={(e) => setLocalPricing({ ...localPricing, resendApiKey: e.target.value })}
                   placeholder="re_..."
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-indigo-600 transition-all"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-indigo-600 transition-all font-mono text-sm"
                 />
               </div>
               <div className="space-y-2">
@@ -3533,141 +3548,123 @@ function PricingManager({ pricing, onBack }: { pricing: PricingSettings, onBack:
                   value={localPricing.resendSenderEmail || ''}
                   onChange={(e) => setLocalPricing({ ...localPricing, resendSenderEmail: e.target.value })}
                   placeholder="onboarding@resend.dev"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-indigo-600 transition-all"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-indigo-600 transition-all font-mono text-sm"
                 />
               </div>
-            </motion.div>
-          )}
+            </div>
+
+            <div className="space-y-4 pt-6 md:pt-0 border-t md:border-t-0 md:border-l border-white/5 md:pl-6">
+              <h4 className="text-sm font-bold text-slate-400 uppercase flex items-center gap-2">
+                <MessageCircle className="w-4 h-4" /> WhatsApp Settings
+              </h4>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Admin Notification Number</label>
+                <input 
+                  type="text"
+                  value={localPricing.whatsappNumber || ''}
+                  onChange={(e) => setLocalPricing({ ...localPricing, whatsappNumber: e.target.value })}
+                  placeholder="+995..."
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-green-600 transition-all font-mono text-sm"
+                />
+              </div>
+              <div className="flex items-center gap-2 p-3 bg-slate-900 rounded-xl border border-slate-800">
+                <input 
+                  type="checkbox"
+                  checked={localPricing.isWhatsappEnabled || false}
+                  onChange={(e) => setLocalPricing({ ...localPricing, isWhatsappEnabled: e.target.checked })}
+                  className="w-4 h-4 rounded border-slate-800 bg-slate-950 text-green-600 focus:ring-green-600"
+                />
+                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Admin Alerts (WhatsApp)</span>
+              </div>
+            </div>
+          </div>
         </Card>
 
-        {/* Viber & WhatsApp Providers */}
+        {/* Messaging Providers */}
         <Card className="bg-slate-900 border-slate-800 p-6 space-y-6 md:col-span-2">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-purple-600/10 text-purple-500 rounded-xl flex items-center justify-center">
-              <Smartphone className="w-5 h-5" />
+              <Zap className="w-5 h-5" />
             </div>
-            <h3 className="text-xl font-bold text-white">Viber & WhatsApp პროვაიდერები (ვერიფიკაციისთვის)</h3>
+            <h3 className="text-xl font-bold text-white">პროვაიდერები</h3>
           </div>
 
-          {(localPricing.isViberVerificationEnabled || localPricing.isWhatsappVerificationEnabled) ? (
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">აირჩიეთ პროვაიდერი</label>
-                <div className="flex p-1 bg-slate-950 rounded-xl border border-white/5 overflow-x-auto no-scrollbar">
-                  {(['smsto', 'vonage', 'twilio'] as const).map((prov) => (
-                    <button 
-                      key={prov}
-                      onClick={() => setLocalPricing({ ...localPricing, smsProvider: prov })}
-                      className={cn(
-                        "px-4 py-2 rounded-lg text-[10px] font-bold transition-all uppercase whitespace-nowrap",
-                        localPricing.smsProvider === prov ? "bg-purple-600 text-white shadow-lg" : "text-slate-500 hover:text-slate-300"
-                      )}
-                    >
-                      {prov === 'smsto' ? 'SMS.to' : prov}
-                    </button>
-                  ))}
-                </div>
-                <p className="text-[10px] text-slate-500 mt-1 ml-1 italic opacity-75">
-                  * SMS.to რეკომენდებულია საერთაშორისო Viber/WhatsApp-ისთვის რეგისტრაციის გარეშე.
-                </p>
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">WhatsApp პროვაიდერი</label>
+              <select 
+                value={localPricing.smsProvider || 'smsto'}
+                onChange={(e) => setLocalPricing({ ...localPricing, smsProvider: e.target.value as any })}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-purple-600 transition-all appearance-none"
+              >
+                <option value="wasender">WASender (Recommended)</option>
+                <option value="smsto">SMS.to</option>
+                <option value="twilio">Twilio</option>
+              </select>
+            </div>
 
-              {localPricing.smsProvider === 'twilio' ? (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Account SID</label>
-                    <input 
-                      type="text"
-                      value={localPricing.twilioSid || ''}
-                      onChange={(e) => setLocalPricing({ ...localPricing, twilioSid: e.target.value })}
-                      placeholder="AC..."
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-purple-600 transition-all font-mono text-sm"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Auth Token</label>
-                    <input 
-                      type="password"
-                      value={localPricing.twilioToken || ''}
-                      onChange={(e) => setLocalPricing({ ...localPricing, twilioToken: e.target.value })}
-                      placeholder="Token"
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-purple-600 transition-all font-mono text-sm"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Twilio Number (WhatsApp)</label>
-                    <input 
-                      type="text"
-                      value={localPricing.twilioFrom || ''}
-                      onChange={(e) => setLocalPricing({ ...localPricing, twilioFrom: e.target.value })}
-                      placeholder="+1..."
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-purple-600 transition-all"
-                    />
-                  </div>
+            {localPricing.smsProvider === 'wasender' ? (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">WASender API Key</label>
+                  <input 
+                    type="password"
+                    value={localPricing.waSenderApiKey || ''}
+                    onChange={(e) => setLocalPricing({ ...localPricing, waSenderApiKey: e.target.value })}
+                    placeholder="API Key"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-purple-600 transition-all font-mono text-sm"
+                  />
                 </div>
-              ) : localPricing.smsProvider === 'vonage' ? (
-                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Vonage Key</label>
-                    <input 
-                      type="text"
-                      value={localPricing.vonageApiKey || ''}
-                      onChange={(e) => setLocalPricing({ ...localPricing, vonageApiKey: e.target.value })}
-                      placeholder="Key"
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-purple-600 transition-all font-mono text-sm"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Vonage Secret</label>
-                    <input 
-                      type="password"
-                      value={localPricing.vonageApiSecret || ''}
-                      onChange={(e) => setLocalPricing({ ...localPricing, vonageApiSecret: e.target.value })}
-                      placeholder="Secret"
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-purple-600 transition-all font-mono text-sm"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Sender ID (Viber)</label>
-                    <input 
-                      type="text"
-                      value={localPricing.smsSender || 'AutoSpa'}
-                      onChange={(e) => setLocalPricing({ ...localPricing, smsSender: e.target.value })}
-                      placeholder="AutoSpa"
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-purple-600 transition-all"
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Instance ID (Optional)</label>
+                  <input 
+                    type="text"
+                    value={localPricing.waSenderInstanceId || ''}
+                    onChange={(e) => setLocalPricing({ ...localPricing, waSenderInstanceId: e.target.value })}
+                    placeholder="Instance ID"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-purple-600 transition-all font-mono text-sm"
+                  />
                 </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">SMS.to API Key / Token</label>
-                    <input 
-                      type="password"
-                      value={localPricing.smsApiKey || ''}
-                      onChange={(e) => setLocalPricing({ ...localPricing, smsApiKey: e.target.value })}
-                      placeholder="API Key"
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-purple-600 transition-all font-mono text-sm"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Sender ID</label>
-                    <input 
-                      type="text"
-                      value={localPricing.smsSender || 'AutoSpa'}
-                      onChange={(e) => setLocalPricing({ ...localPricing, smsSender: e.target.value })}
-                      placeholder="AutoSpa"
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-purple-600 transition-all"
-                    />
-                  </div>
+              </div>
+            ) : localPricing.smsProvider === 'twilio' ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Account SID</label>
+                  <input 
+                    type="text"
+                    value={localPricing.twilioSid || ''}
+                    onChange={(e) => setLocalPricing({ ...localPricing, twilioSid: e.target.value })}
+                    placeholder="AC..."
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-purple-600 transition-all font-mono text-sm"
+                  />
                 </div>
-              )}
-            </div>
-          ) : (
-            <div className="p-8 text-center bg-slate-950/50 rounded-2xl border border-dashed border-slate-800">
-              <p className="text-slate-500 text-sm">პროვაიდერის პარამეტრები გამოჩნდება Viber ან WhatsApp ვერიფიკაციის ჩართვის შემდეგ.</p>
-            </div>
-          )}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Auth Token</label>
+                  <input 
+                    type="password"
+                    value={localPricing.twilioToken || ''}
+                    onChange={(e) => setLocalPricing({ ...localPricing, twilioToken: e.target.value })}
+                    placeholder="Token"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-purple-600 transition-all font-mono text-sm"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Twilio Number</label>
+                  <input 
+                    type="text"
+                    value={localPricing.twilioFrom || ''}
+                    onChange={(e) => setLocalPricing({ ...localPricing, twilioFrom: e.target.value })}
+                    placeholder="+1..."
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-purple-600 transition-all font-mono text-sm"
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 bg-slate-950 rounded-xl border border-white/5 flex items-center justify-center">
+                <p className="text-xs text-slate-500 font-mono italic">SMS.to selects API Key from General Settings if generic SMS is enabled.</p>
+              </div>
+            )}
+          </div>
         </Card>
 
         {/* Admin Notifications Card */}
@@ -3750,7 +3747,7 @@ function PricingManager({ pricing, onBack }: { pricing: PricingSettings, onBack:
             <h3 className="text-xl font-bold text-white">ვერიფიკაციის მეთოდების ჩართვა</h3>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex items-center justify-between p-3 bg-slate-950/50 rounded-xl border border-white/5">
               <div className="flex items-center gap-3">
                 <MessageCircle className="w-4 h-4 text-green-500" />
@@ -3766,24 +3763,6 @@ function PricingManager({ pricing, onBack }: { pricing: PricingSettings, onBack:
                 <div className={cn(
                   "absolute top-1 w-3 h-3 rounded-full bg-white transition-all",
                   localPricing.isWhatsappVerificationEnabled ? "left-6" : "left-1"
-                )} />
-              </button>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-slate-950/50 rounded-xl border border-white/5">
-              <div className="flex items-center gap-3">
-                <Smartphone className="w-4 h-4 text-purple-500" />
-                <span className="text-sm text-white font-bold">Viber</span>
-              </div>
-              <button 
-                onClick={() => setLocalPricing({ ...localPricing, isViberVerificationEnabled: !localPricing.isViberVerificationEnabled })}
-                className={cn(
-                  "w-10 h-5 rounded-full transition-all relative",
-                  localPricing.isViberVerificationEnabled ? "bg-purple-600" : "bg-slate-800"
-                )}
-              >
-                <div className={cn(
-                  "absolute top-1 w-3 h-3 rounded-full bg-white transition-all",
-                  localPricing.isViberVerificationEnabled ? "left-6" : "left-1"
                 )} />
               </button>
             </div>

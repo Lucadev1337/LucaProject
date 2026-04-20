@@ -1337,7 +1337,6 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
   const [verificationError, setVerificationError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [isCaptchaVerified, setIsCaptchaVerified] = useState(false);
-  const [recaptchaSize, setRecaptchaSize] = useState<'invisible' | 'normal'>('normal');
   const [expandedService, setExpandedService] = useState<string | 'all' | null>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [showTermsPopup, setShowTermsPopup] = useState(false);
@@ -1561,16 +1560,11 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
           phoneNumber = `+995${cleanPhone}`;
         }
         
-        // Use the pre-warmed verifier to avoid "reCAPTCHA has already been rendered" error
-        let appVerifier = window.recaptchaVerifier;
+        // Use the verifier initialized in useEffect
+        const appVerifier = window.recaptchaVerifier;
         
         if (!appVerifier) {
-          const container = document.getElementById('recaptcha-container');
-          if (container) container.innerHTML = '';
-          window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-            'size': recaptchaSize
-          });
-          appVerifier = window.recaptchaVerifier;
+          throw new Error('Verification system not ready. Please try again.');
         }
         
         try {
@@ -1627,6 +1621,16 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
       
       if (errorCode === 'auth/invalid-phone-number') {
         setFormError(lang === 'GE' ? 'არასწორი ტელეფონის ნომერი' : 'Invalid phone number');
+      } else if (error.message?.includes('-39')) {
+        // Force reCAPTCHA re-init if -39 occurs
+        if (window.recaptchaVerifier) {
+          try { window.recaptchaVerifier.clear(); } catch (e) {}
+          window.recaptchaVerifier = null;
+        }
+        setIsCaptchaVerified(false);
+        setFormError(lang === 'GE' 
+          ? 'დაფიქსირდა შეცდომა (კავშირის ხარვეზი). გთხოვთ ხელახლა მონიშნოთ რობოტის შემოწმება ან გამოიყენოთ Email ვერიფიკაცია.' 
+          : 'An error occurred (connection issue). Please solve the robot check again or use Email verification.');
       } else {
         setFormError(lang === 'GE' 
           ? 'დაფიქსირდა შეცდომა. გთხოვთ სცადოთ მოგვიანებით ან გამოიყენოთ Email ვერიფიკაცია.' 
@@ -1663,7 +1667,7 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
       setFormError(t.errorDateTime);
       return;
     }
-    const isContactValid = pricing.verificationMethod === 'email' ? !!bookingData.email : !!bookingData.phone;
+    const isContactValid = currentMethod === 'email' ? !!bookingData.email : !!bookingData.phone;
     if (!bookingData.location || !bookingData.customerName || !isContactValid) {
       setStep(3);
       setFormError(t.fillAllFields);
@@ -1688,7 +1692,7 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
     setVerificationError(null);
     try {
       let isVerified = false;
-      const method = pricing.verificationMethod || 'sms';
+      const method = currentMethod;
 
       if (method === 'sms') {
         if (!confirmationResult) {
@@ -1756,7 +1760,7 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
         }
 
         // Send Confirmation to Customer
-        const method = pricing.verificationMethod || 'sms';
+        const method = currentMethod;
         const msg = lang === 'GE' 
           ? `Luca's AutoSpa: თქვენი ჯავშანი დადასტურებულია! 📅 ${bookingData.date} | ⏰ ${bookingData.timeSlot}. მადლობა ნდობისთვის!`
           : `Luca's AutoSpa: Your booking is confirmed! 📅 ${bookingData.date} | ⏰ ${bookingData.timeSlot}. Thank you!`;
@@ -1788,6 +1792,16 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
       }
     } catch (error: any) {
       console.error('Verification error:', error);
+      
+      // Maximum security: Reset reCAPTCHA on any verification error
+      if (currentMethod === 'sms' && window.recaptchaVerifier) {
+        try { window.recaptchaVerifier.clear(); } catch (e) {}
+        window.recaptchaVerifier = null;
+        setIsCaptchaVerified(false);
+        setShowVerification(false); // Go back to re-solve reCAPTCHA
+        setConfirmationResult(null);
+      }
+
       if (error.code === 'auth/invalid-verification-code') {
          setVerificationError(t.invalidCode);
       } else {

@@ -118,6 +118,86 @@ app.post('/api/verify-email-code', async (req, res) => {
   }
 });
 
+app.post('/api/send-otp', async (req, res) => {
+  try {
+    const { phone, lang, method, email } = req.body;
+    if (!db) throw new Error('Database not initialized');
+
+    const pricingSnap = await getDoc(doc(db, 'settings', 'pricing'));
+    if (!pricingSnap.exists()) throw new Error('Pricing settings not found');
+    const pricing = pricingSnap.data();
+
+    // Verification Logic for different methods
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const verificationKey = method === 'email' ? email : phone;
+    
+    // Save code to Firestore (expiring in 10 mins)
+    await setDoc(doc(db, 'verification_codes', verificationKey), {
+      code,
+      expiresAt: Date.now() + 10 * 60 * 1000
+    });
+
+    const message = lang === 'GE' 
+      ? `თქვენი ვერიფიკაციის კოდია: ${code}` 
+      : `Your verification code is: ${code}`;
+
+    if (method === 'email') {
+      if (!pricing.resendApiKey) throw new Error('Email verification not configured');
+      const resend = new Resend(pricing.resendApiKey);
+      await resend.emails.send({
+        from: pricing.resendSenderEmail || 'onboarding@resend.dev',
+        to: email,
+        subject: lang === 'GE' ? 'ვერიფიკაციის კოდი' : 'Verification Code',
+        text: message,
+      });
+    } else if (method === 'viber' || method === 'whatsapp') {
+      const vResponse = await sendMultiChannelHelper(pricing, phone, message, method);
+      const vData = vResponse.ok ? {} : await (vResponse as Response).json().catch(() => ({}));
+      if (!vResponse.ok) {
+        console.error('Provider error:', vData);
+        throw new Error('Failed to reach verification provider');
+      }
+    } else {
+      throw new Error('Invalid verification method');
+    }
+
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('Send SMS OTP error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/verify-otp', async (req, res) => {
+  try {
+    const { key, code } = req.body;
+    if (!db) throw new Error('Database not initialized');
+
+    const docRef = doc(db, 'verification_codes', key);
+    const docSnap = await getDoc(docRef);
+
+    if (!docSnap.exists()) {
+      throw new Error('Verification code expired or not found');
+    }
+
+    const data = docSnap.data();
+    if (data.expiresAt < Date.now()) {
+      await deleteDoc(docRef);
+      throw new Error('Verification code expired');
+    }
+
+    if (data.code !== code) {
+      throw new Error('Invalid verification code');
+    }
+
+    // Success
+    await deleteDoc(docRef);
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
 app.post('/api/send-email', async (req, res) => {
   try {
     const { email, subject, message } = req.body;
@@ -190,33 +270,6 @@ app.post('/api/notify-booking', async (req, res) => {
   }
 });
 
-app.post('/api/send-sms', async (req, res) => {
-  try {
-    const { phone, message } = req.body;
-    
-    if (db) {
-      const pricingSnap = await getDoc(doc(db, 'settings', 'pricing'));
-      if (pricingSnap.exists()) {
-        const pricing = pricingSnap.data();
-        
-        // This is a placeholder for an SMS provider like SMSOffice.ge or Twilio
-        // If pricing.smsApiKey is set, we could trigger it here.
-        if (pricing.isSmsEnabled && pricing.smsApiKey) {
-          console.log(`Sending SMS to ${phone}: ${message}`);
-          
-          // Example for a common Georgian provider (SMSOffice)
-          // const smsUrl = `https://smsoffice.ge/api/v2/send/?key=${pricing.smsApiKey}&destination=${phone.replace('+', '')}&sender=AutoSpa&content=${encodeURIComponent(message)}`;
-          // await fetch(smsUrl);
-        }
-      }
-    }
-
-    res.json({ success: true });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
 app.get('/api/calendar.ics', async (req, res) => {
   try {
     if (!db) return res.status(500).json({ error: 'Database not initialized' });
@@ -275,6 +328,66 @@ app.get('/api/calendar.ics', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+const sendMultiChannelHelper = async (pricing: any, phone: string, message: string, method: string) => {
+  const provider = pricing.smsProvider || 'smsto'; // Default to international SMS.to
+  const senderId = pricing.smsSender || 'AutoSpa';
+
+  if (method === 'email') return { ok: true }; // Handled separately
+
+  if (method === 'whatsapp') {
+    // Priority 1: SMS.to (International)
+    if (provider === 'smsto' && pricing.smsApiKey) {
+      return fetch(`https://api.sms.to/whatsapp/send`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${pricing.smsApiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message, to: phone, sender_id: senderId })
+      });
+    }
+
+    // Priority 2: Twilio
+    if (provider === 'twilio' && pricing.twilioSid && pricing.twilioToken) {
+       const auth = Buffer.from(`${pricing.twilioSid}:${pricing.twilioToken}`).toString('base64');
+       const params = new URLSearchParams();
+       params.append('To', `whatsapp:${phone}`);
+       params.append('From', `whatsapp:${pricing.twilioFrom}`);
+       params.append('Body', message);
+       return fetch(`https://api.twilio.com/2010-04-01/Accounts/${pricing.twilioSid}/Messages.json`, {
+         method: 'POST',
+         headers: { 'Authorization': `Basic ${auth}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+         body: params
+       });
+    }
+  }
+
+  if (method === 'viber') {
+    // SMS.to implementation for Viber
+    if (provider === 'smsto' && pricing.smsApiKey) {
+       return fetch(`https://api.sms.to/viber/send`, {
+         method: 'POST',
+         headers: { 'Authorization': `Bearer ${pricing.smsApiKey}`, 'Content-Type': 'application/json' },
+         body: JSON.stringify({ message, to: phone, sender_id: senderId })
+       });
+    }
+    
+    // Vonage
+    if (provider === 'vonage' && pricing.vonageApiKey && pricing.vonageApiSecret) {
+       // Vonage Messages API for Viber
+       const auth = Buffer.from(`${pricing.vonageApiKey}:${pricing.vonageApiSecret}`).toString('base64');
+       return fetch(`https://api.nexmo.com/v1/messages`, {
+         method: 'POST',
+         headers: { 'Authorization': `Basic ${auth}`, 'Content-Type': 'application/json' },
+         body: JSON.stringify({
+           from: { type: 'viber', number: senderId },
+           to: { type: 'viber', number: phone.replace('+', '') },
+           message: { content: { type: 'text', text: message } }
+         })
+       });
+    }
+  }
+
+  throw new Error('No international provider configured for this method (Viber/WhatsApp)');
+};
 
 // SPA Fallback
 const setupSpa = async () => {

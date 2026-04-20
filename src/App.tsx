@@ -19,10 +19,7 @@ import {
   GoogleAuthProvider, 
   onAuthStateChanged, 
   signOut,
-  User,
-  RecaptchaVerifier,
-  signInWithPhoneNumber,
-  ConfirmationResult
+  User
 } from 'firebase/auth';
 import { db, auth } from './firebase';
 import { motion, AnimatePresence, useScroll, useTransform } from 'motion/react';
@@ -137,8 +134,8 @@ const translations = {
     name: "სახელი",
     phone: "ტელეფონი",
     enterCode: "შეიყვანეთ 6-ნიშნა კოდი",
-    codeSent: "კოდი გაიგზავნა თქვენს ტელეფონზე SMS-ის სახით.",
-    changeEmail: "ნომრის შეცვლა",
+    codeSent: "კოდი გამოიგზავნა თქვენს მიერ არჩეული მეთოდით.",
+    changeEmail: "მონაცემების შეცვლა",
     total: "ჯამი",
     confirmBooking: "ჯავშნის დადასტურება",
     verifyingBtn: "ვერიფიკაცია და დაჯავშნა",
@@ -151,6 +148,11 @@ const translations = {
     sendCode: "კოდის გაგზავნა",
     verification: "ვერიფიკაცია",
     sendingCode: "კოდი იგზავნება...",
+    chooseVerificationMethod: "აირჩიეთ დადასტურების მეთოდი",
+    whatsapp: "WhatsApp",
+    viber: "Viber",
+    email: "Email",
+    codeSentVia: "კოდი გამოიგზავნა: ",
     verifying: "მოწმდება...",
     processing: "მუშავდება...",
     noTimes: "ამ დღისთვის ხელმისაწვდომი დროები არ არის.",
@@ -246,8 +248,8 @@ const translations = {
     name: "Name",
     phone: "Phone",
     enterCode: "Enter 6-digit code",
-    codeSent: "Code sent to your phone via SMS.",
-    changeEmail: "Change Number",
+    codeSent: "Code has been sent via your chosen method.",
+    changeEmail: "Change Details",
     total: "Total",
     confirmBooking: "Confirm Booking",
     verifyingBtn: "Verify & Book",
@@ -260,6 +262,11 @@ const translations = {
     sendCode: "Send Code",
     verification: "Verification",
     sendingCode: "Sending code...",
+    chooseVerificationMethod: "Choose Verification Method",
+    whatsapp: "WhatsApp",
+    viber: "Viber",
+    email: "Email",
+    codeSentVia: "Code sent via: ",
     verifying: "Verifying...",
     processing: "Processing...",
     noTimes: "No available times for this day.",
@@ -358,9 +365,17 @@ interface PricingSettings {
   whatsappApiKey?: string;
   isWhatsappEnabled?: boolean;
   smsApiKey?: string;
-  isSmsEnabled?: boolean;
+  isWhatsappVerificationEnabled?: boolean;
+  isViberVerificationEnabled?: boolean;
+  isEmailVerificationEnabled?: boolean;
+  smsProvider?: 'twilio' | 'smsto' | 'vonage';
+  twilioSid?: string;
+  twilioToken?: string;
+  twilioFrom?: string;
+  vonageApiKey?: string;
+  vonageApiSecret?: string;
+  smsSender?: string;
   reviewLink?: string;
-  verificationMethod?: 'sms' | 'email';
   resendApiKey?: string;
   resendSenderEmail?: string;
 }
@@ -1329,14 +1344,12 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
   const [isSuccess, setIsSuccess] = useState(false);
   
   // Verification states
-  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
   const [userCode, setUserCode] = useState('');
   const [isSendingCode, setIsSendingCode] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [showVerification, setShowVerification] = useState(false);
   const [verificationError, setVerificationError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
-  const [isCaptchaVerified, setIsCaptchaVerified] = useState(false);
   const [expandedService, setExpandedService] = useState<string | 'all' | null>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [showTermsPopup, setShowTermsPopup] = useState(false);
@@ -1344,71 +1357,9 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
   const [appliedPromo, setAppliedPromo] = useState<PromoCode | null>(null);
   const [promoError, setPromoError] = useState<string | null>(null);
   const [isApplyingPromo, setIsApplyingPromo] = useState(false);
-  const [sessionVerificationMethod, setSessionVerificationMethod] = useState<'sms' | 'email' | null>(null);
+  const [sessionVerificationMethod, setSessionVerificationMethod] = useState<'whatsapp' | 'viber' | 'email' | null>(null);
   
-  const currentMethod = sessionVerificationMethod || pricing.verificationMethod || 'sms';
-
-  useEffect(() => {
-    // Only initialize reCAPTCHA when we are on the final step, using SMS, and not yet in verification input view
-    if (currentMethod === 'sms' && step === 5 && !showVerification) {
-      const initRecaptcha = async () => {
-        try {
-          const container = document.getElementById('recaptcha-container');
-          if (!container) return;
-
-          // Ensure full cleanup of any stale instances
-          if (window.recaptchaVerifier) {
-            try { 
-              window.recaptchaVerifier.clear(); 
-            } catch (e) {}
-            window.recaptchaVerifier = null;
-          }
-          
-          container.innerHTML = '';
-          setIsCaptchaVerified(false); // Reset on re-init
-          
-          window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-            'size': 'normal',
-            'callback': () => {
-              console.log('reCAPTCHA solved');
-              setIsCaptchaVerified(true);
-            },
-            'expired-callback': () => {
-               console.warn('reCAPTCHA expired');
-               setIsCaptchaVerified(false);
-               if (window.recaptchaVerifier) {
-                 try { window.recaptchaVerifier.clear(); } catch(e){}
-                 window.recaptchaVerifier = null;
-               }
-            }
-          });
-          
-          await window.recaptchaVerifier.render();
-          console.log('reCAPTCHA initialized');
-        } catch (e) {
-          console.error('reCAPTCHA init error:', e);
-        }
-      };
-      
-      const timer = setTimeout(initRecaptcha, 400); 
-      return () => {
-        clearTimeout(timer);
-        if (window.recaptchaVerifier) {
-          try { window.recaptchaVerifier.clear(); } catch (e) {}
-          window.recaptchaVerifier = null;
-        }
-        setIsCaptchaVerified(false);
-      };
-    } else {
-      // Cleanup if we leave step 5 or show verification UI
-      if (window.recaptchaVerifier) {
-        try { window.recaptchaVerifier.clear(); } catch (e) {}
-        window.recaptchaVerifier = null;
-      }
-      // Note: we don't necessarily want to reset isCaptchaVerified here 
-      // because we might have just solved it and are now sending the code.
-    }
-  }, [currentMethod, step, showVerification]);
+  const currentMethod = sessionVerificationMethod || (pricing.isEmailVerificationEnabled ? 'email' : pricing.isViberVerificationEnabled ? 'viber' : 'whatsapp');
 
   useEffect(() => {
     return () => {
@@ -1538,118 +1489,63 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
     }
   };
 
-  const sendVerificationCode = async () => {
-    setFormError(null);
-    const method = currentMethod;
-    
-    if (method === 'sms' && !bookingData.phone) {
-      setFormError(t.phone);
-      return;
-    }
-    if (method === 'email' && !bookingData.email) {
-      setFormError(lang === 'GE' ? 'გთხოვთ შეიყვანოთ ელ-ფოსტა' : 'Please enter your email');
-      return;
-    }
-
+  const sendVerificationCode = async (method?: string) => {
     setIsSendingCode(true);
+    setFormError(null);
     try {
-      if (method === 'sms') {
+      const activeMethod = method || currentMethod;
+      setSessionVerificationMethod(activeMethod as any);
+
+      if (activeMethod === 'email') {
+        const response = await fetch('/api/send-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            email: bookingData.email,
+            lang,
+            method: 'email'
+          })
+        });
+        
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.error || 'Failed to send email');
+        }
+        
+        setShowVerification(true);
+        track('Email Verification Sent', { email: bookingData.email });
+      } else {
         let phoneNumber = bookingData.phone!;
         if (!phoneNumber.startsWith('+')) {
           const cleanPhone = phoneNumber.replace(/^0+/, '');
           phoneNumber = `+995${cleanPhone}`;
         }
         
-        // Use the verifier initialized in useEffect
-        const appVerifier = window.recaptchaVerifier;
-        
-        if (!appVerifier) {
-          throw new Error('Verification system not ready. Please try again.');
-        }
-        
-        try {
-          const result = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
-          
-          // CRITICAL: Clear verifier BEFORE updating state that removes the container element
-          if (window.recaptchaVerifier) {
-            try { window.recaptchaVerifier.clear(); } catch (e) {}
-            window.recaptchaVerifier = null;
-          }
-          
-          setConfirmationResult(result);
-          setShowVerification(true);
-          track('SMS Verification Sent', { phone: phoneNumber });
-        } catch (smsError: any) {
-          console.error('SMS Error inside block:', smsError);
-          const errorMsg = smsError.message || '';
-          
-          if (errorMsg.includes('-39') || errorMsg.includes('reCAPTCHA')) {
-            setVerificationError(lang === 'GE' 
-              ? 'ვერიფიკაციის შეცდომა. გთხოვთ დაადასტუროთ reCAPTCHA (რობოტის შემოწმება).' 
-              : 'Verification error. Please complete the reCAPTCHA checkbox.');
-            
-            // On reCAPTCHA errors, it's often best to reset the verifier
-            if (window.recaptchaVerifier) {
-              try { window.recaptchaVerifier.clear(); } catch (e) {}
-              window.recaptchaVerifier = null;
-            }
-          }
-          throw smsError;
-        }
-      } else {
-        // Email Verification via Resend (Backend)
-        const response = await fetch('/api/send-verification-email', {
+        const response = await fetch('/api/send-otp', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
-            email: bookingData.email,
-            lang
+            phone: phoneNumber,
+            lang,
+            method: activeMethod
           })
         });
         
         if (!response.ok) {
           const data = await response.json();
-          throw new Error(data.error || 'Failed to send verification email');
+          throw new Error(data.error || 'Failed to send code');
         }
         
         setShowVerification(true);
-        track('Email Verification Sent', { email: bookingData.email });
+        track(`${activeMethod.toUpperCase()} Verification Sent`, { phone: phoneNumber });
       }
     } catch (error: any) {
       console.error('Verification Code error:', error);
-      const errorCode = error.code || '';
-      
-      if (errorCode === 'auth/invalid-phone-number') {
-        setFormError(lang === 'GE' ? 'არასწორი ტელეფონის ნომერი' : 'Invalid phone number');
-      } else if (error.message?.includes('-39')) {
-        // Force reCAPTCHA re-init if -39 occurs
-        if (window.recaptchaVerifier) {
-          try { window.recaptchaVerifier.clear(); } catch (e) {}
-          window.recaptchaVerifier = null;
-        }
-        setIsCaptchaVerified(false);
-        setFormError(lang === 'GE' 
-          ? 'დაფიქსირდა შეცდომა (კავშირის ხარვეზი). გთხოვთ ხელახლა მონიშნოთ რობოტის შემოწმება ან გამოიყენოთ Email ვერიფიკაცია.' 
-          : 'An error occurred (connection issue). Please solve the robot check again or use Email verification.');
-      } else {
-        setFormError(lang === 'GE' 
-          ? 'დაფიქსირდა შეცდომა. გთხოვთ სცადოთ მოგვიანებით ან გამოიყენოთ Email ვერიფიკაცია.' 
-          : 'An error occurred. Please try again later or use Email verification.');
-      }
+      setFormError(lang === 'GE' 
+        ? 'დაფიქსირდა შეცდომა. გთხოვთ სცადოთ მოგვიანებით.' 
+        : 'An error occurred. Please try again later.');
     } finally {
       setIsSendingCode(false);
-    }
-  };
-
-  const handleSMSNotification = async (phone: string, message: string) => {
-    try {
-      await fetch('/api/send-sms', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, message })
-      });
-    } catch (e) {
-      console.error('Failed to send SMS notification', e);
     }
   };
 
@@ -1691,36 +1587,30 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
     setIsVerifying(true);
     setVerificationError(null);
     try {
-      let isVerified = false;
-      const method = currentMethod;
-
-      if (method === 'sms') {
-        if (!confirmationResult) {
-          throw new Error('No confirmation result');
-        }
-        const result = await confirmationResult.confirm(userCode);
-        isVerified = !!result.user;
-      } else {
-        // Verify Email OTP via Backend
-        const response = await fetch('/api/verify-email-code', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            email: bookingData.email,
-            code: userCode
-          })
-        });
-        
-        if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.error || 'Invalid verification code');
-        }
-        isVerified = true;
-      }
+      const activeMethod = sessionVerificationMethod;
+      let verificationKey = activeMethod === 'email' ? bookingData.email : bookingData.phone!;
       
-      if (isVerified) {
-        setIsSubmitting(true);
-        const bookingRef = await addDoc(collection(db, 'bookings'), {
+      if (activeMethod !== 'email' && !verificationKey.startsWith('+')) {
+        const cleanPhone = verificationKey.replace(/^0+/, '');
+        verificationKey = `+995${cleanPhone}`;
+      }
+
+      const response = await fetch('/api/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          key: verificationKey,
+          code: userCode
+        })
+      });
+      
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Invalid code');
+      }
+
+      setIsSubmitting(true);
+      const bookingRef = await addDoc(collection(db, 'bookings'), {
           ...bookingData,
           status: 'pending',
           promoCode: appliedPromo?.code || null,
@@ -1760,15 +1650,11 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
         }
 
         // Send Confirmation to Customer
-        const method = currentMethod;
         const msg = lang === 'GE' 
           ? `Luca's AutoSpa: თქვენი ჯავშანი დადასტურებულია! 📅 ${bookingData.date} | ⏰ ${bookingData.timeSlot}. მადლობა ნდობისთვის!`
           : `Luca's AutoSpa: Your booking is confirmed! 📅 ${bookingData.date} | ⏰ ${bookingData.timeSlot}. Thank you!`;
         
-        if (method === 'sms' && bookingData.phone) {
-          await handleSMSNotification(bookingData.phone, msg);
-        } else if (method === 'email' && bookingData.email) {
-          // Add handleEmailNotification to the main scope or use fetch directly
+        if (currentMethod === 'email' && bookingData.email) {
           try {
             await fetch('/api/send-email', {
               method: 'POST',
@@ -1787,22 +1673,10 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
           origin: { y: 0.6 },
           colors: ['#30c3fc', '#ffffff', '#2563eb']
         });
-      } else {
-        setVerificationError(t.invalidCode);
-      }
     } catch (error: any) {
       console.error('Verification error:', error);
       
-      // Maximum security: Reset reCAPTCHA on any verification error
-      if (currentMethod === 'sms' && window.recaptchaVerifier) {
-        try { window.recaptchaVerifier.clear(); } catch (e) {}
-        window.recaptchaVerifier = null;
-        setIsCaptchaVerified(false);
-        setShowVerification(false); // Go back to re-solve reCAPTCHA
-        setConfirmationResult(null);
-      }
-
-      if (error.code === 'auth/invalid-verification-code') {
+      if (error.code === 'auth/invalid-verification-code' || error.message?.includes('Invalid')) {
          setVerificationError(t.invalidCode);
       } else {
          setVerificationError(t.verificationError);
@@ -2447,105 +2321,107 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                   </div>
                 </div>
 
-                {/* Verification Box */}
-                <AnimatePresence>
-                  {showVerification && (
-                    <motion.div 
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      className="space-y-4 p-6 bg-blue-600 border border-blue-500/50 rounded-3xl shadow-2xl relative z-10 overflow-hidden"
-                    >
-                      <div className="absolute top-0 right-0 p-8 bg-white/5 rounded-full -mr-10 -mt-10" />
-                      <div className="flex items-center justify-between relative z-10">
-                        <label className="text-sm font-black text-white flex items-center gap-2 uppercase tracking-widest">
-                          <ShieldCheck className="w-5 h-5" /> {t.enterCode}
-                        </label>
-                        <button 
-                          onClick={() => {
-                            setShowVerification(false);
-                            setConfirmationResult(null);
-                            setUserCode('');
-                          }}
-                          className="text-[10px] font-black text-white/60 hover:text-white uppercase tracking-widest transition-colors"
+                {/* Verification Selection or Code Entry */}
+                {!showVerification ? (
+                  <div className="space-y-4">
+                    <p className="text-[10px] text-slate-500 text-center uppercase tracking-widest font-black">
+                      {t.chooseVerificationMethod}
+                    </p>
+                    <div className="grid grid-cols-1 gap-2">
+                       {pricing.isWhatsappVerificationEnabled && (
+                        <Button 
+                          onClick={() => sendVerificationCode('whatsapp')}
+                          disabled={isSendingCode}
+                          className="w-full py-4 rounded-2xl bg-green-500/10 hover:bg-green-500/20 border border-green-500/20 text-green-400 text-xs font-black uppercase tracking-widest flex items-center justify-center gap-3 transition-all"
                         >
-                          {currentMethod === 'sms' ? (lang === 'GE' ? 'მონაცემების შეცვლა' : 'Change Phone') : t.changeEmail}
-                        </button>
-                      </div>
-                      <input 
-                        type="text" 
-                        maxLength={6}
-                        placeholder="000000"
-                        className={cn(
-                          "w-full bg-slate-950/40 border border-white/20 rounded-2xl p-5 text-center text-3xl font-black tracking-[0.5em] focus:border-white outline-none transition-all text-white shadow-inner relative z-10",
-                          verificationError ? "border-red-500 bg-red-500/10" : "border-white/10"
-                        )}
-                        value={userCode}
-                        onChange={(e) => {
-                          setUserCode(e.target.value.replace(/\D/g, ''));
-                          setVerificationError(null);
-                        }}
-                      />
-                      {verificationError && (
-                        <motion.p 
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          className="text-xs text-red-200 text-center font-bold relative z-10"
-                        >
-                          {verificationError}
-                        </motion.p>
+                          <MessageCircle className="w-4 h-4" />
+                          {t.whatsapp}
+                        </Button>
                       )}
-                      <p className="text-[10px] text-white/50 text-center uppercase tracking-widest font-bold relative z-10">
-                        {currentMethod === 'sms' ? (lang === 'GE' ? 'კოდი გამოგზავნილია SMS-ით' : 'Code sent via SMS') : t.codeSent}
-                      </p>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                      {pricing.isViberVerificationEnabled && (
+                        <Button 
+                          onClick={() => sendVerificationCode('viber')}
+                          disabled={isSendingCode}
+                          className="w-full py-4 rounded-2xl bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-purple-400 text-xs font-black uppercase tracking-widest flex items-center justify-center gap-3 transition-all"
+                        >
+                          <Smartphone className="w-4 h-4" />
+                          {t.viber}
+                        </Button>
+                      )}
+                      {pricing.isEmailVerificationEnabled && (
+                        <Button 
+                          onClick={() => sendVerificationCode('email')}
+                          disabled={isSendingCode}
+                          className="w-full py-4 rounded-2xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 text-indigo-400 text-xs font-black uppercase tracking-widest flex items-center justify-center gap-3 transition-all"
+                        >
+                          <Mail className="w-4 h-4" />
+                          {t.email}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="space-y-4 p-6 bg-blue-600 border border-blue-500/50 rounded-3xl shadow-2xl relative z-10 overflow-hidden"
+                  >
+                    <div className="absolute top-0 right-0 p-8 bg-white/5 rounded-full -mr-10 -mt-10" />
+                    <div className="flex items-center justify-between relative z-10">
+                      <label className="text-sm font-black text-white flex items-center gap-2 uppercase tracking-widest">
+                        <ShieldCheck className="w-5 h-5" /> {t.enterCode}
+                      </label>
+                      <button 
+                        onClick={() => {
+                          setShowVerification(false);
+                          setUserCode('');
+                        }}
+                        className="text-[10px] font-black text-white/60 hover:text-white uppercase tracking-widest transition-colors"
+                      >
+                        {lang === 'GE' ? 'შეცვლა' : 'Change'}
+                      </button>
+                    </div>
+                    <input 
+                      type="text" 
+                      maxLength={6}
+                      placeholder="000000"
+                      className={cn(
+                        "w-full bg-slate-950/40 border border-white/20 rounded-2xl p-5 text-center text-3xl font-black tracking-[0.5em] focus:border-white outline-none transition-all text-white shadow-inner relative z-10",
+                        verificationError ? "border-red-500 bg-red-500/10" : "border-white/10"
+                      )}
+                      value={userCode}
+                      onChange={(e) => {
+                        setUserCode(e.target.value.replace(/\D/g, ''));
+                        setVerificationError(null);
+                      }}
+                    />
+                    {verificationError && (
+                      <motion.p 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="text-xs text-red-200 text-center font-bold relative z-10"
+                      >
+                        {verificationError}
+                      </motion.p>
+                    )}
+                    <p className="text-[10px] text-white/50 text-center uppercase tracking-widest font-bold relative z-10">
+                      {t.codeSentVia} 
+                      <span className="text-white ml-1">
+                        {sessionVerificationMethod === 'email' ? bookingData.email : bookingData.phone}
+                        ({sessionVerificationMethod?.toUpperCase()})
+                      </span>
+                    </p>
+                  </motion.div>
+                )}
 
                 {formError && (
                   <motion.div 
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="p-5 bg-red-500/10 border border-red-500/20 rounded-3xl text-red-500 text-xs font-bold space-y-3"
+                    className="p-5 bg-red-500/10 border border-red-500/20 rounded-3xl text-red-500 text-xs font-bold text-center"
                   >
-                    <p className="text-center">{formError}</p>
-                    
-                    {currentMethod === 'sms' && (
-                      <div className="flex flex-col gap-4">
-                        <div className="w-full h-[1px] bg-red-500/10" />
-                        <div className="space-y-3">
-                          <p className="text-[10px] text-slate-500 text-center uppercase leading-relaxed font-bold">
-                            {lang === 'GE' 
-                              ? 'SMS სისტემის ხარვეზი? გამოიყენეთ Email ვერიფიკაცია' 
-                              : 'SMS system issues? Try Email Verification instead'}
-                          </p>
-                          <Button 
-                            variant="secondary"
-                            onClick={() => {
-                              setSessionVerificationMethod('email');
-                              setStep(4);
-                              setFormError(null);
-                              track('Verification Switched to Email', { from: 'error_fallback' });
-                            }}
-                            className="w-full py-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 text-white text-xs font-black uppercase tracking-widest gap-2"
-                          >
-                            <Mail className="w-4 h-4" />
-                            {lang === 'GE' ? 'Email-ით დადასტურება' : 'Verify via Email'}
-                          </Button>
-                        </div>
-                      </div>
-                    )}
+                    {formError}
                   </motion.div>
-                )}
-
-                {/* VISIBLE RECAPTCHA CHECKBOX */}
-                {currentMethod === 'sms' && !showVerification && (
-                  <div className="flex flex-col items-center gap-3 py-6 animate-in fade-in slide-in-from-bottom-4">
-                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">
-                      {lang === 'GE' ? 'დაადასტურეთ ვერიფიკაცია' : 'Complete Verification'}
-                    </p>
-                    <div id="recaptcha-container" className="rounded-2xl overflow-hidden border border-white/5 bg-slate-900/40 p-1"></div>
-                  </div>
                 )}
 
                 <div className="flex gap-4 pt-6">
@@ -2557,23 +2433,26 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                     <ChevronLeft className="w-6 h-6" />
                     <span>{lang === 'GE' ? 'უკან' : 'Back'}</span>
                   </Button>
-                  <Button 
-                    onClick={() => handleBookingSubmit()} 
-                    disabled={isSubmitting || isVerifying || isSendingCode || (currentMethod === 'sms' && !isCaptchaVerified && !showVerification)}
-                    className="flex-[2] py-5 rounded-[1.5rem] bg-blue-600 hover:bg-blue-700 font-black text-lg shadow-2xl shadow-blue-600/30 flex gap-3 relative overflow-hidden group disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed"
-                  >
-                    {isSubmitting || isVerifying || isSendingCode ? (
-                      <span className="flex items-center gap-2">
-                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        {isSendingCode ? t.sendingCode : isVerifying ? t.verifying : t.processing}
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-3">
-                        {showVerification ? t.confirmBooking : t.verifyingBtn}
-                        <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
-                      </span>
-                    )}
-                  </Button>
+                  
+                  {showVerification && (
+                    <Button 
+                      onClick={() => handleBookingSubmit()} 
+                      disabled={isSubmitting || isVerifying || isSendingCode}
+                      className="flex-[2] py-5 rounded-[1.5rem] bg-blue-600 hover:bg-blue-700 font-black text-lg shadow-2xl shadow-blue-600/30 flex gap-3 relative overflow-hidden group disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed"
+                    >
+                      {isSubmitting || isVerifying || isSendingCode ? (
+                        <span className="flex items-center gap-2">
+                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          {isSendingCode ? t.sendingCode : isVerifying ? t.verifying : t.processing}
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-3">
+                          {t.confirmBooking}
+                          <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
+                        </span>
+                      )}
+                    </Button>
+                  )}
                 </div>
               </div>
             </motion.section>
@@ -2789,9 +2668,9 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
           <p>Luca’s AutoSpa იტოვებს უფლებას ნებისმიერ დროს შეცვალოს აღნიშნული წესები და პირობები წინასწარი შეტყობინების გარეშე.</p>
         </section>
       </div>
-              </div>
+    </div>
 
-              <div className="p-6 bg-slate-950/50 border-t border-white/5 flex flex-col gap-3">
+    <div className="p-6 bg-slate-950/50 border-t border-white/5 flex flex-col gap-3">
                 <Button 
                   onClick={() => {
                     setTermsAccepted(true);
@@ -3056,18 +2935,6 @@ function AdminDashboard({ onBack, pricing }: { onBack: () => void, pricing: Pric
     return true;
   });
 
-  const handleSMSNotification = async (phone: string, message: string) => {
-    try {
-      await fetch('/api/send-sms', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, message })
-      });
-    } catch (e) {
-      console.error('Failed to send SMS notification', e);
-    }
-  };
-
   const handleEmailNotification = async (email: string, subject: string, message: string) => {
     try {
       await fetch('/api/send-email', {
@@ -3083,7 +2950,6 @@ function AdminDashboard({ onBack, pricing }: { onBack: () => void, pricing: Pric
   const updateBookingStatus = async (id: string, status: Booking['status']) => {
     try {
       const booking = bookings.find(b => b.id === id);
-      const method = pricing.verificationMethod || 'sms';
       await updateDoc(doc(db, 'bookings', id), { status });
       
       if (booking) {
@@ -3091,9 +2957,7 @@ function AdminDashboard({ onBack, pricing }: { onBack: () => void, pricing: Pric
           await deleteDoc(doc(db, 'taken_slots', `${booking.date}_${booking.timeSlot}`));
           
           const message = `Luca's AutoSpa: თქვენი ჯავშანი გაუქმებულია. კითხვებისთვის მოგვწერეთ. / Your booking was cancelled.`;
-          if (method === 'sms' && booking.phone) {
-            await handleSMSNotification(booking.phone, message);
-          } else if (method === 'email' && booking.email) {
+          if (booking.email && pricing.isEmailVerificationEnabled) {
             await handleEmailNotification(booking.email, 'ჯავშნის სტატუსი - Luca\'s AutoSpa', message);
           }
           
@@ -3110,9 +2974,7 @@ function AdminDashboard({ onBack, pricing }: { onBack: () => void, pricing: Pric
         track('Order Completed', { service: booking.service, bookingId: id });
         
         const message = `Luca's AutoSpa: სერვისი დასრულებულია! გთხოვთ დაგვიტოვეთ რევიუ / Please review us: ${pricing.reviewLink || 'https://google.com'}`;
-        if (method === 'sms' && booking.phone) {
-          await handleSMSNotification(booking.phone, message);
-        } else if (method === 'email' && booking.email) {
+        if (booking.email && pricing.isEmailVerificationEnabled) {
           await handleEmailNotification(booking.email, 'სერვისი დასრულებულია - Luca\'s AutoSpa', message);
         }
       }
@@ -3616,21 +3478,39 @@ function PricingManager({ pricing, onBack }: { pricing: PricingSettings, onBack:
                   localPricing.verificationMethod === 'sms' ? "bg-indigo-600 text-white shadow-lg" : "text-slate-500 hover:text-slate-300"
                 )}
               >
-                <Smartphone className="w-3 h-3" /> SMS
-              </button>
-              <button 
-                onClick={() => setLocalPricing({ ...localPricing, verificationMethod: 'email' })}
-                className={cn(
-                  "px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2",
-                  localPricing.verificationMethod === 'email' ? "bg-indigo-600 text-white shadow-lg" : "text-slate-500 hover:text-slate-300"
-                )}
-              >
-                <Mail className="w-3 h-3" /> EMAIL
+                <ChevronDown className="w-3 h-3" /> MULTI-CHOICE
               </button>
             </div>
           </div>
 
-          {localPricing.verificationMethod === 'email' && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-slate-950/50 rounded-2xl border border-white/5">
+            {[
+              { id: 'isEmailVerificationEnabled', label: 'Email', icon: Mail, color: 'text-indigo-400' },
+              { id: 'isWhatsappVerificationEnabled', label: 'WhatsApp', icon: MessageCircle, color: 'text-green-400' },
+              { id: 'isViberVerificationEnabled', label: 'Viber', icon: Smartphone, color: 'text-purple-400' },
+              { id: 'isSmsEnabled', label: 'SMS', icon: Smartphone, color: 'text-blue-400' },
+            ].map((m) => (
+              <button
+                key={m.id}
+                onClick={() => setLocalPricing({ ...localPricing, [m.id]: !localPricing[m.id as keyof PricingSettings] })}
+                className={cn(
+                  "p-4 rounded-xl border transition-all flex flex-col items-center gap-3",
+                  localPricing[m.id as keyof PricingSettings] 
+                    ? "bg-slate-900 border-white/20 shadow-lg" 
+                    : "bg-slate-950 border-white/5 opacity-50 grayscale"
+                )}
+              >
+                <m.icon className={cn("w-6 h-6", m.color)} />
+                <span className="text-[10px] font-black uppercase tracking-widest text-white">{m.label}</span>
+                <div className={cn(
+                  "w-2 h-2 rounded-full",
+                  localPricing[m.id as keyof PricingSettings] ? "bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]" : "bg-slate-700"
+                )} />
+              </button>
+            ))}
+          </div>
+
+          {localPricing.isEmailVerificationEnabled && (
             <motion.div 
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
@@ -3660,67 +3540,150 @@ function PricingManager({ pricing, onBack }: { pricing: PricingSettings, onBack:
           )}
         </Card>
 
-        {/* SMS Notifications */}
+        {/* Viber & WhatsApp Providers */}
         <Card className="bg-slate-900 border-slate-800 p-6 space-y-6 md:col-span-2">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-purple-600/10 text-purple-500 rounded-xl flex items-center justify-center">
+              <Smartphone className="w-5 h-5" />
+            </div>
+            <h3 className="text-xl font-bold text-white">Viber & WhatsApp პროვაიდერები (ვერიფიკაციისთვის)</h3>
+          </div>
+
+          {(localPricing.isViberVerificationEnabled || localPricing.isWhatsappVerificationEnabled) ? (
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">აირჩიეთ პროვაიდერი</label>
+                <div className="flex p-1 bg-slate-950 rounded-xl border border-white/5 overflow-x-auto no-scrollbar">
+                  {(['smsto', 'vonage', 'twilio'] as const).map((prov) => (
+                    <button 
+                      key={prov}
+                      onClick={() => setLocalPricing({ ...localPricing, smsProvider: prov })}
+                      className={cn(
+                        "px-4 py-2 rounded-lg text-[10px] font-bold transition-all uppercase whitespace-nowrap",
+                        localPricing.smsProvider === prov ? "bg-purple-600 text-white shadow-lg" : "text-slate-500 hover:text-slate-300"
+                      )}
+                    >
+                      {prov === 'smsto' ? 'SMS.to' : prov}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[10px] text-slate-500 mt-1 ml-1 italic opacity-75">
+                  * SMS.to რეკომენდებულია საერთაშორისო Viber/WhatsApp-ისთვის რეგისტრაციის გარეშე.
+                </p>
+              </div>
+
+              {localPricing.smsProvider === 'twilio' ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Account SID</label>
+                    <input 
+                      type="text"
+                      value={localPricing.twilioSid || ''}
+                      onChange={(e) => setLocalPricing({ ...localPricing, twilioSid: e.target.value })}
+                      placeholder="AC..."
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-purple-600 transition-all font-mono text-sm"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Auth Token</label>
+                    <input 
+                      type="password"
+                      value={localPricing.twilioToken || ''}
+                      onChange={(e) => setLocalPricing({ ...localPricing, twilioToken: e.target.value })}
+                      placeholder="Token"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-purple-600 transition-all font-mono text-sm"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Twilio Number (WhatsApp)</label>
+                    <input 
+                      type="text"
+                      value={localPricing.twilioFrom || ''}
+                      onChange={(e) => setLocalPricing({ ...localPricing, twilioFrom: e.target.value })}
+                      placeholder="+1..."
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-purple-600 transition-all"
+                    />
+                  </div>
+                </div>
+              ) : localPricing.smsProvider === 'vonage' ? (
+                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Vonage Key</label>
+                    <input 
+                      type="text"
+                      value={localPricing.vonageApiKey || ''}
+                      onChange={(e) => setLocalPricing({ ...localPricing, vonageApiKey: e.target.value })}
+                      placeholder="Key"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-purple-600 transition-all font-mono text-sm"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Vonage Secret</label>
+                    <input 
+                      type="password"
+                      value={localPricing.vonageApiSecret || ''}
+                      onChange={(e) => setLocalPricing({ ...localPricing, vonageApiSecret: e.target.value })}
+                      placeholder="Secret"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-purple-600 transition-all font-mono text-sm"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Sender ID (Viber)</label>
+                    <input 
+                      type="text"
+                      value={localPricing.smsSender || 'AutoSpa'}
+                      onChange={(e) => setLocalPricing({ ...localPricing, smsSender: e.target.value })}
+                      placeholder="AutoSpa"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-purple-600 transition-all"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">SMS.to API Key / Token</label>
+                    <input 
+                      type="password"
+                      value={localPricing.smsApiKey || ''}
+                      onChange={(e) => setLocalPricing({ ...localPricing, smsApiKey: e.target.value })}
+                      placeholder="API Key"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-purple-600 transition-all font-mono text-sm"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Sender ID</label>
+                    <input 
+                      type="text"
+                      value={localPricing.smsSender || 'AutoSpa'}
+                      onChange={(e) => setLocalPricing({ ...localPricing, smsSender: e.target.value })}
+                      placeholder="AutoSpa"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-purple-600 transition-all"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="p-8 text-center bg-slate-950/50 rounded-2xl border border-dashed border-slate-800">
+              <p className="text-slate-500 text-sm">პროვაიდერის პარამეტრები გამოჩნდება Viber ან WhatsApp ვერიფიკაციის ჩართვის შემდეგ.</p>
+            </div>
+          )}
+        </Card>
+
+        {/* Admin Notifications Card */}
+        <Card className="bg-slate-900 border-slate-800 p-6 space-y-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-blue-600/10 text-blue-500 rounded-xl flex items-center justify-center">
-                <Smartphone className="w-5 h-5" />
+                <ShieldCheck className="w-5 h-5" />
               </div>
-              <h3 className="text-xl font-bold text-white">SMS შეტყობინებები (SMSOffice)</h3>
-            </div>
-            <button 
-              onClick={() => setLocalPricing({ ...localPricing, isSmsEnabled: !localPricing.isSmsEnabled })}
-              className={cn(
-                "w-12 h-6 rounded-full transition-all relative",
-                localPricing.isSmsEnabled ? "bg-blue-600" : "bg-slate-800"
-              )}
-            >
-              <div className={cn(
-                "absolute top-1 w-4 h-4 rounded-full bg-white transition-all",
-                localPricing.isSmsEnabled ? "left-7" : "left-1"
-              )} />
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">SMS API Key</label>
-              <input 
-                type="password"
-                value={localPricing.smsApiKey || ''}
-                onChange={(e) => setLocalPricing({ ...localPricing, smsApiKey: e.target.value })}
-                placeholder="API Key"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">რევიუ ლინკი</label>
-              <input 
-                type="text"
-                value={localPricing.reviewLink || ''}
-                onChange={(e) => setLocalPricing({ ...localPricing, reviewLink: e.target.value })}
-                placeholder="https://g.page/..."
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all"
-              />
-            </div>
-          </div>
-        </Card>
-
-        {/* WhatsApp Notifications */}
-        <Card className="bg-slate-900 border-slate-800 p-6 space-y-6 md:col-span-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-green-600/10 text-green-500 rounded-xl flex items-center justify-center">
-                <MessageCircle className="w-5 h-5" />
-              </div>
-              <h3 className="text-xl font-bold text-white">WhatsApp შეტყობინებები (უფასო)</h3>
+              <h3 className="text-xl font-bold text-white">ადმინის შეტყობინებები</h3>
             </div>
             <button 
               onClick={() => setLocalPricing({ ...localPricing, isWhatsappEnabled: !localPricing.isWhatsappEnabled })}
               className={cn(
                 "w-12 h-6 rounded-full transition-all relative",
-                localPricing.isWhatsappEnabled ? "bg-green-600" : "bg-slate-800"
+                localPricing.isWhatsappEnabled ? "bg-blue-600" : "bg-slate-800"
               )}
             >
               <div className={cn(
@@ -3729,16 +3692,16 @@ function PricingManager({ pricing, onBack }: { pricing: PricingSettings, onBack:
               )} />
             </button>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          
+          <div className="space-y-4">
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">WhatsApp ნომერი</label>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">WhatsApp ნომერი (ადმინის)</label>
               <input 
                 type="text"
                 value={localPricing.whatsappNumber || ''}
                 onChange={(e) => setLocalPricing({ ...localPricing, whatsappNumber: e.target.value })}
                 placeholder="+995..."
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-green-600 transition-all"
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all"
               />
             </div>
             <div className="space-y-2">
@@ -3748,11 +3711,103 @@ function PricingManager({ pricing, onBack }: { pricing: PricingSettings, onBack:
                 value={localPricing.whatsappApiKey || ''}
                 onChange={(e) => setLocalPricing({ ...localPricing, whatsappApiKey: e.target.value })}
                 placeholder="API Key"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-green-600 transition-all"
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all"
               />
+              <p className="text-[10px] text-slate-500 italic">
+                * CallMeBot გამოიყენება მხოლოდ ადმინისთვის (უფასოა).
+              </p>
             </div>
           </div>
         </Card>
+
+        {/* General Settings Card */}
+        <Card className="bg-slate-900 border-slate-800 p-6 space-y-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-amber-600/10 text-amber-500 rounded-xl flex items-center justify-center">
+              <Settings className="w-5 h-5" />
+            </div>
+            <h3 className="text-xl font-bold text-white">ზოგადი პარამეტრები</h3>
+          </div>
+          
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">რევიუ ლინკი</label>
+            <input 
+              type="text"
+              value={localPricing.reviewLink || ''}
+              onChange={(e) => setLocalPricing({ ...localPricing, reviewLink: e.target.value })}
+              placeholder="https://g.page/..."
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-amber-600 transition-all"
+            />
+          </div>
+        </Card>
+
+        {/* Verification Toggles */}
+        <Card className="bg-slate-900 border-slate-800 p-6 space-y-6 md:col-span-2">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-green-600/10 text-green-500 rounded-xl flex items-center justify-center">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
+            <h3 className="text-xl font-bold text-white">ვერიფიკაციის მეთოდების ჩართვა</h3>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="flex items-center justify-between p-3 bg-slate-950/50 rounded-xl border border-white/5">
+              <div className="flex items-center gap-3">
+                <MessageCircle className="w-4 h-4 text-green-500" />
+                <span className="text-sm text-white font-bold">WhatsApp</span>
+              </div>
+              <button 
+                onClick={() => setLocalPricing({ ...localPricing, isWhatsappVerificationEnabled: !localPricing.isWhatsappVerificationEnabled })}
+                className={cn(
+                  "w-10 h-5 rounded-full transition-all relative",
+                  localPricing.isWhatsappVerificationEnabled ? "bg-green-600" : "bg-slate-800"
+                )}
+              >
+                <div className={cn(
+                  "absolute top-1 w-3 h-3 rounded-full bg-white transition-all",
+                  localPricing.isWhatsappVerificationEnabled ? "left-6" : "left-1"
+                )} />
+              </button>
+            </div>
+            <div className="flex items-center justify-between p-3 bg-slate-950/50 rounded-xl border border-white/5">
+              <div className="flex items-center gap-3">
+                <Smartphone className="w-4 h-4 text-purple-500" />
+                <span className="text-sm text-white font-bold">Viber</span>
+              </div>
+              <button 
+                onClick={() => setLocalPricing({ ...localPricing, isViberVerificationEnabled: !localPricing.isViberVerificationEnabled })}
+                className={cn(
+                  "w-10 h-5 rounded-full transition-all relative",
+                  localPricing.isViberVerificationEnabled ? "bg-purple-600" : "bg-slate-800"
+                )}
+              >
+                <div className={cn(
+                  "absolute top-1 w-3 h-3 rounded-full bg-white transition-all",
+                  localPricing.isViberVerificationEnabled ? "left-6" : "left-1"
+                )} />
+              </button>
+            </div>
+            <div className="flex items-center justify-between p-3 bg-slate-950/50 rounded-xl border border-white/5">
+              <div className="flex items-center gap-3">
+                <Mail className="w-4 h-4 text-indigo-500" />
+                <span className="text-sm text-white font-bold">Email</span>
+              </div>
+              <button 
+                onClick={() => setLocalPricing({ ...localPricing, isEmailVerificationEnabled: !localPricing.isEmailVerificationEnabled })}
+                className={cn(
+                  "w-10 h-5 rounded-full transition-all relative",
+                  localPricing.isEmailVerificationEnabled ? "bg-indigo-600" : "bg-slate-800"
+                )}
+              >
+                <div className={cn(
+                  "absolute top-1 w-3 h-3 rounded-full bg-white transition-all",
+                  localPricing.isEmailVerificationEnabled ? "left-6" : "left-1"
+                )} />
+              </button>
+            </div>
+          </div>
+        </Card>
+
       </div>
 
       <div className="flex justify-end pt-4">

@@ -1345,10 +1345,13 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
   const [appliedPromo, setAppliedPromo] = useState<PromoCode | null>(null);
   const [promoError, setPromoError] = useState<string | null>(null);
   const [isApplyingPromo, setIsApplyingPromo] = useState(false);
+  const [sessionVerificationMethod, setSessionVerificationMethod] = useState<'sms' | 'email' | null>(null);
+  
+  const currentMethod = sessionVerificationMethod || pricing.verificationMethod || 'sms';
 
   useEffect(() => {
     // Only initialize reCAPTCHA when we are on the final step, using SMS, and not yet in verification input view
-    if (pricing.verificationMethod === 'sms' && step === 5 && !showVerification) {
+    if (currentMethod === 'sms' && step === 5 && !showVerification) {
       const initRecaptcha = async () => {
         try {
           const container = document.getElementById('recaptcha-container');
@@ -1406,7 +1409,7 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
       // Note: we don't necessarily want to reset isCaptchaVerified here 
       // because we might have just solved it and are now sending the code.
     }
-  }, [pricing.verificationMethod, step, showVerification]);
+  }, [currentMethod, step, showVerification]);
 
   useEffect(() => {
     return () => {
@@ -1422,7 +1425,7 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
     { id: 1, label: t.chooseService, icon: Zap, completed: !!bookingData.service },
     { id: 2, label: t.chooseDate, icon: Calendar, completed: !!(bookingData.date && bookingData.timeSlot) },
     { id: 3, label: t.location, icon: MapPin, completed: !!bookingData.location },
-    { id: 4, label: lang === 'GE' ? 'საკონტაქტო ინფორმაცია' : 'Contact Info', icon: Users, completed: !!(bookingData.customerName && bookingData.carModel && (pricing.verificationMethod === 'email' ? !!bookingData.email : !!bookingData.phone)) }
+    { id: 4, label: lang === 'GE' ? 'საკონტაქტო ინფორმაცია' : 'Contact Info', icon: Users, completed: !!(bookingData.customerName && bookingData.carModel && (currentMethod === 'email' ? !!bookingData.email : !!bookingData.phone)) }
   ];
 
   const currentStep = steps.find(s => !s.completed)?.id || 1;
@@ -1538,7 +1541,7 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
 
   const sendVerificationCode = async () => {
     setFormError(null);
-    const method = pricing.verificationMethod || 'sms';
+    const method = currentMethod;
     
     if (method === 'sms' && !bookingData.phone) {
       setFormError(t.phone);
@@ -2253,9 +2256,9 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] ml-2">
-                      {pricing.verificationMethod === 'email' ? 'Email' : t.phone}
+                      {currentMethod === 'email' ? 'Email' : t.phone}
                     </label>
-                    {pricing.verificationMethod === 'email' ? (
+                    {currentMethod === 'email' ? (
                       <input 
                         type="email" 
                         placeholder="your@email.com"
@@ -2355,7 +2358,7 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                   </Button>
                   <Button 
                     onClick={() => {
-                      const isContactValid = pricing.verificationMethod === 'email' ? !!bookingData.email : !!bookingData.phone;
+                      const isContactValid = currentMethod === 'email' ? !!bookingData.email : !!bookingData.phone;
                       if (bookingData.customerName && bookingData.carModel && isContactValid) {
                         setStep(5);
                         setFormError(null);
@@ -2434,7 +2437,7 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                       <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t.name} & {t.carModel}</p>
                       <p className="text-white font-medium">{bookingData.customerName} - <span className="text-blue-400">{bookingData.carModel}</span></p>
                       <p className="text-slate-400 text-xs">
-                        {pricing.verificationMethod === 'email' ? bookingData.email : bookingData.phone}
+                        {currentMethod === 'email' ? bookingData.email : bookingData.phone}
                       </p>
                     </div>
                   </div>
@@ -2462,7 +2465,7 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                           }}
                           className="text-[10px] font-black text-white/60 hover:text-white uppercase tracking-widest transition-colors"
                         >
-                          {t.changeEmail}
+                          {currentMethod === 'sms' ? (lang === 'GE' ? 'მონაცემების შეცვლა' : 'Change Phone') : t.changeEmail}
                         </button>
                       </div>
                       <input 
@@ -2489,7 +2492,7 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                         </motion.p>
                       )}
                       <p className="text-[10px] text-white/50 text-center uppercase tracking-widest font-bold relative z-10">
-                        {t.codeSent}
+                        {currentMethod === 'sms' ? (lang === 'GE' ? 'კოდი გამოგზავნილია SMS-ით' : 'Code sent via SMS') : t.codeSent}
                       </p>
                     </motion.div>
                   )}
@@ -2503,27 +2506,36 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                   >
                     <p className="text-center">{formError}</p>
                     
-                    {pricing.verificationMethod === 'sms' && (
-                      <div className="flex flex-col gap-2">
-                        {recaptchaSize === 'normal' && (
-                          <p className="text-[10px] text-red-500/70 text-center uppercase tracking-widest mt-2">
+                    {currentMethod === 'sms' && (
+                      <div className="flex flex-col gap-4">
+                        <div className="w-full h-[1px] bg-red-500/10" />
+                        <div className="space-y-3">
+                          <p className="text-[10px] text-slate-500 text-center uppercase leading-relaxed font-bold">
                             {lang === 'GE' 
-                              ? 'გთხოვთ დაადასტუროთ რობოტის შემოწმება ქვემოთ' 
-                              : 'Please solve the reCAPTCHA below'}
+                              ? 'SMS სისტემის ხარვეზი? გამოიყენეთ Email ვერიფიკაცია' 
+                              : 'SMS system issues? Try Email Verification instead'}
                           </p>
-                        )}
-                        <p className="text-[10px] text-slate-500 text-center uppercase leading-relaxed">
-                          {lang === 'GE' 
-                            ? 'თუ პრობლემა გრძელდება, ადმინ პანელიდან გადადით Email ვერიფიკაციაზე' 
-                            : 'If issues persist, switch to Email verification in Admin Panel'}
-                        </p>
+                          <Button 
+                            variant="secondary"
+                            onClick={() => {
+                              setSessionVerificationMethod('email');
+                              setStep(4);
+                              setFormError(null);
+                              track('Verification Switched to Email', { from: 'error_fallback' });
+                            }}
+                            className="w-full py-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 text-white text-xs font-black uppercase tracking-widest gap-2"
+                          >
+                            <Mail className="w-4 h-4" />
+                            {lang === 'GE' ? 'Email-ით დადასტურება' : 'Verify via Email'}
+                          </Button>
+                        </div>
                       </div>
                     )}
                   </motion.div>
                 )}
 
                 {/* VISIBLE RECAPTCHA CHECKBOX */}
-                {pricing.verificationMethod === 'sms' && !showVerification && (
+                {currentMethod === 'sms' && !showVerification && (
                   <div className="flex flex-col items-center gap-3 py-6 animate-in fade-in slide-in-from-bottom-4">
                     <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">
                       {lang === 'GE' ? 'დაადასტურეთ ვერიფიკაცია' : 'Complete Verification'}
@@ -2543,7 +2555,7 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                   </Button>
                   <Button 
                     onClick={() => handleBookingSubmit()} 
-                    disabled={isSubmitting || isVerifying || isSendingCode || (pricing.verificationMethod === 'sms' && !isCaptchaVerified && !showVerification)}
+                    disabled={isSubmitting || isVerifying || isSendingCode || (currentMethod === 'sms' && !isCaptchaVerified && !showVerification)}
                     className="flex-[2] py-5 rounded-[1.5rem] bg-blue-600 hover:bg-blue-700 font-black text-lg shadow-2xl shadow-blue-600/30 flex gap-3 relative overflow-hidden group disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed"
                   >
                     {isSubmitting || isVerifying || isSendingCode ? (

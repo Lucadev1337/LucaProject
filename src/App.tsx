@@ -1627,20 +1627,10 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
       
       if (errorCode === 'auth/invalid-phone-number') {
         setFormError(lang === 'GE' ? 'არასწორი ტელეფონის ნომერი' : 'Invalid phone number');
-      } else if (errorCode === 'auth/too-many-requests') {
-        setFormError(lang === 'GE' 
-          ? 'ძალიან ბევრი მცდელობა. უსაფრთხოების მიზნით, სთხოვეთ მომხმარებელს სცადოს 15-30 წუთში ან გამოიყენეთ Email ვერიფიკაცია.' 
-          : 'Too many requests. For security, please try again in 15-30 minutes or use Email verification.');
-      } else if (errorCode === 'auth/operation-not-allowed') {
-        setFormError(lang === 'GE' 
-          ? 'Phone Auth არ არის ჩართული Firebase კონსოლში. გთხოვთ ჩრთოთ Authentication > Sign-in method-დან.' 
-          : 'Phone Auth is not enabled in Firebase Console. Please enable it in Authentication > Sign-in method.');
-      } else if (error.message?.includes('-39')) {
-        setFormError(lang === 'GE' 
-          ? 'Firebase Error -39: კავშირის პრობლემა. გთხოვთ შეამოწმოთ: 1. Firebase Console-ში Authorized Domains. 2. SMS სერვისი თუ ჩართულია თქვენს რეგიონში. 3. სცადეთ Email ვერიფიკაცია.' 
-          : 'Firebase Error -39: Connection problem. Please check: 1. Authorized Domains in Firebase Console. 2. If SMS is enabled for your region. 3. Try Email Verification instead.');
       } else {
-        setFormError(error.message || t.generalError);
+        setFormError(lang === 'GE' 
+          ? 'დაფიქსირდა შეცდომა. გთხოვთ სცადოთ მოგვიანებით ან გამოიყენოთ Email ვერიფიკაცია.' 
+          : 'An error occurred. Please try again later or use Email verification.');
       }
     } finally {
       setIsSendingCode(false);

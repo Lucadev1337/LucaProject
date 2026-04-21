@@ -95,7 +95,8 @@ const translations = {
     heroTitle: "ჩვენ ვაწკრიალებთ, ",
     heroTitleSpan: "შენ ზოგავ დროს",
     heroDesc: "დეტალური ინტერიერის ქიმწმენდა შენს მისამართზე. პროფესიონალური ხსნარებით, მისაღებ ფასად.",
-    bookNow: "დაჯავშნე ახლავე",
+    bookNow: "დაჯავშნე ონლაინ",
+    bookPhone: "დაჯავშნე ტელეფონზე",
     viewServices: "სერვისების ნახვა",
     lastResult: "ბოლო შედეგი",
     premiumDetailing: "პრემიუმ დითეილინგი",
@@ -209,7 +210,8 @@ const translations = {
     heroTitle: "We clean at your location, ",
     heroTitleSpan: "you save precious time",
     heroDesc: "Detailed interior cleaning at your doorstep. At an affordable price.",
-    bookNow: "Book Now",
+    bookNow: "Book Online",
+    bookPhone: "Book by Phone",
     viewServices: "View Services",
     lastResult: "Last Result",
     premiumDetailing: "Premium Detailing",
@@ -932,7 +934,7 @@ function PublicSite({ onBookNow, pricing, t, lang, isLoading }: { onBookNow: (pl
             <p className="text-base lg:text-lg text-slate-400 mb-6 leading-relaxed max-w-lg">
               {t.heroDesc}
             </p>
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col sm:flex-row flex-wrap gap-4">
               <Button 
                 size="lg" 
                 className="rounded-2xl bg-blue-500 hover:bg-blue-400 text-slate-950 font-black px-8 h-14 text-base shadow-[0_0_20px_rgba(59,130,246,0.4)] hover:shadow-[0_0_30px_rgba(59,130,246,0.6)] transition-all hover:-translate-y-1 active:scale-95" 
@@ -940,10 +942,16 @@ function PublicSite({ onBookNow, pricing, t, lang, isLoading }: { onBookNow: (pl
               >
                 {t.bookNow} <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
+              <a 
+                href="tel:+995579129698"
+                className="inline-flex items-center justify-center rounded-2xl border-2 border-green-500/30 bg-green-500/10 backdrop-blur-md text-green-400 hover:bg-green-500/20 hover:border-green-500/40 px-8 h-14 text-base font-black transition-all hover:-translate-y-1 active:scale-95 shadow-[0_0_20px_rgba(34,197,94,0.1)]" 
+              >
+                <Phone className="mr-2 w-5 h-5" /> {t.bookPhone}
+              </a>
               <Button 
                 variant="outline" 
                 size="lg" 
-                className="rounded-2xl border-2 border-white/10 bg-white/5 backdrop-blur-md text-white hover:bg-white/10 hover:border-white/20 px-8 h-14 text-base transition-all hover:-translate-y-1 active:scale-95" 
+                className="rounded-2xl border-2 border-white/10 bg-white/5 backdrop-blur-md text-white hover:bg-white/10 hover:border-white/20 px-8 h-14 text-base transition-all hover:-translate-y-1 active:scale-95 font-black sm:w-auto w-full" 
                 onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}
               >
                 {t.viewServices}
@@ -1264,9 +1272,17 @@ function PublicSite({ onBookNow, pricing, t, lang, isLoading }: { onBookNow: (pl
               <p className="text-slate-400 text-sm mb-8 max-w-xl mx-auto">
                 {t.ctaDesc}
               </p>
-              <Button size="lg" className="rounded-xl shadow-2xl shadow-blue-400/20 bg-blue-400 hover:bg-blue-300 text-slate-950 h-12 text-sm font-black" onClick={() => scrollToBooking()}>
-                {t.bookNow}
-              </Button>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-lg mx-auto">
+                <Button size="lg" className="w-full sm:w-auto rounded-xl shadow-2xl shadow-blue-400/20 bg-blue-400 hover:bg-blue-300 text-slate-950 h-12 text-sm font-black px-8" onClick={() => scrollToBooking()}>
+                  {t.bookNow}
+                </Button>
+                <a 
+                  href="tel:+995579129698"
+                  className="w-full sm:w-auto inline-flex items-center justify-center rounded-xl border border-green-500/30 bg-green-500/10 backdrop-blur-md text-green-400 hover:bg-green-500/20 px-8 h-12 text-sm font-black transition-all" 
+                >
+                  <Phone className="mr-2 w-4 h-4" /> {t.bookPhone}
+                </a>
+              </div>
               <div className="mt-8 flex flex-wrap justify-center gap-6 opacity-40">
                 <div className="flex items-center gap-2 text-white">
                   <Star className="w-3.5 h-3.5" />

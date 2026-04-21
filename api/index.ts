@@ -18,22 +18,28 @@ const __dirname = path.dirname(__filename);
 let firebaseConfig: any = null;
 try {
   const configPath = path.join(process.cwd(), 'firebase-applet-config.json');
+  let configJson: any = {};
   if (fs.existsSync(configPath)) {
-    firebaseConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-  } else {
-    // Try relative to __dirname (which is /api/ on Vercel)
-    const altPath = path.join(__dirname, '..', 'firebase-applet-config.json');
-    if (fs.existsSync(altPath)) {
-      firebaseConfig = JSON.parse(fs.readFileSync(altPath, 'utf8'));
-    }
+    configJson = JSON.parse(fs.readFileSync(configPath, 'utf8'));
   }
+
+  firebaseConfig = {
+    projectId: process.env.VITE_FIREBASE_PROJECT_ID || configJson.projectId,
+    appId: process.env.VITE_FIREBASE_APP_ID || configJson.appId,
+    apiKey: process.env.VITE_FIREBASE_API_KEY || configJson.apiKey,
+    authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN || configJson.authDomain,
+    firestoreDatabaseId: process.env.VITE_FIREBASE_DATABASE_ID || configJson.firestoreDatabaseId,
+    storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET || configJson.storageBucket,
+    messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID || configJson.messagingSenderId,
+    measurementId: process.env.VITE_FIREBASE_MEASUREMENT_ID || configJson.measurementId,
+  };
 } catch (error) {
-  console.error('CRITICAL: Failed to load firebase-applet-config.json:', error);
+  console.error('Failed to resolve firebase configuration:', error);
 }
 
 // Initialize Firebase
 let db: any = null;
-if (firebaseConfig) {
+if (firebaseConfig && firebaseConfig.projectId) {
   try {
     const firebaseApp = initializeApp(firebaseConfig);
     db = getFirestore(firebaseApp, firebaseConfig.firestoreDatabaseId);
@@ -43,7 +49,7 @@ if (firebaseConfig) {
   }
 }
 
-const CALENDAR_SECRET = "7f8a9b0c1d2e3f4g5h6i7j8k9l0m1n2o3p4q5r6s7t8u9v0w1x2y3z";
+const CALENDAR_SECRET = process.env.CALENDAR_SECRET || "fallback_secret_change_me_in_env";
 
 export const app = express();
 app.use(express.json());

@@ -76,18 +76,17 @@ app.post('/api/send-otp', async (req, res) => {
       if (!pricing.resendApiKey) throw new Error('Email verification not configured');
       const resend = new Resend(pricing.resendApiKey);
       
-      const html = `
-        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; rounded: 12px;">
-          <h2 style="color: #4f46e5; text-align: center;">Luca's AutoSpa</h2>
-          <div style="background-color: #f8fafc; padding: 30px; border-radius: 8px; text-align: center;">
-            <p style="font-size: 16px; color: #475569; margin-bottom: 8px;">${lang === 'GE' ? 'თქვენი ვერიფიკაციის კოდია:' : 'Your verification code is:'}</p>
-            <h1 style="font-size: 48px; letter-spacing: 4px; color: #1e293b; margin: 0;">${code}</h1>
-          </div>
-          <p style="font-size: 14px; color: #64748b; text-align: center; margin-top: 20px;">
+      const otpContent = `
+        <div style="text-align: center;">
+          <p style="font-size: 16px; color: #475569; margin-bottom: 8px;">${lang === 'GE' ? 'თქვენი ვერიფიკაციის კოდია:' : 'Your verification code is:'}</p>
+          <h1 style="font-size: 48px; letter-spacing: 4px; color: #1e293b; margin: 0;">${code}</h1>
+          <p style="font-size: 14px; color: #64748b; margin-top: 20px;">
             ${lang === 'GE' ? 'ეს კოდი ვალიდურია 10 წუთის განმავლობაში.' : 'This code is valid for 10 minutes.'}
           </p>
         </div>
       `;
+      const subtitle = lang === 'GE' ? 'ვერიფიკაცია' : 'Verification';
+      const html = getEmailWrapper(otpContent, subtitle, lang);
 
       await resend.emails.send({
         from: `Luca's AutoSpa <${pricing.resendSenderEmail || 'onboarding@resend.dev'}>`,
@@ -146,9 +145,30 @@ app.post('/api/verify-otp', async (req, res) => {
   }
 });
 
+// --- Helper: Email Template Wrapper ---
+const getEmailWrapper = (content: string, subtitle: string, lang: string = 'GE') => `
+  <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #f1f5f9; border-radius: 24px; background-color: #ffffff;">
+    <div style="text-align: center; padding-bottom: 24px;">
+      <h1 style="color: #4f46e5; margin: 0; font-size: 28px; font-weight: 900;">Luca's AutoSpa</h1>
+      <p style="color: #64748b; margin-top: 8px; font-size: 14px;">${subtitle}</p>
+    </div>
+
+    <div style="background-color: #f8fafc; padding: 32px; border-radius: 20px; border: 1px solid #e2e8f0; line-height: 1.6; color: #1e293b;">
+      ${content}
+    </div>
+
+    <div style="text-align: center; margin-top: 32px;">
+      <p style="color: #64748b; font-size: 14px; margin-bottom: 24px;">${lang === 'GE' ? 'გმადლობთ Luca\'s AutoSpa-ს არჩევისთვის!' : 'Thank you for choosing Luca\'s AutoSpa!'}</p>
+      <div style="font-size: 12px; color: #94a3b8;">
+        © ${new Date().getFullYear()} Luca's AutoSpa. ${lang === 'GE' ? 'ყველა უფლება დაცულია.' : 'All rights reserved.'}
+      </div>
+    </div>
+  </div>
+`;
+
 app.post('/api/send-email', async (req, res) => {
   try {
-    const { email, subject, message } = req.body;
+    const { email, subject, message, lang = 'GE' } = req.body;
     if (!db) throw new Error('Database not initialized');
 
     const pricingSnap = await getDoc(doc(db, 'settings', 'pricing'));
@@ -159,16 +179,41 @@ app.post('/api/send-email', async (req, res) => {
 
     const resend = new Resend(pricing.resendApiKey);
 
+    const formattedContent = message.split('\n').filter((line: string) => line.trim()).map((line: string) => `<p style="margin: 0 0 12px 0;">${line}</p>`).join('');
+
     await resend.emails.send({
       from: `Luca's AutoSpa <${pricing.resendSenderEmail || 'onboarding@resend.dev'}>`,
       to: email,
       subject: subject,
-      text: message,
+      html: getEmailWrapper(formattedContent, subject, lang),
     });
 
     res.json({ success: true });
   } catch (error: any) {
     console.error('Send email error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/send-whatsapp', async (req, res) => {
+  try {
+    const { phone, message } = req.body;
+    if (!db) throw new Error('Database not initialized');
+
+    const pricingSnap = await getDoc(doc(db, 'settings', 'pricing'));
+    if (!pricingSnap.exists()) throw new Error('Pricing settings not found');
+    const pricing = pricingSnap.data();
+
+    const response = await sendMultiChannelHelper(pricing, phone, message, 'whatsapp');
+    
+    if (!response.ok) {
+        const errorText = await (response as any).text?.() || 'No body';
+        throw new Error(`WhatsApp provider error: ${response.status} ${errorText}`);
+    }
+
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('Send WhatsApp error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -219,62 +264,45 @@ app.post('/api/notify-booking', async (req, res) => {
           } else if (customerMethod === 'email' && customerEmail) {
             if (pricing.resendApiKey) {
               const resend = new Resend(pricing.resendApiKey);
-              const html = `
-                <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #f1f5f9; border-radius: 24px; background-color: #ffffff;">
-                  <div style="text-align: center; padding-bottom: 24px;">
-                    <h1 style="color: #4f46e5; margin: 0; font-size: 28px; font-weight: 900;">Luca's AutoSpa</h1>
-                    <p style="color: #64748b; margin-top: 8px; font-size: 14px;">${lang === 'GE' ? 'ჯავშანი წარმატებით დადასტურდა' : 'Your booking has been confirmed'}</p>
-                  </div>
+              const detailContent = `
+                <div style="margin-bottom: 20px; border-bottom: 1px solid #e2e8f0; padding-bottom: 20px;">
+                  <span style="display: block; font-size: 12px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; margin-bottom: 4px;">${lang === 'GE' ? 'კლიენტი' : 'Client'}</span>
+                  <span style="font-size: 18px; color: #1e293b; font-weight: 600;">${bookingData.customerName}</span>
+                </div>
 
-                  <div style="background-color: #f8fafc; padding: 32px; border-radius: 20px; border: 1px solid #e2e8f0;">
-                    <div style="margin-bottom: 20px; border-bottom: 1px solid #e2e8f0; padding-bottom: 20px;">
-                      <span style="display: block; font-size: 12px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; margin-bottom: 4px;">${lang === 'GE' ? 'კლიენტი' : 'Client'}</span>
-                      <span style="font-size: 18px; color: #1e293b; font-weight: 600;">${bookingData.customerName}</span>
-                    </div>
+                <div style="margin-bottom: 20px;">
+                  <span style="display: block; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: bold;">${lang === 'GE' ? 'თარიღი და დრო' : 'Date & Time'}</span>
+                  <span style="font-size: 15px; color: #1e293b; font-weight: 500;">${bookingData.date} | ${bookingData.timeSlot}</span>
+                </div>
 
-                    <div style="display: grid; grid-template-cols: 1fr 1fr; gap: 20px;">
-                      <div style="margin-bottom: 20px;">
-                        <span style="display: block; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: bold;">${lang === 'GE' ? 'თარიღი' : 'Date'}</span>
-                        <span style="font-size: 15px; color: #1e293b; font-weight: 500;">${bookingData.date}</span>
-                      </div>
-                      <div style="margin-bottom: 20px;">
-                        <span style="display: block; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: bold;">${lang === 'GE' ? 'დრო' : 'Time'}</span>
-                        <span style="font-size: 15px; color: #1e293b; font-weight: 500;">${bookingData.timeSlot}</span>
-                      </div>
-                    </div>
+                <div style="margin-bottom: 20px;">
+                  <span style="display: block; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: bold;">${lang === 'GE' ? 'ავტომობილი' : 'Vehicle'}</span>
+                  <span style="font-size: 15px; color: #1e293b; font-weight: 500;">${bookingData.carModel || '-'}</span>
+                </div>
 
-                    <div style="margin-bottom: 20px;">
-                      <span style="display: block; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: bold;">${lang === 'GE' ? 'ავტომობილი' : 'Vehicle'}</span>
-                      <span style="font-size: 15px; color: #1e293b; font-weight: 500;">${bookingData.carModel || '-'}</span>
-                    </div>
+                <div style="margin-bottom: 20px;">
+                  <span style="display: block; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: bold;">${lang === 'GE' ? 'მომსახურება' : 'Service'}</span>
+                  <span style="font-size: 15px; color: #1e293b; font-weight: 500;">${serviceName}</span>
+                </div>
 
-                    <div style="margin-bottom: 20px;">
-                      <span style="display: block; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: bold;">${lang === 'GE' ? 'მომსახურება' : 'Service'}</span>
-                      <span style="font-size: 15px; color: #1e293b; font-weight: 500;">${serviceName}</span>
-                    </div>
+                <div style="margin-bottom: 20px;">
+                  <span style="display: block; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: bold;">${lang === 'GE' ? 'მდებარეობა' : 'Location'}</span>
+                  <span style="font-size: 15px; color: #1e293b; font-weight: 500;">${bookingData.location}</span>
+                </div>
 
-                    <div style="margin-bottom: 20px;">
-                      <span style="display: block; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: bold;">${lang === 'GE' ? 'მდებარეობა' : 'Location'}</span>
-                      <span style="font-size: 15px; color: #1e293b; font-weight: 500;">${bookingData.location}</span>
-                    </div>
-
-                    <div style="margin-top: 24px; padding-top: 24px; border-top: 2px dashed #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
-                       <div>
-                         <span style="display: block; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: bold;">${lang === 'GE' ? 'სრული საფასური' : 'Total Amount'}</span>
-                         <span style="font-size: 24px; color: #4f46e5; font-weight: 900;">${price}₾</span>
-                       </div>
-                       ${promoCode ? `<span style="background-color: #ecfdf5; color: #059669; padding: 4px 12px; border-radius: 99px; font-size: 12px; font-weight: bold; border: 1px solid #10b98120;">${promoCode} Applied</span>` : ''}
-                    </div>
-                  </div>
-
-                  <div style="text-align: center; margin-top: 32px;">
-                    <p style="color: #64748b; font-size: 14px; margin-bottom: 24px;">${lang === 'GE' ? 'გმადლობთ Luca\'s AutoSpa-ს არჩევისთვის!' : 'Thank you for choosing Luca\'s AutoSpa!'}</p>
-                    <div style="font-size: 12px; color: #94a3b8;">
-                      © 2024 Luca's AutoSpa. ${lang === 'GE' ? 'ყველა უფლება დაცულია.' : 'All rights reserved.'}
-                    </div>
-                  </div>
+                <div style="margin-top: 24px; padding-top: 24px; border-top: 2px dashed #e2e8f0;">
+                   <div style="display: flex; justify-content: space-between; align-items: center;">
+                     <div>
+                       <span style="display: block; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: bold;">${lang === 'GE' ? 'სრული საფასური' : 'Total Amount'}</span>
+                       <span style="font-size: 24px; color: #4f46e5; font-weight: 900;">${price}₾</span>
+                     </div>
+                     ${promoCode ? `<span style="background-color: #ecfdf5; color: #059669; padding: 4px 12px; border-radius: 99px; font-size: 12px; font-weight: bold; border: 1px solid #10b98120;">${promoCode} Applied</span>` : ''}
+                   </div>
                 </div>
               `;
+
+              const subtitle = lang === 'GE' ? 'ჯავშანი წარმატებით დადასტურდა' : 'Your booking has been confirmed';
+              const html = getEmailWrapper(detailContent, subtitle, lang);
               await resend.emails.send({
                 from: `Luca's AutoSpa <${pricing.resendSenderEmail || 'onboarding@resend.dev'}>`,
                 to: customerEmail,
@@ -408,12 +436,13 @@ app.get('/api/calendar.ics', async (req, res) => {
 
 const sendMultiChannelHelper = async (pricing: any, phone: string, message: string, method: 'whatsapp' | 'sms') => {
   const senderId = pricing.smsSender || 'AutoSpa';
+  const cleanPhone = phone.replace(/\D/g, ''); // Remove all non-digits for provider APIs
 
   if (method === 'whatsapp') {
     // WASender (wasenderapi.com)
     if (pricing.waSenderApiKey) {
       const payload: any = { 
-        to: phone.replace('+', ''), 
+        to: cleanPhone, 
         text: message 
       };
       if (pricing.waSenderInstanceId) {
@@ -432,7 +461,7 @@ const sendMultiChannelHelper = async (pricing: any, phone: string, message: stri
 
     // CallMeBot (Fallback)
     if (pricing.whatsappApiKey) {
-      const whatsappUrl = `https://api.callmebot.com/whatsapp.php?phone=${phone.replace('+', '')}&text=${encodeURIComponent(message)}&apikey=${pricing.whatsappApiKey}`;
+      const whatsappUrl = `https://api.callmebot.com/whatsapp.php?phone=${cleanPhone}&text=${encodeURIComponent(message)}&apikey=${pricing.whatsappApiKey}`;
       return fetch(whatsappUrl);
     }
     
@@ -441,7 +470,7 @@ const sendMultiChannelHelper = async (pricing: any, phone: string, message: stri
       return fetch(`https://api.sms.to/whatsapp/send`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${pricing.smsApiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message, to: phone, sender_id: senderId })
+        body: JSON.stringify({ message, to: cleanPhone, sender_id: senderId })
       });
     }
   }
@@ -451,7 +480,7 @@ const sendMultiChannelHelper = async (pricing: any, phone: string, message: stri
     return fetch(`https://api.sms.to/sms/send`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${pricing.smsApiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message, to: phone, sender_id: senderId })
+      body: JSON.stringify({ message, to: cleanPhone, sender_id: senderId })
     });
   }
 

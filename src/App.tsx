@@ -333,6 +333,9 @@ interface Booking {
   lng?: number;
   status: 'pending' | 'completed' | 'cancelled';
   createdAt: any;
+  finalPrice?: number;
+  promoCode?: string | null;
+  discountAmount?: number;
 }
 
 interface Availability {
@@ -766,7 +769,7 @@ export default function App() {
             ) : view === 'terms' ? (
               <TermsOfService key="terms" onBack={() => setView('public')} t={t} />
             ) : isAdmin ? (
-              <AdminDashboard key="admin" onBack={() => setView('public')} pricing={pricing} />
+              <AdminDashboard key="admin" onBack={() => setView('public')} pricing={pricing} lang={lang} />
             ) : (
               <div className="min-h-[60vh] flex flex-col items-center justify-center p-8 text-center">
                 <ShieldAlert className="w-16 h-16 text-red-500 mb-4" />
@@ -1657,28 +1660,12 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
               bookingId: bookingRef.id,
               promoCode: appliedPromo?.code || null,
               customerMethod: sessionVerificationMethod,
-              customerEmail: bookingData.email || null
+              customerEmail: bookingData.email || null,
+              lang
             })
           });
         } catch (e) {
           console.error('Failed to send notification', e);
-        }
-
-        // Send Confirmation to Customer
-        const msg = lang === 'GE' 
-          ? `Luca's AutoSpa: თქვენი ჯავშანი დადასტურებულია! 📅 ${bookingData.date} | ⏰ ${bookingData.timeSlot}. მადლობა ნდობისთვის!`
-          : `Luca's AutoSpa: Your booking is confirmed! 📅 ${bookingData.date} | ⏰ ${bookingData.timeSlot}. Thank you!`;
-        
-        if (currentMethod === 'email' && bookingData.email) {
-          try {
-            await fetch('/api/send-email', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ email: bookingData.email, subject: 'ჯავშნის დადასტურება - Luca\'s AutoSpa', message: msg })
-            });
-          } catch (e) {
-            console.error('Failed to send Email confirmation', e);
-          }
         }
 
         setIsSuccess(true);
@@ -2980,7 +2967,7 @@ function TermsOfService({ onBack, t }: { onBack: () => void, t: any, key?: strin
   );
 }
 
-function AdminDashboard({ onBack, pricing }: { onBack: () => void, pricing: PricingSettings, key?: string }) {
+function AdminDashboard({ onBack, pricing, lang }: { onBack: () => void, pricing: PricingSettings, lang: Language, key?: string }) {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [activeTab, setActiveTab] = useState<'bookings' | 'availability' | 'pricing' | 'reviews' | 'promo'>('bookings');
   const [isLoading, setIsLoading] = useState(true);
@@ -3013,14 +3000,38 @@ function AdminDashboard({ onBack, pricing }: { onBack: () => void, pricing: Pric
       await fetch('/api/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, subject, message })
+        body: JSON.stringify({ email, subject, message, lang })
       });
     } catch (e) {
       console.error('Failed to send Email notification', e);
     }
   };
 
+  const handleWhatsAppNotification = async (phone: string, message: string) => {
+    try {
+      // Basic normalization - remove any non-digit characters except possibly a leading +
+      const cleanPhone = phone.replace(/[^\d+]/g, '');
+      await fetch('/api/send-whatsapp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: cleanPhone, message })
+      });
+    } catch (e) {
+      console.error('Failed to send WhatsApp notification', e);
+    }
+  };
+
   const updateBookingStatus = async (id: string, status: Booking['status']) => {
+    const actionText = lang === 'GE' 
+      ? (status === 'completed' ? 'დასრულება' : status === 'cancelled' ? 'გაუქმება' : 'განახლება')
+      : (status === 'completed' ? 'Complete' : status === 'cancelled' ? 'Cancel' : 'Update');
+
+    const confirmMsg = lang === 'GE'
+      ? `ნამდვილად გსურთ ამ ჯავშნის ${actionText}?`
+      : `Are you sure you want to ${actionText.toLowerCase()} this booking?`;
+
+    if (!window.confirm(confirmMsg)) return;
+
     try {
       const booking = bookings.find(b => b.id === id);
       await updateDoc(doc(db, 'bookings', id), { status });
@@ -3029,9 +3040,16 @@ function AdminDashboard({ onBack, pricing }: { onBack: () => void, pricing: Pric
         if (status === 'cancelled') {
           await deleteDoc(doc(db, 'taken_slots', `${booking.date}_${booking.timeSlot}`));
           
-          const message = `Luca's AutoSpa: თქვენი ჯავშანი გაუქმებულია. კითხვებისთვის მოგვწერეთ. / Your booking was cancelled.`;
+          const message = lang === 'GE'
+            ? `Luca's AutoSpa: თქვენი ჯავშანი გაუქმებულია. კითხვებისთვის მოგვწერეთ.`
+            : `Luca's AutoSpa: Your booking was cancelled. Contact us for any questions.`;
+
           if (booking.email && pricing.isEmailVerificationEnabled) {
-            await handleEmailNotification(booking.email, 'ჯავშნის სტატუსი - Luca\'s AutoSpa', message);
+            await handleEmailNotification(booking.email, (lang === 'GE' ? 'ჯავშნის სტატუსი' : 'Booking Status') + ' - Luca\'s AutoSpa', message);
+          }
+          
+          if (booking.phone) {
+            await handleWhatsAppNotification(booking.phone, message);
           }
           
         } else {
@@ -3046,9 +3064,21 @@ function AdminDashboard({ onBack, pricing }: { onBack: () => void, pricing: Pric
       if (status === 'completed' && booking) {
         track('Order Completed', { service: booking.service, bookingId: id });
         
-        const message = `Luca's AutoSpa: სერვისი დასრულებულია! გთხოვთ დაგვიტოვეთ რევიუ / Please review us: ${pricing.reviewLink || 'https://google.com'}`;
+        const serviceName = lang === 'GE' 
+          ? (booking.service === 'Premium' ? 'პრემიუმ დითეილინგი' : 'ინტერიერის წმენდა')
+          : (booking.service === 'Premium' ? 'Premium Detailing' : 'Interior Cleaning');
+          
+        const message = lang === 'GE'
+          ? `Luca's AutoSpa: ✅ სერვისი დასრულებულია!\n\n🛠 სერვისი: ${serviceName}\n🚗 მანქანა: ${booking.carModel || '-'}\n📅 თარიღი: ${booking.date}\n📍 მისამართი: ${booking.location}\n\nმადლობა ნდობისთვის! გთხოვთ დაგვიტოვეთ შეფასება: ${pricing.reviewLink || 'https://google.com'}`
+          : `Luca's AutoSpa: ✅ Service completed!\n\n🛠 Service: ${serviceName}\n🚗 Vehicle: ${booking.carModel || '-'}\n📅 Date: ${booking.date}\n📍 Location: ${booking.location}\n\nThank you for your trust! Please leave us a review: ${pricing.reviewLink || 'https://google.com'}`;
+        
         if (booking.email && pricing.isEmailVerificationEnabled) {
-          await handleEmailNotification(booking.email, 'სერვისი დასრულებულია - Luca\'s AutoSpa', message);
+          await handleEmailNotification(booking.email, lang === 'GE' ? 'სერვისი დასრულებულია - Luca\'s AutoSpa' : 'Service Completed - Luca\'s AutoSpa', message);
+        }
+        
+        if (booking.phone) {
+          // Send completion message even if admin notifications are off
+          await handleWhatsAppNotification(booking.phone, message);
         }
       }
       setShowActionsId(null);
@@ -3058,6 +3088,12 @@ function AdminDashboard({ onBack, pricing }: { onBack: () => void, pricing: Pric
   };
 
   const deleteBooking = async (id: string) => {
+    const confirmMsg = lang === 'GE'
+      ? "ნამდვილად გსურთ ამ ჯავშნის წაშლა? ეს ქმედება შეუქცევადია."
+      : "Are you sure you want to delete this booking? This action cannot be undone.";
+
+    if (!window.confirm(confirmMsg)) return;
+
     try {
       const booking = bookings.find(b => b.id === id);
       await deleteDoc(doc(db, 'bookings', id));
@@ -3233,7 +3269,7 @@ function AdminDashboard({ onBack, pricing }: { onBack: () => void, pricing: Pric
                         exit={{ height: 0, opacity: 0 }}
                         className="border-t border-slate-800 bg-slate-950/50"
                       >
-                        <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div className="p-5 grid grid-cols-1 sm:grid-cols-3 gap-6">
                           <div className="space-y-4">
                             <div>
                               <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">საკონტაქტო</p>
@@ -3257,6 +3293,29 @@ function AdminDashboard({ onBack, pricing }: { onBack: () => void, pricing: Pric
                               </p>
                             </div>
                           </div>
+                          
+                          <div className="space-y-4">
+                            <div>
+                              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">სერვისის დეტალები</p>
+                              <div className="space-y-1 text-sm text-slate-300">
+                                <p><span className="text-slate-500">მანქანა:</span> {booking.carModel || '-'}</p>
+                                <p><span className="text-slate-500">თარიღი:</span> {booking.date} {booking.timeSlot}</p>
+                                <p><span className="text-slate-500">ფასი:</span> <span className="text-green-400 font-bold">{booking.finalPrice || '-'}₾</span></p>
+                                {booking.promoCode && (
+                                  <p><span className="text-slate-500">პრომო:</span> <span className="text-blue-400 font-medium">{booking.promoCode}</span> (-{booking.discountAmount}₾)</p>
+                                )}
+                              </div>
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">დაჯავშნის თარიღი</p>
+                              <p className="text-xs text-slate-500">
+                                {booking.createdAt?.seconds 
+                                  ? format(new Date(booking.createdAt.seconds * 1000), 'MMM dd, yyyy HH:mm')
+                                  : '-'}
+                              </p>
+                            </div>
+                          </div>
+
                           <div className="space-y-4">
                             <div>
                               <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">სტატუსი</p>
@@ -3357,7 +3416,7 @@ function ReviewsManager({ pricing, onBack }: { pricing: PricingSettings, onBack:
             <div className="w-10 h-10 bg-blue-600/10 text-blue-500 rounded-xl flex items-center justify-center">
               <Users className="w-5 h-5" />
             </div>
-            <h3 className="text-xl font-bold text-white">მთავარი გვერდის რევიუები</h3>
+            <h3 className="text-xl font-bold text-white">მთავარი გვერდის შეფასებები</h3>
           </div>
           <Button 
             variant="outline" 
@@ -3744,7 +3803,7 @@ function PricingManager({ pricing, onBack }: { pricing: PricingSettings, onBack:
           </div>
           
           <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">რევიუ ლინკი</label>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">შეფასების ლინკი</label>
             <input 
               type="text"
               value={localPricing.reviewLink || ''}

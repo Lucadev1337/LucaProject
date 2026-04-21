@@ -58,7 +58,7 @@ import {
   Smartphone,
   ChevronDown
 } from 'lucide-react';
-import { format, addDays, startOfToday, isSameDay, parseISO } from 'date-fns';
+import { format, addDays, startOfToday, isSameDay, parseISO, isToday, startOfMonth, endOfMonth } from 'date-fns';
 import { ka } from 'date-fns/locale';
 import { cn } from './lib/utils';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
@@ -1315,6 +1315,18 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
     return finalPrice;
   };
 
+  const getDaysInMonth = (date: Date) => {
+    const start = startOfToday() > new Date(date.getFullYear(), date.getMonth(), 1) 
+      ? startOfToday() 
+      : new Date(date.getFullYear(), date.getMonth(), 1);
+    const end = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+    const days = [];
+    for (let d = start; d <= end; d = addDays(d, 1)) {
+      days.push(new Date(d));
+    }
+    return days;
+  };
+
   const applyPromoCode = async () => {
     if (!promoCodeInput) return;
     setIsApplyingPromo(true);
@@ -1343,6 +1355,78 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
     }
   };
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+  const [bookedDays, setBookedDays] = useState<string[]>([]);
+  const [unavailableDays, setUnavailableDays] = useState<string[]>([]);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+
+  useEffect(() => {
+    const fetchMonthStatus = async () => {
+      try {
+        const start = format(startOfMonth(currentMonth), 'yyyy-MM-dd');
+        const end = format(endOfMonth(currentMonth), 'yyyy-MM-dd');
+        
+        // 1. Fetch booked days
+        const qBooked = query(
+          collection(db, 'taken_slots'),
+          where('date', '>=', start),
+          where('date', '<=', end)
+        );
+        
+        const bookedSnap = await getDocs(qBooked);
+        const booked = bookedSnap.docs.map(d => d.data().date);
+        
+        // 2. Fetch all availability for the month to find blocked days
+        const qAvail = query(
+          collection(db, 'availability'),
+          where('__name__', '>=', start),
+          where('__name__', '<=', end)
+        );
+        const availSnap = await getDocs(qAvail);
+        const availDocs = availSnap.docs.reduce((acc, d) => {
+          acc[d.id] = (d.data() as Availability).slots;
+          return acc;
+        }, {} as Record<string, string[]>);
+
+        // A day is unavailable if:
+        // - It's already booked (1 booking per day rule)
+        // - OR it has no slots defined in availability
+        // - OR all slots are in the past (handled in render usually, but good to know)
+        
+        setBookedDays([...new Set(booked)]);
+        
+        // Find days in this month range that have no slots
+        const monthDays = getDaysInMonth(currentMonth);
+        const unavail: string[] = [];
+        const now = new Date();
+        const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
+
+        monthDays.forEach(d => {
+          const dStr = format(d, 'yyyy-MM-dd');
+          const slots = availDocs[dStr] || [];
+          
+          // Filter out past slots if it's today
+          let activeSlots = [...slots];
+          if (isToday(d)) {
+            activeSlots = activeSlots.filter(slot => {
+               const [hours, minutes] = slot.split(':').map(Number);
+               const slotDate = new Date(d.getFullYear(), d.getMonth(), d.getDate(), hours, minutes);
+               return slotDate > oneHourFromNow;
+            });
+          }
+
+          if (booked.includes(dStr) || activeSlots.length === 0) {
+            unavail.push(dStr);
+          }
+        });
+        setUnavailableDays(unavail);
+
+      } catch (e) {
+        console.error('Error fetching month status:', e);
+      }
+    };
+    fetchMonthStatus();
+  }, [currentMonth]);
+
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
@@ -1356,7 +1440,6 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
   const [verificationError, setVerificationError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [expandedService, setExpandedService] = useState<string | 'all' | null>(null);
-  const [currentMonth, setCurrentMonth] = useState(new Date());
   const [showTermsPopup, setShowTermsPopup] = useState(false);
   const [promoCodeInput, setPromoCodeInput] = useState('');
   const [appliedPromo, setAppliedPromo] = useState<PromoCode | null>(null);
@@ -1407,14 +1490,14 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
               where('date', '==', dateStr)
             );
             const takenSnap = await getDocs(takenSlotsQuery);
-            const takenSlots = takenSnap.docs.map(d => d.data().timeSlot);
             
-            // Filter out past slots or slots less than 1 hour away
+            // Enforce 1 booking per day rule
+            if (!takenSnap.empty) continue;
+
             const now = new Date();
             const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
             
             const available = slots.filter(slot => {
-              if (takenSlots.includes(slot)) return false;
               const [hours, minutes] = slot.split(':').map(Number);
               const [year, month, day] = dateStr.split('-').map(Number);
               const slotDate = new Date(year, month - 1, day, hours, minutes);
@@ -1435,18 +1518,6 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
 
     findSoonestAvailable();
   }, [initialPlan]);
-
-  const getDaysInMonth = (date: Date) => {
-    const start = startOfToday() > new Date(date.getFullYear(), date.getMonth(), 1) 
-      ? startOfToday() 
-      : new Date(date.getFullYear(), date.getMonth(), 1);
-    const end = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-    const days = [];
-    for (let d = start; d <= end; d = addDays(d, 1)) {
-      days.push(new Date(d));
-    }
-    return days;
-  };
 
   const dates = getDaysInMonth(currentMonth);
 
@@ -1472,9 +1543,14 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
         where('date', '==', date)
       );
       const takenSnap = await getDocs(takenSlotsQuery);
-      const takenSlots = takenSnap.docs.map(d => d.data().timeSlot);
       
-      let filteredSlots = baseSlots.filter(s => !takenSlots.includes(s));
+      // Enforce 1 booking per day rule
+      if (!takenSnap.empty) {
+        setAvailableSlots([]);
+        return;
+      }
+      
+      let filteredSlots = [...baseSlots];
 
       // Filter out past slots or slots less than 1 hour away
       const now = new Date();
@@ -1616,6 +1692,30 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error || 'Invalid code');
+      }
+
+      // Pre-submission validation: Double check availability and time limit
+      const now = new Date();
+      const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
+      const [hours, minutes] = bookingData.timeSlot!.split(':').map(Number);
+      const [year, month, day] = bookingData.date!.split('-').map(Number);
+      const slotDate = new Date(year, month - 1, day, hours, minutes);
+
+      if (slotDate <= oneHourFromNow) {
+        throw new Error(lang === 'GE' 
+          ? 'სამწუხაროდ, ამ დროის დაჯავშნა აღარ არის შესაძლებელი (მინუმუმ 1 საათით ადრე).' 
+          : 'Sorry, this slot is no longer available (must book at least 1 hour in advance).');
+      }
+
+      const takenCheckQuery = query(
+        collection(db, 'taken_slots'),
+        where('date', '==', bookingData.date)
+      );
+      const takenCheckSnap = await getDocs(takenCheckQuery);
+      if (!takenCheckSnap.empty) {
+        throw new Error(lang === 'GE'
+          ? 'სამწუხაროდ, ეს დღე უკვე დაკავებულია.'
+          : 'Sorry, this day is already booked.');
       }
 
       setIsSubmitting(true);
@@ -1935,22 +2035,27 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                   </div>
                 </div>
 
-                {/* Horizontal Date Picker */}
                 <div className="flex gap-3 overflow-x-auto px-4 pt-4 pb-6 no-scrollbar -mx-4">
                   {dates.map((date) => {
-                    const isSelected = bookingData.date === format(date, 'yyyy-MM-dd');
+                    const dateStr = format(date, 'yyyy-MM-dd');
+                    const isSelected = bookingData.date === dateStr;
+                    const isUnavailable = unavailableDays.includes(dateStr);
+                    
                     return (
                       <button
                         key={date.toISOString()}
+                        disabled={isUnavailable}
                         onClick={() => {
-                          setBookingData({ ...bookingData, date: format(date, 'yyyy-MM-dd'), timeSlot: undefined });
-                          track('Date Selected', { date: format(date, 'yyyy-MM-dd') });
+                          setBookingData({ ...bookingData, date: dateStr, timeSlot: undefined });
+                          track('Date Selected', { date: dateStr });
                         }}
                         className={cn(
-                          "flex-shrink-0 w-14 h-20 rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all duration-500 border",
+                          "flex-shrink-0 w-14 h-20 rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all duration-500 border relative",
                           isSelected 
                             ? "bg-blue-400 border-blue-400 text-slate-950 shadow-2xl shadow-blue-400/30 scale-105" 
-                            : "bg-slate-900/40 backdrop-blur-xl border-white/5 text-slate-400 hover:border-white/10"
+                            : isUnavailable
+                              ? "bg-slate-900/20 border-white/[0.02] text-slate-700 cursor-not-allowed opacity-50"
+                              : "bg-slate-900/40 backdrop-blur-xl border-white/5 text-slate-400 hover:border-white/10"
                         )}
                       >
                         <span className="text-[9px] font-black uppercase tracking-widest">{format(date, 'EEE', { locale: lang === 'GE' ? ka : undefined })}</span>
@@ -1960,6 +2065,11 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                             layoutId="date-indicator"
                             className="absolute -bottom-1 w-1 h-1 bg-white rounded-full"
                           />
+                        )}
+                        {isUnavailable && !isSelected && (
+                          <div className="absolute top-1 right-1">
+                             <div className="w-1.5 h-1.5 bg-slate-800 rounded-full" />
+                          </div>
                         )}
                       </button>
                     );
@@ -3923,7 +4033,9 @@ function AvailabilityManager({ onBack }: { onBack: () => void }) {
   };
 
   const timeOptions = [
-    '08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00'
+    '08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', 
+    '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', 
+    '16:00', '16:30', '17:00', '17:30', '18:00', '18:30', '19:00'
   ];
 
   return (

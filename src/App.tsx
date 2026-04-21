@@ -802,8 +802,8 @@ export default function App() {
               <div>
                 <h4 className="text-white font-semibold mb-3 text-sm">{t.contact}</h4>
                 <div className="flex flex-col gap-2 text-xs">
-                  <a href="tel:+995591952473" className="flex items-center gap-2 hover:text-blue-400">
-                    <Phone className="w-3 h-3" /> +995 591 952 473
+                  <a href="tel:+995579129698" className="flex items-center gap-2 hover:text-blue-400">
+                    <Phone className="w-3 h-3" /> +995 579 129 698
                   </a>
                   <a href="mailto:hello@lucasautospa.ge" className="flex items-center gap-2 hover:text-blue-400">
                     <Mail className="w-3 h-3" /> hello@lucasautospa.ge
@@ -845,7 +845,7 @@ export default function App() {
         {/* Floating Action Button - Hidden on booking page */}
         {view !== 'booking' && (
           <a 
-            href="https://wa.me/995591952473" 
+            href="https://wa.me/995579129698" 
             target="_blank" 
             rel="noopener noreferrer"
             className="fixed bottom-4 right-4 z-50 bg-green-600 text-white p-3 rounded-full shadow-2xl hover:scale-110 transition-transform active:scale-90"

@@ -106,21 +106,18 @@ const translations = {
       { title: "მოქნილობა", desc: "ჩვენ მოვალთ თქვენს ლოკაციაზე. ნებისმიერ ადგილას, ნებისმიერ დროს." }
     ],
     pricingTitle: "მისაღები ფასები",
-    pricingDesc: "აირჩიეთ თქვენთვის სასურველი პაკეტი.",
-    standardClean: "ინტერიერის წმენდა",
-    premiumDeepClean: "ინტერიერის პრემიუმ დითეილინგი",
+    standardClean: "ინტერიერის დეტალური ქიმწმენდა",
+    pricingDesc: "პროფესიონალური დითეილინგი თქვენს მისამართზე.",
     perService: "/ სერვისი ადგილზე",
     sale: "ფასდაკლება",
-    mostPopular: "ყველაზე პოპულარული",
-    selectStandard: "აირჩიეთ სტანდარტული",
-    selectPremium: "აირჩიეთ პრემიუმი",
+    selectStandard: "დაჯავშნა",
     readyForNew: "მზად ხართ ",
     readyForNewSpan: "სიახლისთვის?",
     ctaDesc: "ენდეთ Luca's AutoSpa-ს და დაუბრუნეთ თქვენს ავტომობილს პირვანდელი სახე.",
     fiveStar: "5-ვარსკვლავიანი",
     googleReviews: "მომხმარებლების შეფასებები",
     mobile: "მოძრავი",
-    footerDesc: "ინტერიერის პრემიუმ დითეილინგი, სასურველ მისამართზე. თქვენ ზოგავთ დროს და ენერგიას, ჩვენ მოვდივართ თქვენს მისამართზე და ვუბრუნებთ ავტომობილს პირვანდელი იერსახეს.",
+    footerDesc: "ინტერიერის დეტალური დითეილინგი, სასურველ მისამართზე. თქვენ ზოგავთ დროს და ენერგიას, ჩვენ მოვდივართ თქვენს მისამართზე და ვუბრუნებთ ავტომობილს პირვანდელი იერსახეს.",
     serviceArea: "მომსახურების არეალი",
     serviceAreaDesc: "გამოძახება თბილისის მასშტაბით.",
     contact: "კონტაქტი",
@@ -184,18 +181,14 @@ const translations = {
     premium: "მაღალი ხარისხი",
     standardDetails: [
       "სრული სალონის მტვერსასრუტით წმენდა",
-      "მტვრის მოცილება და ტილოთი წმენდა",
-      "მინების წმენდა (გარედან და შიგნიდან)",
-      "ხალიჩების ქიმწმენდა",
-      "ჰაერის არომატიზაცია"
-    ],
-    premiumDetails: [
-      "სრული სტანდარტული პაკეტი",
       "პროფესიონალური საშუალებებით და ფუნჯით ღრმა ქიმწმენდა",
       "ჭერზე ლაქების მოცილება",
       "სავარძლების ღრმა წმენდა",
       "ყველა დეტალის სიღრმისეული დამუშავება",
-      "ანტიწვიმა ყველა მინაზე"
+      "მინების წმენდა (გარედან და შიგნიდან)",
+      "ხალიჩების ქიმწმენდა",
+      "ანტიწვიმა ყველა მინაზე",
+      "ჰაერის არომატიზაცია"
     ],
     howItWorks: "როგორ ვმუშაობთ",
     steps: [
@@ -220,22 +213,19 @@ const translations = {
       { title: "Professionalism", desc: "We use premium chemicals and steam technology." },
       { title: "Flexibility", desc: "We come to your location. Anywhere, anytime." }
     ],
-    pricingTitle: "Affordable Pricing",
-    pricingDesc: "Choose the package that suits you.",
-    standardClean: "Standard Clean",
-    premiumDeepClean: "Premium Deep Clean",
+    pricingTitle: "Affordable Price",
+    pricingDesc: "Professional detailing at your desired address.",
+    standardClean: "Detailed Interior Dry Cleaning",
     perService: "/ on-site service",
     sale: "Sale",
-    mostPopular: "Most Popular",
-    selectStandard: "Select Standard",
-    selectPremium: "Select Premium",
+    selectStandard: "Book Now",
     readyForNew: "Ready for ",
     readyForNewSpan: "something new?",
     ctaDesc: "Trust Luca's AutoSpa and give your car its original look back.",
     fiveStar: "5-Star",
     googleReviews: "Google Reviews",
     mobile: "Mobile",
-    footerDesc: "Premium interior cleaning at your desired address. You save time and energy, we come to your address and restore your car's original look.",
+    footerDesc: "Detailed interior detailing at your doorstep. You save time and energy, we come to your address and restore your car's original look.",
     serviceArea: "Service Area",
     serviceAreaDesc: "Tbilisi. Mobile service at your door.",
     contact: "Contact",
@@ -299,18 +289,14 @@ const translations = {
     premium: "Premium",
     standardDetails: [
       "Full interior vacuum cleaning",
-      "Dust removal and wiping",
-      "Glass cleaning (inside and out)",
-      "Mat cleaning",
-      "Air freshening"
-    ],
-    premiumDetails: [
-      "Full standard package",
       "Professional brush and foam cleaning",
       "Ceiling stain removal",
       "Deep seat cleaning",
       "Thorough cleaning of all details",
-      "Rain repellent on all windows"
+      "Glass cleaning (inside and out)",
+      "Mat cleaning",
+      "Rain repellent on all windows",
+      "Air freshening"
     ],
     howItWorks: "How it works",
     steps: [
@@ -327,7 +313,7 @@ interface Booking {
   carModel: string;
   phone: string;
   email?: string;
-  service: 'Basic' | 'Premium';
+  service: string;
   date: string;
   timeSlot: string;
   location: string;
@@ -360,9 +346,6 @@ interface PromoCode {
 
 interface PricingSettings {
   basicPrice: number;
-  premiumPrice: number;
-  basicSalePercentage?: number;
-  premiumSalePercentage?: number;
   salePercentage: number;
   isSaleActive: boolean;
   heroReviews?: HeroReview[];
@@ -765,7 +748,6 @@ export default function App() {
                 pricing={pricing} 
                 t={t} 
                 lang={lang} 
-                initialPlan={selectedPlan}
                 onViewTerms={() => setView('terms')}
               />
             ) : view === 'terms' ? (
@@ -886,9 +868,9 @@ function PublicSite({ onBookNow, pricing, t, lang, isLoading }: { onBookNow: (pl
     }
   };
 
-  const getPrice = (base: number, type: 'Basic' | 'Premium') => {
+  const getPrice = (base: number) => {
     if (pricing.isSaleActive) {
-      const discount = type === 'Basic' ? (pricing.basicSalePercentage || 0) : (pricing.premiumSalePercentage || 0);
+      const discount = pricing.salePercentage || 0;
       return Math.round(base * (1 - discount / 100));
     }
     return base;
@@ -1092,107 +1074,59 @@ function PublicSite({ onBookNow, pricing, t, lang, isLoading }: { onBookNow: (pl
             <p className="text-sm md:text-base text-slate-400 max-w-2xl mx-auto">{t.pricingDesc}</p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-            {/* Basic Package */}
+          <div className="max-w-xl mx-auto relative z-10">
+            {/* Unified Plan */}
             <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-            >
-              <Card className="flex flex-col h-full bg-slate-900/40 backdrop-blur-xl border-white/5 hover:border-blue-400/50 transition-all duration-500 group overflow-hidden rounded-[2rem]">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-400/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div className="p-6 relative z-10">
-                  <div className="mb-6">
-                    <h3 className="text-xl font-black mb-3 text-white">{t.standardClean}</h3>
-                    <div className="flex items-baseline gap-2">
-                      {isLoading ? (
-                        <Skeleton className="h-10 w-24" />
-                      ) : (
-                        <>
-                          {pricing.isSaleActive ? (
-                            <>
-                              <span className="text-3xl font-black text-white">{getPrice(pricing.basicPrice, 'Basic')}₾</span>
-                              <span className="text-lg text-slate-500 line-through">{pricing.basicPrice}₾</span>
-                            </>
-                          ) : (
-                            <span className="text-3xl font-black text-white">{pricing.basicPrice}₾</span>
-                          )}
-                        </>
-                      )}
-                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{t.perService}</span>
-                    </div>
-                    {pricing.isSaleActive && (pricing.basicSalePercentage || 0) > 0 && (
-                      <div className="mt-3 inline-block bg-green-500/20 text-green-400 text-[10px] font-black px-2 py-1 rounded-full uppercase tracking-wider border border-green-500/20">
-                        -{pricing.basicSalePercentage}% {t.sale}
-                      </div>
-                    )}
-                  </div>
-                  <ul className="space-y-3 mb-8">
-                    {t.standardDetails.map((item, i) => (
-                      <li key={i} className="flex items-center gap-2.5 text-xs text-slate-300">
-                        <div className="w-4 h-4 rounded-full bg-slate-400/10 flex items-center justify-center flex-shrink-0">
-                          <CheckCircle className="w-3 h-3 text-slate-400" />
-                        </div>
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                  <Button variant="outline" className="w-full py-5 rounded-xl border-white/5 text-white hover:bg-white/5 transition-all text-sm font-black" onClick={() => scrollToBooking('Basic')}>
-                    {t.selectStandard}
-                  </Button>
-                </div>
-              </Card>
-            </motion.div>
-
-            {/* Premium Package */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
             >
               <Card className="flex flex-col h-full bg-slate-900/60 backdrop-blur-xl border-blue-400/30 ring-1 ring-blue-400/10 relative overflow-hidden group rounded-[2rem]">
                 <div className="absolute top-0 right-0 bg-blue-400 text-slate-950 px-3 py-1 rounded-bl-xl text-[10px] font-black uppercase tracking-widest shadow-lg">
-                  {t.mostPopular}
+                  {t.bestValue}
                 </div>
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-400/10 to-transparent opacity-50" />
-                <div className="p-6 relative z-10">
-                  <div className="mb-6">
-                    <h3 className="text-xl font-black mb-3 text-white">{t.premiumDeepClean}</h3>
-                    <div className="flex items-baseline gap-2">
+                <div className="p-6 md:p-8 relative z-10">
+                  <div className="mb-6 text-center sm:text-left">
+                    <h3 className="text-2xl font-black mb-3 text-white">{t.standardClean}</h3>
+                    <div className="flex items-baseline justify-center sm:justify-start gap-2">
                       {isLoading ? (
                         <Skeleton className="h-10 w-24" />
                       ) : (
                         <>
                           {pricing.isSaleActive ? (
                             <>
-                              <span className="text-3xl font-black text-white">{getPrice(pricing.premiumPrice, 'Premium')}₾</span>
-                              <span className="text-lg text-slate-500 line-through">{pricing.premiumPrice}₾</span>
+                              <span className="text-4xl font-black text-white">{Math.round(pricing.basicPrice * (1 - (pricing.salePercentage || 0) / 100))}₾</span>
+                              <span className="text-xl text-slate-500 line-through">{pricing.basicPrice}₾</span>
                             </>
                           ) : (
-                            <span className="text-3xl font-black text-white">{pricing.premiumPrice}₾</span>
+                            <span className="text-4xl font-black text-white">{pricing.basicPrice}₾</span>
                           )}
                         </>
                       )}
                       <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{t.perService}</span>
                     </div>
-                    {pricing.isSaleActive && (pricing.premiumSalePercentage || 0) > 0 && (
+                    {pricing.isSaleActive && (pricing.salePercentage || 0) > 0 && (
                       <div className="mt-3 inline-block bg-green-500/20 text-green-400 text-[10px] font-black px-2 py-1 rounded-full uppercase tracking-wider border border-green-500/20">
-                        -{pricing.premiumSalePercentage}% {t.sale}
+                        -{pricing.salePercentage}% {t.sale}
                       </div>
                     )}
                   </div>
-                  <ul className="space-y-3 mb-8">
-                    {t.premiumDetails.map((item, i) => (
+                  <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3 mb-8">
+                    {t.standardDetails.map((item: string, i: number) => (
                       <li key={i} className="flex items-center gap-2.5 text-xs text-slate-300">
-                        <div className="w-4 h-4 rounded-full bg-[#30c3fc]/10 flex items-center justify-center flex-shrink-0">
-                          <CheckCircle className="w-3 h-3 text-[#30c3fc]" />
+                        <div className="w-5 h-5 rounded-full bg-blue-400/10 flex items-center justify-center flex-shrink-0">
+                          <CheckCircle className="w-3.5 h-3.5 text-blue-400 shadow-[0_0_10px_rgba(48,195,252,0.3)]" />
                         </div>
                         {item}
                       </li>
                     ))}
                   </ul>
-                  <Button className="w-full py-5 rounded-xl shadow-2xl shadow-blue-400/20 bg-blue-400 hover:bg-blue-300 text-slate-950 transition-all font-black text-sm" onClick={() => scrollToBooking('Premium')}>
-                    {t.selectPremium}
+                  <Button 
+                    className="w-full py-6 rounded-2xl bg-blue-500 hover:bg-blue-400 text-slate-950 font-black transition-all text-base shadow-xl shadow-blue-500/20 active:scale-95" 
+                    onClick={() => scrollToBooking()}
+                  >
+                    {t.selectStandard}
                   </Button>
                 </div>
               </Card>
@@ -1304,23 +1238,23 @@ function PublicSite({ onBookNow, pricing, t, lang, isLoading }: { onBookNow: (pl
 
 // --- Booking Page ---
 
-function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { onBack: () => void, pricing: PricingSettings, t: any, lang: Language, initialPlan?: 'Basic' | 'Premium', onViewTerms?: () => void, key?: string }) {
+function BookingPage({ onBack, pricing, t, lang, onViewTerms }: { onBack: () => void, pricing: PricingSettings, t: any, lang: Language, onViewTerms?: () => void, key?: string }) {
   const [step, setStep] = useState(1);
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [step]);
   const [bookingData, setBookingData] = useState<Partial<Booking>>({
-    service: initialPlan,
+    service: 'Basic',
     status: 'pending',
     date: format(startOfToday(), 'yyyy-MM-dd')
   });
 
-  const getPrice = (service: 'Basic' | 'Premium') => {
-    const base = service === 'Basic' ? pricing.basicPrice : pricing.premiumPrice;
+  const getPrice = () => {
+    const base = pricing.basicPrice;
     let finalPrice = base;
     
     if (pricing.isSaleActive) {
-      const discount = service === 'Basic' ? (pricing.basicSalePercentage || 0) : (pricing.premiumSalePercentage || 0);
+      const discount = pricing.salePercentage || 0;
       finalPrice = Math.round(base * (1 - discount / 100));
     }
 
@@ -1477,10 +1411,9 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
   }, []);
 
   const steps = [
-    { id: 1, label: t.chooseService, icon: Zap, completed: !!bookingData.service },
-    { id: 2, label: t.chooseDate, icon: Calendar, completed: !!(bookingData.date && bookingData.timeSlot) },
-    { id: 3, label: t.location, icon: MapPin, completed: !!bookingData.location },
-    { id: 4, label: lang === 'GE' ? 'საკონტაქტო ინფორმაცია' : 'Contact Info', icon: Users, completed: !!(bookingData.customerName && bookingData.carModel && (currentMethod === 'email' ? !!bookingData.email : !!bookingData.phone)) }
+    { id: 1, label: t.chooseDate, icon: Calendar, completed: !!(bookingData.date && bookingData.timeSlot) },
+    { id: 2, label: t.location, icon: MapPin, completed: !!bookingData.location },
+    { id: 3, label: lang === 'GE' ? 'საკონტაქტო ინფორმაცია' : 'Contact Info', icon: Users, completed: !!(bookingData.customerName && bookingData.carModel && (currentMethod === 'email' ? !!bookingData.email : !!bookingData.phone)) }
   ];
 
   const currentStep = steps.find(s => !s.completed)?.id || 1;
@@ -1533,7 +1466,7 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
     };
 
     findSoonestAvailable();
-  }, [initialPlan]);
+  }, []);
 
   const dates = getDaysInMonth(currentMonth);
 
@@ -1654,19 +1587,14 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
     const shouldBypass = typeof bypassTermsCheck === 'boolean' ? bypassTermsCheck : false;
     setFormError(null);
     
-    if (!bookingData.service) {
-      setStep(1);
-      setFormError(t.errorService);
-      return;
-    }
     if (!bookingData.date || !bookingData.timeSlot) {
-      setStep(2);
+      setStep(1);
       setFormError(t.errorDateTime);
       return;
     }
-    // Phone was required in step 4
+    // Phone was required in step 3
     if (!bookingData.location || !bookingData.customerName || !bookingData.phone) {
-      setStep(3);
+      setStep(2);
       setFormError(t.fillAllFields);
       return;
     }
@@ -1740,7 +1668,7 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
           status: 'pending',
           promoCode: appliedPromo?.code || null,
           discountAmount: appliedPromo ? appliedPromo.discount : 0,
-          finalPrice: getPrice(bookingData.service as any),
+          finalPrice: getPrice(),
           verificationMethod: sessionVerificationMethod,
           customerEmail: bookingData.email || null,
           createdAt: serverTimestamp()
@@ -1748,8 +1676,8 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
         
         // Track booking event
         track('Booking Confirmed', {
-          service: bookingData.service || 'Unknown',
-          price: getPrice(bookingData.service as any),
+          service: 'Detailed Interior Clean',
+          price: getPrice(),
           promoCode: appliedPromo?.code || null,
           method: sessionVerificationMethod
         });
@@ -1772,7 +1700,7 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                 verificationMethod: sessionVerificationMethod,
                 customerEmail: bookingData.email || null
               },
-              price: getPrice(bookingData.service as 'Basic' | 'Premium'),
+              price: getPrice(),
               bookingId: bookingRef.id,
               promoCode: appliedPromo?.code || null,
               customerMethod: sessionVerificationMethod,
@@ -1903,133 +1831,6 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
               className="space-y-6"
             >
               <div className="space-y-4">
-                <h2 className="text-xl font-black text-white tracking-tight">{t.chooseService}</h2>
-                <div className="space-y-3">
-                  {[
-                    { 
-                      id: 'Basic', 
-                      title: t.standardClean, 
-                      price: getPrice('Basic'), 
-                      originalPrice: pricing.basicPrice,
-                      details: t.standardDetails
-                    },
-                    { 
-                      id: 'Premium', 
-                      title: t.premiumDeepClean, 
-                      price: getPrice('Premium'), 
-                      originalPrice: pricing.premiumPrice,
-                      details: t.premiumDetails
-                    }
-                  ].map((s) => (
-                    <div key={s.id} className="space-y-2">
-                      <button
-                        onClick={() => {
-                          setBookingData({ ...bookingData, service: s.id as any });
-                          setExpandedService(expandedService === s.id ? null : s.id);
-                          track('Service Selected', { service: s.id });
-                        }}
-                        className={cn(
-                          "w-full flex items-center justify-between p-4 rounded-[1.5rem] border transition-all duration-500 text-left relative overflow-hidden group",
-                          bookingData.service === s.id 
-                            ? "bg-blue-400/10 border-blue-400 ring-1 ring-blue-400/50 shadow-2xl shadow-blue-400/10" 
-                            : "bg-slate-900/40 backdrop-blur-xl border-white/5 hover:border-white/10"
-                        )}
-                      >
-                        <div className="flex items-center gap-4 relative z-10 w-full">
-                          <div className={cn(
-                            "w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all duration-300",
-                            bookingData.service === s.id ? "bg-blue-600 border-blue-600 shadow-lg shadow-blue-500/20" : "bg-transparent border-white/10"
-                          )}>
-                            {bookingData.service === s.id && (
-                              <motion.div
-                                initial={{ scale: 0, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                              >
-                                <Check className="w-4 h-4 text-white" strokeWidth={3} />
-                              </motion.div>
-                            )}
-                          </div>
-
-                          <div className="flex-1">
-                            <h3 className="text-lg font-black text-white">{s.title}</h3>
-                            <div className="flex items-baseline gap-2">
-                              <p className={cn(
-                                "text-base font-black",
-                                bookingData.service === s.id ? "text-blue-400" : "text-slate-400"
-                              )}>{s.price}₾</p>
-                              {pricing.isSaleActive && (
-                                <p className="text-xs text-slate-600 line-through">{s.originalPrice}₾</p>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className={cn(
-                            "p-2 rounded-full transition-all duration-300",
-                            expandedService === s.id ? "bg-blue-600/10 text-blue-400 rotate-180" : "text-slate-600"
-                          )}>
-                            <ChevronDown className="w-5 h-5" />
-                          </div>
-                        </div>
-                      </button>
-                      
-                      <AnimatePresence>
-                        {expandedService === s.id && (
-                          <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            className="overflow-hidden"
-                          >
-                            <div className="p-6 bg-slate-900/40 backdrop-blur-xl rounded-2xl border border-white/5 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
-                              {s.details.map((detail, idx) => (
-                                <motion.div 
-                                  key={idx} 
-                                  initial={{ opacity: 0, x: -10 }}
-                                  animate={{ opacity: 1, x: 0 }}
-                                  transition={{ delay: idx * 0.05 }}
-                                  className="flex items-center gap-3 text-xs text-slate-300 group/item"
-                                >
-                                  <div className={cn(
-                                    "w-5 h-5 rounded-lg flex items-center justify-center flex-shrink-0 transition-transform group-hover/item:scale-110",
-                                    s.id === 'Premium' ? "bg-blue-400/20 text-blue-400" : "bg-slate-700/30 text-slate-500"
-                                  )}>
-                                    <CheckCircle className="w-3 h-3" />
-                                  </div>
-                                  <span className="font-medium">{detail}</span>
-                                </motion.div>
-                              ))}
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="pt-6">
-                <Button 
-                  onClick={() => setStep(2)} 
-                  disabled={!bookingData.service}
-                  className="w-full py-5 rounded-[2rem] bg-blue-600 hover:bg-blue-700 font-black text-lg shadow-2xl shadow-blue-600/20 flex gap-3"
-                >
-                  <span>{lang === 'GE' ? 'გაგრძელება' : 'Continue'}</span>
-                  <ChevronRight className="w-6 h-6" />
-                </Button>
-              </div>
-            </motion.section>
-          )}
-
-          {step === 2 && (
-            <motion.section 
-              key="step2"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              className="space-y-6"
-            >
-              <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-xl font-black text-white tracking-tight">{t.chooseDate}</h2>
                   <div className="flex items-center gap-2 bg-slate-900/40 backdrop-blur-xl p-1 rounded-xl border border-white/5">
@@ -2143,30 +1944,22 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                 )}
               </div>
 
-              <div className="flex gap-4 pt-6">
+              <div className="pt-6">
                 <Button 
-                  onClick={() => setStep(1)} 
-                  variant="ghost"
-                  className="flex-1 py-5 rounded-[2rem] border border-white/5 font-black text-lg gap-3"
-                >
-                  <ChevronLeft className="w-6 h-6" />
-                  <span>{lang === 'GE' ? 'უკან' : 'Back'}</span>
-                </Button>
-                <Button 
-                  onClick={() => setStep(3)} 
+                  onClick={() => setStep(2)} 
                   disabled={!bookingData.date || !bookingData.timeSlot}
-                  className="flex-[2] py-5 rounded-[2rem] bg-blue-600 hover:bg-blue-700 font-black text-lg shadow-2xl shadow-blue-600/30 flex gap-3 relative overflow-hidden group"
+                  className="w-full py-5 rounded-[2rem] bg-blue-600 hover:bg-blue-700 font-black text-lg shadow-2xl shadow-blue-600/20 flex gap-3"
                 >
                   <span>{lang === 'GE' ? 'გაგრძელება' : 'Continue'}</span>
-                  <ChevronRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
+                  <ChevronRight className="w-6 h-6" />
                 </Button>
               </div>
             </motion.section>
           )}
 
-          {step === 3 && (
+          {step === 2 && (
             <motion.section 
-              key="step3"
+              key="step2"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
@@ -2202,7 +1995,7 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
 
                 <div className="flex gap-4 pt-6">
                   <Button 
-                    onClick={() => setStep(2)} 
+                    onClick={() => setStep(1)} 
                     variant="ghost"
                     className="flex-1 py-5 rounded-[1.5rem] border border-white/5 font-black text-lg gap-3"
                   >
@@ -2212,7 +2005,7 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                   <Button 
                     onClick={() => {
                       if (bookingData.location) {
-                        setStep(4);
+                        setStep(3);
                         setFormError(null);
                       } else {
                         setFormError(t.errorLocation);
@@ -2228,9 +2021,9 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
             </motion.section>
           )}
 
-          {step === 4 && (
+          {step === 3 && (
             <motion.section 
-              key="step4"
+              key="step3"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
@@ -2345,7 +2138,7 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
 
                 <div className="flex gap-4 pt-6">
                   <Button 
-                    onClick={() => setStep(3)} 
+                    onClick={() => setStep(2)} 
                     variant="ghost"
                     className="flex-1 py-5 rounded-[1.5rem] border border-white/5 font-black text-lg gap-3"
                   >
@@ -2355,7 +2148,7 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                   <Button 
                     onClick={() => {
                       if (bookingData.customerName && bookingData.carModel && bookingData.phone) {
-                        setStep(5);
+                        setStep(4);
                         setFormError(null);
                       } else {
                         setFormError(t.fillAllFields || 'გთხოვთ შეავსოთ ყველა ველი');
@@ -2371,9 +2164,9 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
             </motion.section>
           )}
 
-          {step === 5 && (
+          {step === 4 && (
             <motion.section 
-              key="step5"
+              key="step4"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
@@ -2388,13 +2181,13 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
                   {/* Service Summary */}
                   <div className="flex items-start gap-4 pb-6 border-b border-white/5">
                     <div className="w-12 h-12 bg-blue-400/10 text-blue-400 rounded-2xl flex items-center justify-center flex-shrink-0">
-                      {bookingData.service === 'Premium' ? <Star className="w-6 h-6" /> : <Zap className="w-6 h-6" />}
+                      <Zap className="w-6 h-6" />
                     </div>
                     <div>
                       <h3 className="font-black text-white text-lg">
-                        {bookingData.service === 'Premium' ? t.premiumDeepClean : t.standardClean}
+                        {t.standardClean}
                       </h3>
-                      <p className="text-blue-400 font-black text-xl">{getPrice(bookingData.service as any)}₾</p>
+                      <p className="text-blue-400 font-black text-xl">{getPrice()}₾</p>
                     </div>
                   </div>
 
@@ -2534,7 +2327,7 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
 
                 <div className="flex gap-4 pt-6">
                   <Button 
-                    onClick={() => setStep(4)} 
+                    onClick={() => setStep(3)} 
                     variant="ghost"
                     className="flex-1 py-5 rounded-[1.5rem] border border-white/5 font-black text-lg gap-3"
                   >
@@ -2604,20 +2397,13 @@ function BookingPage({ onBack, pricing, t, lang, initialPlan, onViewTerms }: { o
 
         <section className="mb-8">
           <h2 className="text-2xl font-bold text-white mb-4">2. სერვისის აღწერა</h2>
-          <h3 className="text-xl font-bold text-white mb-2">2.1 ინტერიერის წმენდა</h3>
-          <p>სტანდარტული პაკეტი მოიცავს:</p>
+          <h3 className="text-xl font-bold text-white mb-2">2.1 ინტერიერის დეტალური ქიმწმენდა</h3>
+          <p>მომსახურება მოიცავს:</p>
           <ul className="list-disc pl-6 space-y-2">
             <li>სრული სალონის მტვერსასრუტით წმენდა</li>
-            <li>მტვრის მოცილება და ზედაპირების წმენდა</li>
             <li>მინების წმენდა (შიგნიდან და გარედან)</li>
             <li>ხალიჩების წმენდა</li>
             <li>ჰაერის არომატიზაცია</li>
-          </ul>
-
-          <h3 className="text-xl font-bold text-white mt-6 mb-2">2.2 ინტერიერის პრემიუმ დითეილინგი</h3>
-          <p>პრემიუმ პაკეტი მოიცავს:</p>
-          <ul className="list-disc pl-6 space-y-2">
-            <li>სტანდარტული პაკეტის ყველა სერვისი</li>
             <li>პროფესიონალური ქაფით და ფუნჯით ღრმა წმენდა</li>
             <li>ჭერზე ლაქების მოცილება</li>
             <li>სავარძლების ღრმა წმენდა</li>
@@ -2917,20 +2703,13 @@ function TermsOfService({ onBack, t }: { onBack: () => void, t: any, key?: strin
 
         <section className="mb-8">
           <h2 className="text-2xl font-bold text-white mb-4">2. სერვისის აღწერა</h2>
-          <h3 className="text-xl font-bold text-white mb-2">2.1 ინტერიერის წმენდა</h3>
-          <p>სტანდარტული პაკეტი მოიცავს:</p>
+          <h3 className="text-xl font-bold text-white mb-2">2.1 ინტერიერის დეტალური ქიმწმენდა</h3>
+          <p>მომსახურება მოიცავს:</p>
           <ul className="list-disc pl-6 space-y-2">
             <li>სრული სალონის მტვერსასრუტით წმენდა</li>
-            <li>მტვრის მოცილება და ზედაპირების წმენდა</li>
             <li>მინების წმენდა (შიგნიდან და გარედან)</li>
             <li>ხალიჩების წმენდა</li>
             <li>ჰაერის არომატიზაცია</li>
-          </ul>
-
-          <h3 className="text-xl font-bold text-white mt-6 mb-2">2.2 ინტერიერის პრემიუმ დითეილინგი</h3>
-          <p>პრემიუმ პაკეტი მოიცავს:</p>
-          <ul className="list-disc pl-6 space-y-2">
-            <li>სტანდარტული პაკეტის ყველა სერვისი</li>
             <li>პროფესიონალური ქაფით და ფუნჯით ღრმა წმენდა</li>
             <li>ჭერზე ლაქების მოცილება</li>
             <li>სავარძლების ღრმა წმენდა</li>
@@ -3621,7 +3400,6 @@ function PricingManager({ pricing, onBack }: { pricing: PricingSettings, onBack:
     setIsSaving(true);
     try {
       await setDoc(doc(db, 'settings', 'pricing'), localPricing);
-      // Success
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, 'settings/pricing');
     } finally {
@@ -3644,13 +3422,13 @@ function PricingManager({ pricing, onBack }: { pricing: PricingSettings, onBack:
             <div className="w-10 h-10 bg-blue-600/10 text-blue-500 rounded-xl flex items-center justify-center">
               <Zap className="w-5 h-5" />
             </div>
-            <h3 className="text-xl font-bold text-white">სერვისების ფასები</h3>
+            <h3 className="text-xl font-bold text-white">სერვისის ფასი</h3>
           </div>
           
           <div className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500">ინტერიერი (₾)</label>
+                <label className="text-xs font-bold text-slate-500">ფასი (₾)</label>
                 <input 
                   type="number"
                   value={localPricing.basicPrice}
@@ -3659,32 +3437,11 @@ function PricingManager({ pricing, onBack }: { pricing: PricingSettings, onBack:
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500">ინტერიერი -%</label>
+                <label className="text-xs font-bold text-slate-500">აქციის ფასდაკლება (%)</label>
                 <input 
                   type="number"
-                  value={localPricing.basicSalePercentage || 0}
-                  onChange={(e) => setLocalPricing({ ...localPricing, basicSalePercentage: Number(e.target.value) })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500">პრემიუმი (₾)</label>
-                <input 
-                  type="number"
-                  value={localPricing.premiumPrice}
-                  onChange={(e) => setLocalPricing({ ...localPricing, premiumPrice: Number(e.target.value) })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500">პრემიუმი -%</label>
-                <input 
-                  type="number"
-                  value={localPricing.premiumSalePercentage || 0}
-                  onChange={(e) => setLocalPricing({ ...localPricing, premiumSalePercentage: Number(e.target.value) })}
+                  value={localPricing.salePercentage || 0}
+                  onChange={(e) => setLocalPricing({ ...localPricing, salePercentage: Number(e.target.value) })}
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all"
                 />
               </div>

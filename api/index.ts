@@ -130,7 +130,8 @@ app.post('/api/verify-otp', async (req, res) => {
       throw new Error('Verification code expired');
     }
 
-    if (data.code !== code) {
+    console.log('Verifying OTP:', { key, codeProvided: code, expectedCode: data.code });
+    if (data.code.toString().trim() !== code.toString().trim()) {
       throw new Error('Invalid verification code');
     }
 
@@ -220,7 +221,8 @@ app.post('/api/notify-booking', async (req, res) => {
     const { bookingData, price, bookingId, promoCode, customerMethod, customerEmail, lang } = req.body;
     const serviceName = bookingData.service === 'Premium' ? (lang === 'GE' ? 'პრემიუმ დითეილინგი' : 'Premium Detailing') : (lang === 'GE' ? 'სტანდარტული წმენდა' : 'Standard Cleaning');
     
-    // Update booking metadata
+    // Update booking metadata (Removed redundant update as frontend already sends these fields)
+    /*
     if (bookingId && db) {
       try {
         await updateDoc(doc(db, 'bookings', bookingId), {
@@ -231,6 +233,7 @@ app.post('/api/notify-booking', async (req, res) => {
         console.error('Failed to update booking metadata', e);
       }
     }
+    */
     
     // 1. Send Admin Notification (WhatsApp)
     if (db) {

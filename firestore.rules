@@ -13,6 +13,7 @@ service cloud.firestore {
     }
     match /bookings/{bookingId} {
       allow create: if true;
+      allow get: if true;
       allow update: if isAdmin() || (
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['verificationMethod', 'customerEmail'])
       );

@@ -4202,6 +4202,11 @@ function ConfirmationPage({ onBack, t, lang }: { onBack: () => void, t: any, lan
       colors: ['#30c3fc', '#ffffff', '#2563eb']
     });
     window.scrollTo(0, 0);
+
+    // Google Ads Conversion tracking
+    if (typeof (window as any).gtag === 'function') {
+      (window as any).gtag('event', 'conversion', {'send_to': 'AW-16454245812/j7DHCPb7w54cELS7_6U9'});
+    }
   }, []);
 
   return (

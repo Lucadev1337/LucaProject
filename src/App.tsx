@@ -871,7 +871,7 @@ const Card = ({ children, className, ...props }: { children: React.ReactNode, cl
 // --- Main App ---
 
 export default function App() {
-  const [view, setView] = useState<'public' | 'admin' | 'booking' | 'terms'>('public');
+  const [view, setView] = useState<'public' | 'admin' | 'booking' | 'terms' | 'confirmation'>('public');
   const [selectedPlan, setSelectedPlan] = useState<'Basic' | 'Premium' | undefined>(undefined);
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -904,6 +904,14 @@ export default function App() {
     if (savedLang && (savedLang === 'GE' || savedLang === 'EN')) {
       setLang(savedLang);
       setIsLangSelected(true);
+    }
+
+    // Check URL parameters for view
+    const params = new URLSearchParams(window.location.search);
+    const viewParam = params.get('view');
+    if (viewParam === 'confirmation') {
+      setView('confirmation');
+      setIsLangSelected(true); // Don't block confirmation page with language selector
     }
 
     // Fetch pricing
@@ -1034,8 +1042,8 @@ export default function App() {
         "min-h-screen font-sans transition-colors duration-300 bg-slate-950 text-slate-100",
         lang === 'GE' && "lang-ge"
       )}>
-        {/* Navigation - Hidden on booking page */}
-        {view !== 'booking' && (
+        {/* Navigation - Hidden on booking/confirmation page */}
+        {view !== 'booking' && view !== 'confirmation' && (
           <nav className="fixed top-0 left-0 right-0 z-50 bg-slate-900/80 backdrop-blur-lg border-b border-slate-800">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex justify-between h-16 items-center">
@@ -1126,9 +1134,18 @@ export default function App() {
                 t={t} 
                 lang={lang} 
                 onViewTerms={() => setView('terms')}
+                onSuccess={() => {
+                  setView('confirmation');
+                  window.history.pushState(null, '', '/?view=confirmation');
+                }}
               />
             ) : view === 'terms' ? (
               <TermsOfService key="terms" onBack={() => setView('public')} t={t} />
+            ) : view === 'confirmation' ? (
+              <ConfirmationPage key="confirmation" onBack={() => {
+                setView('public');
+                window.history.pushState(null, '', '/');
+              }} t={t} lang={lang} />
             ) : isAdmin ? (
               <AdminDashboard key="admin" onBack={() => setView('public')} pricing={pricing} lang={lang} />
             ) : (
@@ -1206,8 +1223,8 @@ export default function App() {
           </footer>
         )}
 
-        {/* Floating Action Button - Show on all non-admin pages */}
-        {view !== 'admin' && (
+          {/* Floating Action Button - Show on all non-admin/confirmation pages */}
+        {view !== 'admin' && view !== 'confirmation' && (
           <a 
             href="tel:+995579129698" 
             className="fixed bottom-4 right-4 z-50 bg-blue-600 text-white p-4 rounded-full shadow-2xl hover:scale-110 hover:shadow-blue-500/20 transition-all active:scale-90"
@@ -1623,7 +1640,7 @@ function PublicSite({ onBookNow, pricing, t, lang, isLoading }: { onBookNow: (pl
 
 // --- Booking Page ---
 
-function BookingPage({ onBack, pricing, t, lang, onViewTerms }: { onBack: () => void, pricing: PricingSettings, t: any, lang: Language, onViewTerms?: () => void, key?: string }) {
+function BookingPage({ onBack, pricing, t, lang, onViewTerms, onSuccess }: { onBack: () => void, pricing: PricingSettings, t: any, lang: Language, onViewTerms?: () => void, onSuccess?: () => void, key?: string }) {
   const [step, setStep] = useState(1);
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -2098,12 +2115,9 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms }: { onBack: () => 
         }
 
         setIsSuccess(true);
-        confetti({
-          particleCount: 150,
-          spread: 70,
-          origin: { y: 0.6 },
-          colors: ['#30c3fc', '#ffffff', '#2563eb']
-        });
+        if (onSuccess) {
+          onSuccess();
+        }
     } catch (error: any) {
       console.error('Verification error:', error);
       
@@ -2118,23 +2132,10 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms }: { onBack: () => 
     }
   };
 
-  if (isSuccess) {
+  if (isSuccess && !onSuccess) {
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 text-center">
-        <motion.div 
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="w-24 h-24 bg-blue-600 rounded-full flex items-center justify-center mb-8 shadow-2xl shadow-blue-500/20"
-        >
-          <Check className="w-12 h-12 text-white" />
-        </motion.div>
-        <h1 className="text-3xl font-bold mb-4 text-white">{t.bookingConfirmed}</h1>
-        <p className="text-slate-400 mb-12 max-w-md">
-          {t.successDesc}
-        </p>
-        <Button onClick={onBack} className="w-full max-w-xs py-4 bg-blue-600 hover:bg-blue-700">
-          {t.backToHome}
-        </Button>
+...
       </div>
     );
   }
@@ -4158,6 +4159,59 @@ function PromoCodeManager({ onBack }: { onBack: () => void }) {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function ConfirmationPage({ onBack, t, lang }: { onBack: () => void, t: any, lang: Language, key?: string }) {
+  useEffect(() => {
+    confetti({
+      particleCount: 150,
+      spread: 70,
+      origin: { y: 0.6 },
+      colors: ['#30c3fc', '#ffffff', '#2563eb']
+    });
+    window.scrollTo(0, 0);
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 text-center relative overflow-hidden">
+      {/* Background Depth */}
+      <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/10 blur-[120px] rounded-full animate-pulse" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-400/10 blur-[120px] rounded-full animate-pulse" style={{ animationDelay: '2s' }} />
+      </div>
+
+      <motion.div 
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 200, damping: 15 }}
+        className="relative z-10 w-full max-w-lg"
+      >
+        <div className="w-24 h-24 bg-blue-600 rounded-[2rem] flex items-center justify-center mb-8 shadow-2xl shadow-blue-500/20 mx-auto transform rotate-12">
+          <Check className="w-12 h-12 text-white -rotate-12" />
+        </div>
+        
+        <h1 className="text-3xl md:text-4xl font-black mb-4 text-white font-orbitron tracking-tight uppercase leading-tight">
+          {t.bookingConfirmed}
+        </h1>
+        
+        <div className="w-16 h-1 bg-blue-600 mx-auto mb-8 rounded-full" />
+        
+        <p className="text-slate-400 mb-12 max-w-md mx-auto text-base md:text-lg leading-relaxed">
+          {t.successDesc}
+        </p>
+
+        <div className="flex flex-col gap-4 max-w-xs mx-auto">
+          <Button 
+            onClick={onBack} 
+            className="w-full py-5 bg-blue-600 hover:bg-blue-700 rounded-[2rem] text-lg font-black shadow-2xl shadow-blue-600/30 group flex items-center justify-center gap-3"
+          >
+            <span>{t.backToHome}</span>
+            <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+          </Button>
+        </div>
+      </motion.div>
     </div>
   );
 }

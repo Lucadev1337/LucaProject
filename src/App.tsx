@@ -878,6 +878,12 @@ function PublicSite({ onBookNow, pricing, t, lang, isLoading }: { onBookNow: (pl
       animate={{ opacity: 1 }} 
       exit={{ opacity: 0 }}
     >
+      {/* Preload Hero/Results Images for zero-lag carousel */}
+      <div className="hidden" aria-hidden="true">
+        {heroImages.map((src, i) => (
+          <img key={i} src={src} loading="eager" decoding="async" />
+        ))}
+      </div>
       {/* Hero Section */}
       <section className="relative pt-24 pb-16 px-4 overflow-hidden">
         {/* Parallax Background */}

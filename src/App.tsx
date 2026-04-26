@@ -1100,7 +1100,6 @@ function PublicSite({ onBookNow, pricing, t, lang, isLoading }: { onBookNow: (pl
                           )}
                         </>
                       )}
-                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{t.perService}</span>
                     </div>
                     {pricing.isSaleActive && (pricing.salePercentage || 0) > 0 && (
                       <div className="mt-3 inline-block bg-green-500/20 text-green-400 text-[10px] font-black px-2 py-1 rounded-full uppercase tracking-wider border border-green-500/20">
@@ -1119,10 +1118,14 @@ function PublicSite({ onBookNow, pricing, t, lang, isLoading }: { onBookNow: (pl
                     ))}
                   </ul>
                   <Button 
-                    className="w-full py-6 rounded-2xl bg-blue-500 hover:bg-blue-400 text-slate-950 font-black transition-all text-base shadow-xl shadow-blue-500/20 active:scale-95" 
+                    className="w-full py-7 rounded-2xl bg-blue-500 hover:bg-blue-400 text-slate-950 font-black transition-all text-base shadow-xl shadow-blue-500/20 active:scale-95 group/btn overflow-hidden relative" 
                     onClick={() => scrollToBooking()}
                   >
-                    {t.selectStandard}
+                    <span className="relative z-10 flex items-center justify-center gap-2">
+                      {t.selectStandard}
+                      <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover/btn:translate-x-1" />
+                    </span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-1000" />
                   </Button>
                 </div>
               </Card>

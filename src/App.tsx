@@ -195,7 +195,150 @@ const translations = {
       { title: "დაჯავშნა", desc: "აირჩიეთ სასურველი სერვისი და დრო ონლაინ." },
       { title: "მოვდივართ თქვენთან", desc: "ჩვენი გუნდი მოვა თქვენს მისამართზე საჭირო აღჭურვილობით." },
       { title: "ისიამოვნეთ შედეგით", desc: "მიიღეთ იდეალურად სუფთა ავტომობილი სახლიდან გაუსვლელად." }
-    ]
+    ],
+    terms: {
+      spaName: "Luca’s AutoSpa",
+      sections: [
+        {
+          title: "1. ზოგადი ინფორმაცია",
+          content: "Luca’s AutoSpa წარმოადგენს მოძრავ სერვისს, რომელიც უზრუნველყოფს ავტომობილის ინტერიერის პროფესიონალურ წმენდას თბილისში. სერვისის გამოყენებით მომხმარებელი ავტომატურად ეთანხმება ქვემოთ ჩამოთვლილ წესებსა და პირობებს."
+        },
+        {
+          title: "2. სერვისის აღწერა",
+          subtitle: "2.1 ინტერიერის დეტალური ქიმწმენდა",
+          listTitle: "მომსახურება მოიცავს:",
+          items: [
+            "სრული სალონის მტვერსასრუტით წმენდა",
+            "მინების წმენდა",
+            "ხალიჩების წმენდა",
+            "ჰაერის არომატიზაცია",
+            "პროფესიონალური ქაფით და ფუნჯით ღრმა წმენდა",
+            "ჭერზე ლაქების მოცილება",
+            "სავარძლების ღრმა წმენდა"
+          ]
+        },
+        {
+          title: "3. მომსახურების პირობები",
+          items: [
+            "სერვისი ხორციელდება მხოლოდ თბილისის ტერიტორიაზე",
+            "Luca’s AutoSpa უზრუნველყოფს მომსახურებას კლიენტის მიერ მითითებულ ლოკაციაზე",
+            "კლიენტი ვალდებულია უზრუნველყოს:",
+            {
+              subItems: [
+                "საკმარისი ადგილი ჩვენი სერვისის ავტომობილის გვერდზე დაყენებისთვის დენის მიწოდების მიზნით"
+              ]
+            }
+          ]
+        },
+        {
+          title: "4. გადახდა",
+          items: [
+            "გადახდა ხდება ადგილზე:",
+            {
+              subItems: [
+                "ნაღდი ანგარიშსწორებით",
+                "ან საბანკო გადარიცხვით"
+              ]
+            },
+            "Luca’s AutoSpa იტოვებს უფლებას შეცვალოს ფასი ადგილზე, თუ ავტომობილის მდგომარეობა მნიშვნელოვნად განსხვავდება წინასწარ აღწერილისგან"
+          ]
+        },
+        {
+          title: "5. ჯავშნის გაუქმება და გადადება",
+          items: [
+            "კლიენტმა უნდა გააუქმოს ჯავშანი მინიმუმ 2 საათით ადრე",
+            "დაგვიანებული გაუქმების შემთხვევაში, კლიენტი ვალდებულია გადაიხადოს სერვისის 50%",
+            "Luca’s AutoSpa იტოვებს უფლებას გადადოს ან გააუქმოს სერვისი:",
+            {
+              subItems: [
+                "ცუდი ამინდის პირობებში",
+                "ტექნიკური პრობლემების შემთხვევაში"
+              ]
+            }
+          ]
+        },
+        {
+          title: "6. დაგვიანება",
+          items: [
+            "თუ კლიენტი აგვიანებს 15 წუთზე მეტით,",
+            {
+              subItems: [
+                "ჯავშანი ავტომატურად გაუქმდება",
+                "კლიენტს ეკისრება სერვისის 100% გადახდა"
+              ]
+            },
+            "თუ Luca’s AutoSpa ვერ ახერხებს დროულად მისვლას,",
+            {
+              subItems: [
+                "კლიენტს უფლება აქვს გააუქმოს ჯავშანი ყოველგვარი გადასახადის გარეშე"
+              ]
+            }
+          ]
+        },
+        {
+          title: "7. პასუხისმგებლობა",
+          items: [
+            "კლიენტი ვალდებულია სერვისის დასრულებისთანავე შეამოწმოს ავტომობილი",
+            "Luca’s AutoSpa არ აგებს პასუხს იმ დაზიანებებზე, რომლებიც დაფიქსირდება თანამშრომლის წასვლის შემდეგ",
+            "Luca’s AutoSpa არ არის პასუხისმგებელი:",
+            {
+              subItems: [
+                "უკვე არსებულ დაზიანებებზე",
+                "ძველ, ღრმად გამჯდარ ლაქებზე",
+                "ბუნებრივი ცვეთის შედეგად წარმოქმნილ დეფექტებზე",
+                "ავტომობილის ელექტრონიკის შესაძლო გაუმართაობაზე, თუ დაზიანება არ არის პირდაპირ გამოწვეული დაუდევრობით"
+              ]
+            }
+          ]
+        },
+        {
+          title: "8. ავტომობილში არსებული ნივთები",
+          items: [
+            "კლიენტი ვალდებულია მომსახურებამდე ამოიღოს ავტომობილიდან ყველა პირადი და ძვირფასი ნივთი",
+            "Luca’s AutoSpa არ აგებს პასუხს დაკარგულ ან დაზიანებულ ნივთებზე"
+          ]
+        },
+        {
+          title: "9. მომსახურებაზე უარის თქმის უფლება",
+          content: "Luca’s AutoSpa იტოვებს უფლებას უარი თქვას სერვისის შესრულებაზე, თუ:",
+          items: [
+            "ავტომობილი არის უკიდურესად ბინძური",
+            "არსებობს ბიოლოგიური ან ჯანმრთელობისთვის საშიში გარემო"
+          ]
+        },
+        {
+          title: "10. დამატებითი საფასური",
+          content: "განსაკუთრებულად დაბინძურებული ავტომობილის შემთხვევაში, Luca’s AutoSpa-ს აქვს უფლება:",
+          items: [
+            "შესთავაზოს დამატებითი საფასური",
+            "ან უარი თქვას მომსახურებაზე"
+          ]
+        },
+        {
+          title: "11. შედეგის შეზღუდვა",
+          items: [
+            "Luca’s AutoSpa არ იძლევა გარანტიას ყველა ლაქის 100%-იან მოცილებაზე",
+            "ზოგიერთი ლაქა შეიძლება იყოს მუდმივი და არ ექვემდებარებოდეს სრულად გაწმენდას"
+          ]
+        },
+        {
+          title: "12. ფოტო და ვიდეო მასალა",
+          content: "სერვისის გამოყენებით, კლიენტი ავტომატურად აძლევს Luca’s AutoSpa-ს უფლებას გადაიღოს ავტომობილის ფოტო და ვიდეო მასალა და გამოიყენოს იგი მარკეტინგული მიზნებისთვის (სოციალური ქსელები, რეკლამა)."
+        },
+        {
+          title: "13. ონლაინ ჯავშანი და მონაცემები",
+          items: [
+            "ვებსაიტზე (www.lucasautospa.ge) ჯავშნის გაკეთებით მომხმარებელი ეთანხმება ამ წესებს",
+            "საიტი შეიძლება იყენებდეს ქუქიებს (Cookies) მომხმარებლისთვის სერვისის გაუმჯობესებისთვის",
+            "მომხმარებლის მონაცემები გამოიყენება მხოლოდ სერვისის მიწოდების მიზნით და არ გადაეცემა მესამე პირებს"
+          ]
+        },
+        {
+          title: "14. ცვლილებები",
+          content: "Luca’s AutoSpa იტოვებს უფლებას ნებისმიერ დროს შეცვალოს აღნიშნული წესები და პირობები წინასწარი შეტყობინების გარეშე."
+        }
+      ]
+    }
   },
   EN: {
     socialMedia: "Social Media",
@@ -303,7 +446,150 @@ const translations = {
       { title: "Booking", desc: "Choose your desired service and time online." },
       { title: "We come to you", desc: "Our team will come to your address with the necessary equipment." },
       { title: "Enjoy the result", desc: "Get a perfectly clean car without leaving your home." }
-    ]
+    ],
+    terms: {
+      spaName: "Luca’s AutoSpa",
+      sections: [
+        {
+          title: "1. General Information",
+          content: "Luca’s AutoSpa is a mobile service providing professional car interior cleaning in Tbilisi. By using the service, the user automatically agrees to the terms and conditions listed below."
+        },
+        {
+          title: "2. Service Description",
+          subtitle: "2.1 Detailed Interior Dry Cleaning",
+          listTitle: "The service includes:",
+          items: [
+            "Full interior vacuuming",
+            "Glass cleaning",
+            "Mat cleaning",
+            "Air freshening",
+            "Professional foam and brush deep cleaning",
+            "Ceiling stain removal",
+            "Deep seat cleaning"
+          ]
+        },
+        {
+          title: "3. Service Conditions",
+          items: [
+            "Service is provided only within the territory of Tbilisi",
+            "Luca’s AutoSpa provides service at the location specified by the client",
+            "The client is responsible for providing:",
+            {
+              subItems: [
+                "Sufficient space to park our service vehicle alongside for power supply purposes"
+              ]
+            }
+          ]
+        },
+        {
+          title: "4. Payment",
+          items: [
+            "Payment is made on-site:",
+            {
+              subItems: [
+                "By cash",
+                "Or by bank transfer"
+              ]
+            },
+            "Luca’s AutoSpa reserves the right to change the price on-site if the car's condition differs significantly from the preliminary description"
+          ]
+        },
+        {
+          title: "5. Booking Cancellation and Rescheduling",
+          items: [
+            "The client must cancel the booking at least 2 hours in advance",
+            "In case of late cancellation, the client is obliged to pay 50% of the service fee",
+            "Luca’s AutoSpa reserves the right to postpone or cancel the service:",
+            {
+              subItems: [
+                "In case of bad weather conditions",
+                "In case of technical problems"
+              ]
+            }
+          ]
+        },
+        {
+          title: "6. Late Arrival",
+          items: [
+            "If the client is late by more than 15 minutes,",
+            {
+              subItems: [
+                "The booking will be automatically cancelled",
+                "The client is responsible for paying 100% of the service fee"
+              ]
+            },
+            "If Luca’s AutoSpa is unable to arrive on time,",
+            {
+              subItems: [
+                "The client has the right to cancel the booking without any charge"
+              ]
+            }
+          ]
+        },
+        {
+          title: "7. Responsibility",
+          items: [
+            "The client is obliged to check the car immediately upon completion of the service",
+            "Luca’s AutoSpa is not responsible for damages recorded after the employee's departure",
+            "Luca’s AutoSpa is not responsible for:",
+            {
+              subItems: [
+                "Pre-existing damages",
+                "Old, deeply embedded stains",
+                "Defects resulting from natural wear and tear",
+                "Possible malfunctions of the car's electronics, unless the damage is directly caused by negligence"
+              ]
+            }
+          ]
+        },
+        {
+          title: "8. Items in the Car",
+          items: [
+            "The client is obliged to remove all personal and valuable items from the car before the service",
+            "Luca’s AutoSpa is not responsible for lost or damaged items"
+          ]
+        },
+        {
+          title: "9. Right to Refuse Service",
+          content: "Luca’s AutoSpa reserves the right to refuse the service if:",
+          items: [
+            "The car is extremely dirty",
+            "There is a biological or health-hazardous environment"
+          ]
+        },
+        {
+          title: "10. Additional Fees",
+          content: "In case of an exceptionally dirty car, Luca’s AutoSpa has the right to:",
+          items: [
+            "Offer an additional fee",
+            "Or refuse service"
+          ]
+        },
+        {
+          title: "11. Result Limitation",
+          items: [
+            "Luca’s AutoSpa does not guarantee 100% removal of all stains",
+            "Some stains may be permanent and not subject to complete cleaning"
+          ]
+        },
+        {
+          title: "12. Photo and Video Material",
+          content: "By using the service, the client automatically gives Luca’s AutoSpa the right to take photos and videos of the car and use them for marketing purposes (social networks, advertising)."
+        },
+        {
+          title: "13. Online Booking and Data",
+          items: [
+            "By making a booking on the website (www.lucasautospa.ge), the user agrees to these rules",
+            "The site may use cookies (Cookies) to improve the service for the user",
+            "User data is used only for the purpose of providing the service and is not transferred to third parties"
+          ]
+        },
+        {
+          title: "14. Changes",
+          content: "Luca’s AutoSpa reserves the right to change these terms and conditions at any time without prior notice."
+        }
+      ]
+    }
   }
 };
 
@@ -2297,7 +2583,7 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms }: { onBack: () => 
                 {!showVerification ? (
                   <div className="space-y-4">
                     <p className="text-[10px] text-slate-500 text-center uppercase tracking-widest font-black">
-                      {lang === 'GE' ? 'აირჩიეთ დადასტურების მეთოდი' : 'Choose Verification Method'}
+                      {t.chooseVerificationMethod}
                     </p>
                     <div className="grid grid-cols-2 gap-3">
                       <Button 
@@ -2399,7 +2685,6 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms }: { onBack: () => 
                   {showVerification && (
                     <Button 
                       onClick={() => handleBookingSubmit()} 
-                      disabled={isSubmitting || isVerifying || isSendingCode}
                       className="flex-[2] py-5 rounded-[1.5rem] bg-blue-600 hover:bg-blue-700 font-black text-lg shadow-2xl shadow-blue-600/30 flex gap-3 relative overflow-hidden group disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed"
                     >
                       {isSubmitting || isVerifying || isSendingCode ? (
@@ -2448,182 +2733,36 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms }: { onBack: () => 
               
               <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
                 <div className="prose prose-invert max-w-none">
-        
-        <section className="mb-8">
-          <h2 className="text-2xl font-bold text-white mb-4">1. ზოგადი ინფორმაცია</h2>
-          <p>Luca’s AutoSpa წარმოადგენს მოძრავ სერვისს, რომელიც უზრუნველყოფს ავტომობილის ინტერიერის პროფესიონალურ წმენდას თბილისში. სერვისის გამოყენებით მომხმარებელი ავტომატურად ეთანხმება ქვემოთ ჩამოთვლილ წესებსა და პირობებს.</p>
-        </section>
+                  <p className="text-xl font-bold text-white mb-6 tracking-tight">{t.terms.spaName}</p>
 
-        <hr className="border-slate-800 my-8" />
+                  {t.terms.sections.map((section, idx) => (
+                    <React.Fragment key={idx}>
+                      <section className="mb-8">
+                        <h2 className="text-2xl font-bold text-white mb-4 tracking-tight">{section.title}</h2>
+                        {section.subtitle && <h3 className="text-xl font-bold text-white mb-2 tracking-tight">{section.subtitle}</h3>}
+                        {section.content && <p className="text-slate-300">{section.content}</p>}
+                        {section.listTitle && <p className="mb-2 text-slate-300 font-semibold">{section.listTitle}</p>}
+                        {section.items && (
+                          <ul className="list-disc pl-6 space-y-2">
+                            {section.items.map((item, i) => (
+                              <li key={i} className="text-slate-300">
+                                {typeof item === 'string' ? item : (
+                                  <ul className="list-disc pl-6 mt-2 space-y-1">
+                                    {item.subItems.map((sub, j) => <li key={j}>{sub}</li>)}
+                                  </ul>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </section>
+                      {idx < t.terms.sections.length - 1 && <hr className="border-slate-800 my-8 opacity-50" />}
+                    </React.Fragment>
+                  ))}
+                </div>
+              </div>
 
-        <section className="mb-8">
-          <h2 className="text-2xl font-bold text-white mb-4">2. სერვისის აღწერა</h2>
-          <h3 className="text-xl font-bold text-white mb-2">2.1 ინტერიერის დეტალური ქიმწმენდა</h3>
-          <p>მომსახურება მოიცავს:</p>
-          <ul className="list-disc pl-6 space-y-2">
-            <li>სრული სალონის მტვერსასრუტით წმენდა</li>
-            <li>მინების წმენდა</li>
-            <li>ხალიჩების წმენდა</li>
-            <li>ჰაერის არომატიზაცია</li>
-            <li>პროფესიონალური ქაფით და ფუნჯით ღრმა წმენდა</li>
-            <li>ჭერზე ლაქების მოცილება</li>
-            <li>სავარძლების ღრმა წმენდა</li>
-          </ul>
-        </section>
-
-        <hr className="border-slate-800 my-8" />
-
-        <section className="mb-8">
-          <h2 className="text-2xl font-bold text-white mb-4">3. მომსახურების პირობები</h2>
-          <ul className="list-disc pl-6 space-y-2">
-            <li>სერვისი ხორციელდება მხოლოდ თბილისის ტერიტორიაზე</li>
-            <li>Luca’s AutoSpa უზრუნველყოფს მომსახურებას კლიენტის მიერ მითითებულ ლოკაციაზე</li>
-            <li>კლიენტი ვალდებულია უზრუნველყოს:
-              <ul className="list-disc pl-6 mt-2 space-y-1">
-                <li>საკმარისი ადგილი ჩვენი სერვისის ავტომობილის გვერდზე დაყენებისთვის დენის მიწოდების მიზნით</li>
-              </ul>
-            </li>
-          </ul>
-        </section>
-
-        <hr className="border-slate-800 my-8" />
-
-        <section className="mb-8">
-          <h2 className="text-2xl font-bold text-white mb-4">4. გადახდა</h2>
-          <ul className="list-disc pl-6 space-y-2">
-            <li>გადახდა ხდება ადგილზე:
-              <ul className="list-disc pl-6 mt-2 space-y-1">
-                <li>ნაღდი ანგარიშსწორებით</li>
-                <li>ან საბანკო გადარიცხვით</li>
-              </ul>
-            </li>
-            <li>Luca’s AutoSpa იტოვებს უფლებას შეცვალოს ფასი ადგილზე, თუ ავტომობილის მდგომარეობა მნიშვნელოვნად განსხვავდება წინასწარ აღწერილისგან</li>
-          </ul>
-        </section>
-
-        <hr className="border-slate-800 my-8" />
-
-        <section className="mb-8">
-          <h2 className="text-2xl font-bold text-white mb-4">5. ჯავშნის გაუქმება და გადადება</h2>
-          <ul className="list-disc pl-6 space-y-2">
-            <li>კლიენტმა უნდა გააუქმოს ჯავშანი მინიმუმ 2 საათით ადრე</li>
-            <li>დაგვიანებული გაუქმების შემთხვევაში, კლიენტი ვალდებულია გადაიხადოს სერვისის 50%</li>
-            <li>Luca’s AutoSpa იტოვებს უფლებას გადადოს ან გააუქმოს სერვისი:
-              <ul className="list-disc pl-6 mt-2 space-y-1">
-                <li>ცუდი ამინდის პირობებში</li>
-                <li>ტექნიკური პრობლემების შემთხვევაში</li>
-              </ul>
-            </li>
-          </ul>
-        </section>
-
-        <hr className="border-slate-800 my-8" />
-
-        <section className="mb-8">
-          <h2 className="text-2xl font-bold text-white mb-4">6. დაგვიანება</h2>
-          <ul className="list-disc pl-6 space-y-2">
-            <li>თუ კლიენტი აგვიანებს 15 წუთზე მეტით,
-              <ul className="list-disc pl-6 mt-2 space-y-1">
-                <li>ჯავშანი ავტომატურად გაუქმდება</li>
-                <li>კლიენტს ეკისრება სერვისის 100% გადახდა</li>
-              </ul>
-            </li>
-            <li>თუ Luca’s AutoSpa ვერ ახერხებს დროულად მისვლას,
-              <ul className="list-disc pl-6 mt-2 space-y-1">
-                <li>კლიენტს უფლება აქვს გააუქმოს ჯავშანი ყოველგვარი გადასახადის გარეშე</li>
-              </ul>
-            </li>
-          </ul>
-        </section>
-
-        <hr className="border-slate-800 my-8" />
-
-        <section className="mb-8">
-          <h2 className="text-2xl font-bold text-white mb-4">7. პასუხისმგებლობა</h2>
-          <ul className="list-disc pl-6 space-y-2">
-            <li>კლიენტი ვალდებულია სერვისის დასრულებისთანავე შეამოწმოს ავტომობილი</li>
-            <li>Luca’s AutoSpa არ აგებს პასუხს იმ დაზიანებებზე, რომლებიც დაფიქსირდება თანამშრომლის წასვლის შემდეგ</li>
-            <li>Luca’s AutoSpa არ არის პასუხისმგებელი:
-              <ul className="list-disc pl-6 mt-2 space-y-1">
-                <li>უკვე არსებულ დაზიანებებზე</li>
-                <li>ძველ, ღრმად გამჯდარ ლაქებზე</li>
-                <li>ბუნებრივი ცვეთის შედეგად წარმოქმნილ დეფექტებზე</li>
-                <li>ავტომობილის ელექტრონიკის შესაძლო გაუმართაობაზე, თუ დაზიანება არ არის პირდაპირ გამოწვეული დაუდევრობით</li>
-              </ul>
-            </li>
-          </ul>
-        </section>
-
-        <hr className="border-slate-800 my-8" />
-
-        <section className="mb-8">
-          <h2 className="text-2xl font-bold text-white mb-4">8. ავტომობილში არსებული ნივთები</h2>
-          <ul className="list-disc pl-6 space-y-2">
-            <li>კლიენტი ვალდებულია მომსახურებამდე ამოიღოს ავტომობილიდან ყველა პირადი და ძვირფასი ნივთი</li>
-            <li>Luca’s AutoSpa არ აგებს პასუხს დაკარგულ ან დაზიანებულ ნივთებზე</li>
-          </ul>
-        </section>
-
-        <hr className="border-slate-800 my-8" />
-
-        <section className="mb-8">
-          <h2 className="text-2xl font-bold text-white mb-4">9. მომსახურებაზე უარის თქმის უფლება</h2>
-          <p>Luca’s AutoSpa იტოვებს უფლებას უარი თქვას სერვისის შესრულებაზე, თუ:</p>
-          <ul className="list-disc pl-6 space-y-2">
-            <li>ავტომობილი არის უკიდურესად ბინძური</li>
-            <li>არსებობს ბიოლოგიური ან ჯანმრთელობისთვის საშიში გარემო</li>
-          </ul>
-        </section>
-
-        <hr className="border-slate-800 my-8" />
-
-        <section className="mb-8">
-          <h2 className="text-2xl font-bold text-white mb-4">10. დამატებითი საფასური</h2>
-          <p>განსაკუთრებულად დაბინძურებული ავტომობილის შემთხვევაში, Luca’s AutoSpa-ს აქვს უფლება:</p>
-          <ul className="list-disc pl-6 space-y-2">
-            <li>შესთავაზოს დამატებითი საფასური</li>
-            <li>ან უარი თქვას მომსახურებაზე</li>
-          </ul>
-        </section>
-
-        <hr className="border-slate-800 my-8" />
-
-        <section className="mb-8">
-          <h2 className="text-2xl font-bold text-white mb-4">11. შედეგის შეზღუდვა</h2>
-          <ul className="list-disc pl-6 space-y-2">
-            <li>Luca’s AutoSpa არ იძლევა გარანტიას ყველა ლაქის 100%-იან მოცილებაზე</li>
-            <li>ზოგიერთი ლაქა შეიძლება იყოს მუდმივი და არ ექვემდებარებოდეს სრულად გაწმენდას</li>
-          </ul>
-        </section>
-
-        <hr className="border-slate-800 my-8" />
-
-        <section className="mb-8">
-          <h2 className="text-2xl font-bold text-white mb-4">12. ფოტო და ვიდეო მასალა</h2>
-          <p>სერვისის გამოყენებით, კლიენტი ავტომატურად აძლევს Luca’s AutoSpa-ს უფლებას გადაიღოს ავტომობილის ფოტო და ვიდეო მასალა და გამოიყენოს იგი მარკეტინგული მიზნებისთვის (სოციალური ქსელები, რეკლამა).</p>
-        </section>
-
-        <hr className="border-slate-800 my-8" />
-
-        <section className="mb-8">
-          <h2 className="text-2xl font-bold text-white mb-4">13. ონლაინ ჯავშანი და მონაცემები</h2>
-          <ul className="list-disc pl-6 space-y-2">
-            <li>ვებსაიტზე (www.lucasautospa.ge) (https://lucasautospa.ge)) ჯავშნის გაკეთებით მომხმარებელი ეთანხმება ამ წესებს</li>
-            <li>საიტი შეიძლება იყენებდეს ქუქიებს (Cookies) მომხმარებლისთვის სერვისის გაუმჯობესებისთვის</li>
-            <li>მომხმარებლის მონაცემები გამოიყენება მხოლოდ სერვისის მიწოდების მიზნით და არ გადაეცემა მესამე პირებს</li>
-          </ul>
-        </section>
-
-        <hr className="border-slate-800 my-8" />
-
-        <section className="mb-8">
-          <h2 className="text-2xl font-bold text-white mb-4">14. ცვლილებები</h2>
-          <p>Luca’s AutoSpa იტოვებს უფლებას ნებისმიერ დროს შეცვალოს აღნიშნული წესები და პირობები წინასწარი შეტყობინების გარეშე.</p>
-        </section>
-      </div>
-    </div>
-
-    <div className="p-6 bg-slate-950/50 border-t border-white/5 flex flex-col gap-3">
+              <div className="p-6 bg-slate-950/50 border-t border-white/5 flex flex-col gap-3">
                 <Button 
                   onClick={() => {
                     setTermsAccepted(true);
@@ -2751,181 +2890,34 @@ function TermsOfService({ onBack, t }: { onBack: () => void, t: any, key?: strin
       </Button>
 
       <div className="prose prose-invert max-w-none">
-        <h1 className="text-4xl font-bold text-white mb-8 font-orbitron">წესები და პირობები</h1>
+        <h1 className="text-4xl font-bold text-white mb-8 font-orbitron">{t.termsTitle}</h1>
         
-        <p className="text-xl font-bold text-white mb-6">Luca’s AutoSpa</p>
+        <p className="text-xl font-bold text-white mb-6">{t.terms.spaName}</p>
 
-        <section className="mb-8">
-          <h2 className="text-2xl font-bold text-white mb-4">1. ზოგადი ინფორმაცია</h2>
-          <p>Luca’s AutoSpa წარმოადგენს მოძრავ სერვისს, რომელიც უზრუნველყოფს ავტომობილის ინტერიერის პროფესიონალურ წმენდას თბილისში. სერვისის გამოყენებით მომხმარებელი ავტომატურად ეთანხმება ქვემოთ ჩამოთვლილ წესებსა და პირობებს.</p>
-        </section>
-
-        <hr className="border-slate-800 my-8" />
-
-        <section className="mb-8">
-          <h2 className="text-2xl font-bold text-white mb-4">2. სერვისის აღწერა</h2>
-          <h3 className="text-xl font-bold text-white mb-2">2.1 ინტერიერის დეტალური ქიმწმენდა</h3>
-          <p>მომსახურება მოიცავს:</p>
-          <ul className="list-disc pl-6 space-y-2">
-            <li>სრული სალონის მტვერსასრუტით წმენდა</li>
-            <li>მინების წმენდა</li>
-            <li>ხალიჩების წმენდა</li>
-            <li>ჰაერის არომატიზაცია</li>
-            <li>პროფესიონალური ქაფით და ფუნჯით ღრმა წმენდა</li>
-            <li>ჭერზე ლაქების მოცილება</li>
-            <li>სავარძლების ღრმა წმენდა</li>
-          </ul>
-        </section>
-
-        <hr className="border-slate-800 my-8" />
-
-        <section className="mb-8">
-          <h2 className="text-2xl font-bold text-white mb-4">3. მომსახურების პირობები</h2>
-          <ul className="list-disc pl-6 space-y-2">
-            <li>სერვისი ხორციელდება მხოლოდ თბილისის ტერიტორიაზე</li>
-            <li>Luca’s AutoSpa უზრუნველყოფს მომსახურებას კლიენტის მიერ მითითებულ ლოკაციაზე</li>
-            <li>კლიენტი ვალდებულია უზრუნველყოს:
-              <ul className="list-disc pl-6 mt-2 space-y-1">
-                <li>საკმარისი ადგილი ჩვენი სერვისის ავტომობილის გვერდზე დაყენებისთვის დენის მიწოდების მიზნით</li>
-              </ul>
-            </li>
-          </ul>
-        </section>
-
-        <hr className="border-slate-800 my-8" />
-
-        <section className="mb-8">
-          <h2 className="text-2xl font-bold text-white mb-4">4. გადახდა</h2>
-          <ul className="list-disc pl-6 space-y-2">
-            <li>გადახდა ხდება ადგილზე:
-              <ul className="list-disc pl-6 mt-2 space-y-1">
-                <li>ნაღდი ანგარიშსწორებით</li>
-                <li>ან საბანკო გადარიცხვით</li>
-              </ul>
-            </li>
-            <li>Luca’s AutoSpa იტოვებს უფლებას შეცვალოს ფასი ადგილზე, თუ ავტომობილის მდგომარეობა მნიშვნელოვნად განსხვავდება წინასწარ აღწერილისგან</li>
-          </ul>
-        </section>
-
-        <hr className="border-slate-800 my-8" />
-
-        <section className="mb-8">
-          <h2 className="text-2xl font-bold text-white mb-4">5. ჯავშნის გაუქმება და გადადება</h2>
-          <ul className="list-disc pl-6 space-y-2">
-            <li>კლიენტმა უნდა გააუქმოს ჯავშანი მინიმუმ 2 საათით ადრე</li>
-            <li>დაგვიანებული გაუქმების შემთხვევაში, კლიენტი ვალდებულია გადაიხადოს სერვისის 50%</li>
-            <li>Luca’s AutoSpa იტოვებს უფლებას გადადოს ან გააუქმოს სერვისი:
-              <ul className="list-disc pl-6 mt-2 space-y-1">
-                <li>ცუდი ამინდის პირობებში</li>
-                <li>ტექნიკური პრობლემების შემთხვევაში</li>
-              </ul>
-            </li>
-          </ul>
-        </section>
-
-        <hr className="border-slate-800 my-8" />
-
-        <section className="mb-8">
-          <h2 className="text-2xl font-bold text-white mb-4">6. დაგვიანება</h2>
-          <ul className="list-disc pl-6 space-y-2">
-            <li>თუ კლიენტი აგვიანებს 15 წუთზე მეტით,
-              <ul className="list-disc pl-6 mt-2 space-y-1">
-                <li>ჯავშანი ავტომატურად გაუქმდება</li>
-                <li>კლიენტს ეკისრება სერვისის 100% გადახდა</li>
-              </ul>
-            </li>
-            <li>თუ Luca’s AutoSpa ვერ ახერხებს დროულად მისვლას,
-              <ul className="list-disc pl-6 mt-2 space-y-1">
-                <li>კლიენტს უფლება აქვს გააუქმოს ჯავშანი ყოველგვარი გადასახადის გარეშე</li>
-              </ul>
-            </li>
-          </ul>
-        </section>
-
-        <hr className="border-slate-800 my-8" />
-
-        <section className="mb-8">
-          <h2 className="text-2xl font-bold text-white mb-4">7. პასუხისმგებლობა</h2>
-          <ul className="list-disc pl-6 space-y-2">
-            <li>კლიენტი ვალდებულია სერვისის დასრულებისთანავე შეამოწმოს ავტომობილი</li>
-            <li>Luca’s AutoSpa არ აგებს პასუხს იმ დაზიანებებზე, რომლებიც დაფიქსირდება თანამშრომლის წასვლის შემდეგ</li>
-            <li>Luca’s AutoSpa არ არის პასუხისმგებელი:
-              <ul className="list-disc pl-6 mt-2 space-y-1">
-                <li>უკვე არსებულ დაზიანებებზე</li>
-                <li>ძველ, ღრმად გამჯდარ ლაქებზე</li>
-                <li>ბუნებრივი ცვეთის შედეგად წარმოქმნილ დეფექტებზე</li>
-                <li>ავტომობილის ელექტრონიკის შესაძლო გაუმართაობაზე, თუ დაზიანება არ არის პირდაპირ გამოწვეული დაუდევრობით</li>
-              </ul>
-            </li>
-          </ul>
-        </section>
-
-        <hr className="border-slate-800 my-8" />
-
-        <section className="mb-8">
-          <h2 className="text-2xl font-bold text-white mb-4">8. ავტომობილში არსებული ნივთები</h2>
-          <ul className="list-disc pl-6 space-y-2">
-            <li>კლიენტი ვალდებულია მომსახურებამდე ამოიღოს ავტომობილიდან ყველა პირადი და ძვირფასი ნივთი</li>
-            <li>Luca’s AutoSpa არ აგებს პასუხს დაკარგულ ან დაზიანებულ ნივთებზე</li>
-          </ul>
-        </section>
-
-        <hr className="border-slate-800 my-8" />
-
-        <section className="mb-8">
-          <h2 className="text-2xl font-bold text-white mb-4">9. მომსახურებაზე უარის თქმის უფლება</h2>
-          <p>Luca’s AutoSpa იტოვებს უფლებას უარი თქვას სერვისის შესრულებაზე, თუ:</p>
-          <ul className="list-disc pl-6 space-y-2">
-            <li>ავტომობილი არის უკიდურესად ბინძური</li>
-            <li>არსებობს ბიოლოგიური ან ჯანმრთელობისთვის საშიში გარემო</li>
-          </ul>
-        </section>
-
-        <hr className="border-slate-800 my-8" />
-
-        <section className="mb-8">
-          <h2 className="text-2xl font-bold text-white mb-4">10. დამატებითი საფასური</h2>
-          <p>განსაკუთრებულად დაბინძურებული ავტომობილის შემთხვევაში, Luca’s AutoSpa-ს აქვს უფლება:</p>
-          <ul className="list-disc pl-6 space-y-2">
-            <li>შესთავაზოს დამატებითი საფასური</li>
-            <li>ან უარი თქვას მომსახურებაზე</li>
-          </ul>
-        </section>
-
-        <hr className="border-slate-800 my-8" />
-
-        <section className="mb-8">
-          <h2 className="text-2xl font-bold text-white mb-4">11. შედეგის შეზღუდვა</h2>
-          <ul className="list-disc pl-6 space-y-2">
-            <li>Luca’s AutoSpa არ იძლევა გარანტიას ყველა ლაქის 100%-იან მოცილებაზე</li>
-            <li>ზოგიერთი ლაქა შეიძლება იყოს მუდმივი და არ ექვემდებარებოდეს სრულად გაწმენდას</li>
-          </ul>
-        </section>
-
-        <hr className="border-slate-800 my-8" />
-
-        <section className="mb-8">
-          <h2 className="text-2xl font-bold text-white mb-4">12. ფოტო და ვიდეო მასალა</h2>
-          <p>სერვისის გამოყენებით, კლიენტი ავტომატურად აძლევს Luca’s AutoSpa-ს უფლებას გადაიღოს ავტომობილის ფოტო და ვიდეო მასალა და გამოიყენოს იგი მარკეტინგული მიზნებისთვის (სოციალური ქსელები, რეკლამა).</p>
-        </section>
-
-        <hr className="border-slate-800 my-8" />
-
-        <section className="mb-8">
-          <h2 className="text-2xl font-bold text-white mb-4">13. ონლაინ ჯავშანი და მონაცემები</h2>
-          <ul className="list-disc pl-6 space-y-2">
-            <li>ვებსაიტზე (www.lucasautospa.ge) (https://lucasautospa.ge)) ჯავშნის გაკეთებით მომხმარებელი ეთანხმება ამ წესებს</li>
-            <li>საიტი შეიძლება იყენებდეს ქუქიებს (Cookies) მომხმარებლისთვის სერვისის გაუმჯობესებისთვის</li>
-            <li>მომხმარებლის მონაცემები გამოიყენება მხოლოდ სერვისის მიწოდების მიზნით და არ გადაეცემა მესამე პირებს</li>
-          </ul>
-        </section>
-
-        <hr className="border-slate-800 my-8" />
-
-        <section className="mb-8">
-          <h2 className="text-2xl font-bold text-white mb-4">14. ცვლილებები</h2>
-          <p>Luca’s AutoSpa იტოვებს უფლებას ნებისმიერ დროს შეცვალოს აღნიშნული წესები და პირობები წინასწარი შეტყობინების გარეშე.</p>
-        </section>
+        {t.terms.sections.map((section, idx) => (
+          <React.Fragment key={idx}>
+            <section className="mb-8">
+              <h2 className="text-2xl font-bold text-white mb-4">{section.title}</h2>
+              {section.subtitle && <h3 className="text-xl font-bold text-white mb-2">{section.subtitle}</h3>}
+              {section.content && <p>{section.content}</p>}
+              {section.listTitle && <p className="mb-2">{section.listTitle}</p>}
+              {section.items && (
+                <ul className="list-disc pl-6 space-y-2">
+                  {section.items.map((item, i) => (
+                    <li key={i}>
+                      {typeof item === 'string' ? item : (
+                        <ul className="list-disc pl-6 mt-2 space-y-1">
+                          {item.subItems.map((sub, j) => <li key={j}>{sub}</li>)}
+                        </ul>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+            {idx < t.terms.sections.length - 1 && <hr className="border-slate-800 my-8" />}
+          </React.Fragment>
+        ))}
       </div>
     </motion.div>
   );

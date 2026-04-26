@@ -185,9 +185,8 @@ const translations = {
       "ჭერზე ლაქების მოცილება",
       "სავარძლების ღრმა წმენდა",
       "ყველა დეტალის სიღრმისეული დამუშავება",
-      "მინების წმენდა (გარედან და შიგნიდან)",
+      "მინების წმენდა",
       "ხალიჩების ქიმწმენდა",
-      "ანტიწვიმა ყველა მინაზე",
       "ჰაერის არომატიზაცია"
     ],
     howItWorks: "როგორ ვმუშაობთ",
@@ -293,9 +292,8 @@ const translations = {
       "Ceiling stain removal",
       "Deep seat cleaning",
       "Thorough cleaning of all details",
-      "Glass cleaning (inside and out)",
+      "Glass cleaning",
       "Mat cleaning",
-      "Rain repellent on all windows",
       "Air freshening"
     ],
     howItWorks: "How it works",
@@ -829,15 +827,13 @@ export default function App() {
           </footer>
         )}
 
-        {/* Floating Action Button - Hidden on booking page */}
-        {view !== 'booking' && (
+        {/* Floating Action Button - Show on all non-admin pages */}
+        {view !== 'admin' && (
           <a 
-            href="https://wa.me/995579129698" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="fixed bottom-4 right-4 z-50 bg-green-600 text-white p-3 rounded-full shadow-2xl hover:scale-110 transition-transform active:scale-90"
+            href="tel:+995579129698" 
+            className="fixed bottom-4 right-4 z-50 bg-blue-600 text-white p-4 rounded-full shadow-2xl hover:scale-110 hover:shadow-blue-500/20 transition-all active:scale-90"
           >
-            <MessageCircle className="w-5 h-5" />
+            <Phone className="w-6 h-6" />
           </a>
         )}
       </div>
@@ -1785,29 +1781,29 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms }: { onBack: () => 
 
       <div className="max-w-2xl mx-auto px-4 pt-24 pb-0 space-y-6">
         {/* Progress Indicator */}
-        <div className="flex items-center justify-between px-2 pt-2">
+        <div className="flex items-center justify-between px-1 md:px-2 pt-2">
           {steps.map((s, i) => (
             <React.Fragment key={s.id}>
               <div 
-                className="flex flex-col items-center gap-2 group cursor-pointer relative" 
+                className="flex flex-col items-center gap-1.5 md:gap-2 group cursor-pointer relative" 
                 onClick={() => (s.completed || s.id < step) && setStep(s.id)}
               >
                 <div className={cn(
-                  "w-12 h-12 rounded-[1.25rem] flex items-center justify-center transition-all duration-700 relative z-10",
-                  step === s.id ? "bg-blue-600 shadow-[0_0_30px_rgba(37,99,235,0.4)] scale-110" : 
+                  "w-9 h-9 md:w-12 md:h-12 rounded-xl md:rounded-[1.25rem] flex items-center justify-center transition-all duration-700 relative z-10",
+                  step === s.id ? "bg-blue-600 shadow-[0_0_20px_rgba(37,99,235,0.4)] scale-110" : 
                   s.id < step ? "bg-blue-600/20 text-blue-400" : "bg-slate-900 border border-white/5 text-slate-600"
                 )}>
-                  {s.id < step ? <CheckCircle className="w-6 h-6" /> : <s.icon className={cn("w-6 h-6", step === s.id ? "text-white" : "")} />}
+                  {s.id < step ? <CheckCircle className="w-5 h-5 md:w-6 md:h-6" /> : <s.icon className={cn("w-5 h-5 md:w-6 md:h-6", step === s.id ? "text-white" : "")} />}
                 </div>
                 <span className={cn(
-                  "text-[9px] font-black uppercase tracking-[0.2em] transition-all duration-500 text-center",
+                  "text-[7px] md:text-[9px] font-black uppercase tracking-[0.1em] md:tracking-[0.2em] transition-all duration-500 text-center",
                   step === s.id ? "text-blue-400 translate-y-0 opacity-100" : "text-slate-600 opacity-60"
                 )}>
                   {s.label}
                 </span>
               </div>
               {i < steps.length - 1 && (
-                <div className="flex-1 h-[2px] mx-2 mb-6 bg-slate-900 overflow-hidden rounded-full relative">
+                <div className="flex-1 h-[1px] md:h-[2px] mx-1 md:mx-2 mb-5 md:mb-6 bg-slate-900 overflow-hidden rounded-full relative">
                   <motion.div 
                     className="absolute inset-0 bg-blue-600 shadow-[0_0_15px_rgba(37,99,235,0.5)]"
                     initial={{ scaleX: 0 }}
@@ -1852,7 +1848,18 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms }: { onBack: () => 
                   </div>
                 </div>
 
-                <div className="flex gap-3 overflow-x-auto px-4 pt-4 pb-6 no-scrollbar -mx-4">
+                <div className="flex gap-3 overflow-x-auto px-4 pt-4 pb-6 no-scrollbar -mx-4 items-center">
+                  {/* Previous Month Card */}
+                  {!(currentMonth.getMonth() === new Date().getMonth() && currentMonth.getFullYear() === new Date().getFullYear()) && (
+                    <button
+                      onClick={() => setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
+                      className="flex-shrink-0 w-14 h-20 rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all duration-500 border bg-slate-900/40 backdrop-blur-xl border-white/5 text-slate-400 hover:border-white/10"
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                      <span className="text-[8px] font-black uppercase text-center">{lang === 'GE' ? 'წინა თვე' : 'PREV'}</span>
+                    </button>
+                  )}
+
                   {dates.map((date) => {
                     const dateStr = format(date, 'yyyy-MM-dd');
                     const isSelected = bookingData.date === dateStr;
@@ -1891,6 +1898,17 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms }: { onBack: () => 
                       </button>
                     );
                   })}
+
+                  {/* Next Month Card */}
+                  {currentMonth.getMonth() === new Date().getMonth() && (
+                    <button
+                      onClick={() => setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}
+                      className="flex-shrink-0 w-14 h-20 rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all duration-500 border bg-slate-900/40 backdrop-blur-xl border-white/5 text-slate-400 hover:border-white/10"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                      <span className="text-[8px] font-black uppercase text-center">{lang === 'GE' ? 'შემდეგი' : 'NEXT'}</span>
+                    </button>
+                  )}
                 </div>
 
                 {/* Time Slots */}
@@ -2401,13 +2419,12 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms }: { onBack: () => 
           <p>მომსახურება მოიცავს:</p>
           <ul className="list-disc pl-6 space-y-2">
             <li>სრული სალონის მტვერსასრუტით წმენდა</li>
-            <li>მინების წმენდა (შიგნიდან და გარედან)</li>
+            <li>მინების წმენდა</li>
             <li>ხალიჩების წმენდა</li>
             <li>ჰაერის არომატიზაცია</li>
             <li>პროფესიონალური ქაფით და ფუნჯით ღრმა წმენდა</li>
             <li>ჭერზე ლაქების მოცილება</li>
             <li>სავარძლების ღრმა წმენდა</li>
-            <li>ანტიწვიმის დატანა ყველა მინაზე</li>
           </ul>
         </section>
 
@@ -2707,13 +2724,12 @@ function TermsOfService({ onBack, t }: { onBack: () => void, t: any, key?: strin
           <p>მომსახურება მოიცავს:</p>
           <ul className="list-disc pl-6 space-y-2">
             <li>სრული სალონის მტვერსასრუტით წმენდა</li>
-            <li>მინების წმენდა (შიგნიდან და გარედან)</li>
+            <li>მინების წმენდა</li>
             <li>ხალიჩების წმენდა</li>
             <li>ჰაერის არომატიზაცია</li>
             <li>პროფესიონალური ქაფით და ფუნჯით ღრმა წმენდა</li>
             <li>ჭერზე ლაქების მოცილება</li>
             <li>სავარძლების ღრმა წმენდა</li>
-            <li>ანტიწვიმის დატანა ყველა მინაზე</li>
           </ul>
         </section>
 

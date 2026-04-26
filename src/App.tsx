@@ -352,7 +352,7 @@ const translations = {
     lastResult: "Last Result",
     premiumDetailing: "Premium Detailing",
     features: [
-      { title: "Speed", desc: "Work is completed in maximum 2 hours at your location." },
+      { title: "Speed", desc: "Work is completed in maximum 3 hours at your location." },
       { title: "Professionalism", desc: "We use premium chemicals and tools." },
       { title: "Flexibility", desc: "We come to your location. Anywhere, anytime." }
     ],
@@ -1201,6 +1201,9 @@ export default function App() {
                     <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
                       <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.17-2.89-.6-4.13-1.47-.13 3.1-.12 6.2-.13 9.3 0 1.29-.27 2.61-.9 3.74-.85 1.54-2.43 2.59-4.16 2.89-2.12.37-4.44-.19-6.01-1.7-1.73-1.66-2.32-4.32-1.47-6.57.73-1.92 2.61-3.41 4.65-3.64.13-.02.26-.03.39-.03v4.02c-.8.1-1.6.46-2.14 1.06-.63.7-.83 1.73-.51 2.58.3.8.99 1.48 1.84 1.67 1.13.23 2.43-.1 3.09-1.03.44-.6.54-1.36.54-2.1V4.59c0-1.52 0-3.05-.01-4.57z"/>
                     </svg>
+                  </a>
+                  <a href="https://wa.me/message/6TTh66BJU2FRH1" target="_blank" rel="noopener noreferrer" className="w-8 h-8 bg-slate-800 rounded-lg flex items-center justify-center hover:bg-green-600 hover:text-white transition-all">
+                    <MessageCircle className="w-4 h-4" />
                   </a>
                 </div>
               </div>

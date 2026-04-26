@@ -987,7 +987,7 @@ export default function App() {
             LUCA'S AUTOSPA
           </h1>
           <p className="text-slate-400 mb-10 tracking-widest text-[10px] font-black uppercase">
-            Professional Mobile Detailing
+            Mobile Car Detailing In Tbilisi
           </p>
 
           <div className="grid gap-4">

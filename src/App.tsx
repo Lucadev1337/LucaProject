@@ -1093,7 +1093,7 @@ export default function App() {
                       </>
                     )}
 
-                    {!isAdmin && view === 'admin' && (
+                    {!isAdmin && (window.location.pathname === '/dash' || window.location.search.includes('view=admin')) && (
                       <div className="flex items-center gap-3">
                         {!user ? (
                           <Button variant="primary" size="sm" onClick={login} className="gap-2">
@@ -1162,7 +1162,7 @@ export default function App() {
         {/* Footer - Hidden on booking page */}
         {view !== 'booking' && (
           <footer className="bg-slate-900 text-slate-400 py-8 px-4 border-t border-slate-800">
-            <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12">
               <div>
                 <div className="flex items-center gap-2 mb-4">
                   <img 
@@ -1176,48 +1176,50 @@ export default function App() {
                   {t.footerDesc}
                 </p>
               </div>
-              <div>
-                <h4 className="text-white font-semibold mb-3 text-sm">{t.serviceArea}</h4>
-                <p className="text-xs">{t.serviceAreaDesc}</p>
-              </div>
-              <div>
-                <h4 className="text-white font-semibold mb-3 text-sm">{t.contact}</h4>
-                <div className="flex flex-col gap-2 text-xs">
-                  <a href="tel:+995579129698" className="flex items-center gap-2 hover:text-blue-400">
-                    <Phone className="w-3 h-3" /> +995 579 129 698
-                  </a>
-                  <a href="mailto:hello@lucasautospa.ge" className="flex items-center gap-2 hover:text-blue-400">
-                    <Mail className="w-3 h-3" /> hello@lucasautospa.ge
-                  </a>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-8 md:col-span-2">
+                <div>
+                  <h4 className="text-white font-semibold mb-3 text-sm">{t.serviceArea}</h4>
+                  <p className="text-xs">{t.serviceAreaDesc}</p>
                 </div>
-              </div>
-              <div>
-                <h4 className="text-white font-semibold mb-3 text-sm">{t.socialMedia}</h4>
-                <div className="flex gap-4">
-                  <a href="https://www.instagram.com/lucasautospa.ge/" target="_blank" rel="noopener noreferrer" className="w-8 h-8 bg-slate-800 rounded-lg flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all">
-                    <Instagram className="w-4 h-4" />
-                  </a>
-                  <a href="https://www.tiktok.com/@lucasautospa" target="_blank" rel="noopener noreferrer" className="w-8 h-8 bg-slate-800 rounded-lg flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all">
-                    <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                      <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.17-2.89-.6-4.13-1.47-.13 3.1-.12 6.2-.13 9.3 0 1.29-.27 2.61-.9 3.74-.85 1.54-2.43 2.59-4.16 2.89-2.12.37-4.44-.19-6.01-1.7-1.73-1.66-2.32-4.32-1.47-6.57.73-1.92 2.61-3.41 4.65-3.64.13-.02.26-.03.39-.03v4.02c-.8.1-1.6.46-2.14 1.06-.63.7-.83 1.73-.51 2.58.3.8.99 1.48 1.84 1.67 1.13.23 2.43-.1 3.09-1.03.44-.6.54-1.36.54-2.1V4.59c0-1.52 0-3.05-.01-4.57z"/>
-                    </svg>
-                  </a>
-                  <a href="https://wa.me/message/6TTh66BJU2FRH1" target="_blank" rel="noopener noreferrer" className="w-8 h-8 bg-slate-800 rounded-lg flex items-center justify-center hover:bg-green-600 hover:text-white transition-all">
-                    <MessageCircle className="w-4 h-4" />
-                  </a>
+                <div>
+                  <h4 className="text-white font-semibold mb-3 text-sm">{t.contact}</h4>
+                  <div className="flex flex-col gap-2 text-xs">
+                    <a href="tel:+995579129698" className="flex items-center gap-2 hover:text-blue-400">
+                      <Phone className="w-3 h-3" /> +995 579 129 698
+                    </a>
+                    <a href="mailto:hello@lucasautospa.ge" className="flex items-center gap-2 hover:text-blue-400">
+                      <Mail className="w-3 h-3" /> hello@lucasautospa.ge
+                    </a>
+                  </div>
                 </div>
-              </div>
-              <div>
-                <h4 className="text-white font-semibold mb-3 text-sm">{t.termsOfService}</h4>
-                <button 
-                  onClick={() => {
-                    setView('terms');
-                    window.scrollTo(0, 0);
-                  }} 
-                  className="text-xs hover:text-blue-400 transition-colors"
-                >
-                  {t.readTerms}
-                </button>
+                <div>
+                  <h4 className="text-white font-semibold mb-3 text-sm">{t.socialMedia}</h4>
+                  <div className="flex gap-4">
+                    <a href="https://www.instagram.com/lucasautospa.ge/" target="_blank" rel="noopener noreferrer" className="w-8 h-8 bg-slate-800 rounded-lg flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all">
+                      <Instagram className="w-4 h-4" />
+                    </a>
+                    <a href="https://www.tiktok.com/@lucasautospa" target="_blank" rel="noopener noreferrer" className="w-8 h-8 bg-slate-800 rounded-lg flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all">
+                      <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                        <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.17-2.89-.6-4.13-1.47-.13 3.1-.12 6.2-.13 9.3 0 1.29-.27 2.61-.9 3.74-.85 1.54-2.43 2.59-4.16 2.89-2.12.37-4.44-.19-6.01-1.7-1.73-1.66-2.32-4.32-1.47-6.57.73-1.92 2.61-3.41 4.65-3.64.13-.02.26-.03.39-.03v4.02c-.8.1-1.6.46-2.14 1.06-.63.7-.83 1.73-.51 2.58.3.8.99 1.48 1.84 1.67 1.13.23 2.43-.1 3.09-1.03.44-.6.54-1.36.54-2.1V4.59c0-1.52 0-3.05-.01-4.57z"/>
+                      </svg>
+                    </a>
+                    <a href="https://wa.me/message/6TTh66BJU2FRH1" target="_blank" rel="noopener noreferrer" className="w-8 h-8 bg-slate-800 rounded-lg flex items-center justify-center hover:bg-green-600 hover:text-white transition-all">
+                      <MessageCircle className="w-4 h-4" />
+                    </a>
+                  </div>
+                </div>
+                <div>
+                  <h4 className="text-white font-semibold mb-3 text-sm">{t.termsOfService}</h4>
+                  <button 
+                    onClick={() => {
+                      setView('terms');
+                      window.scrollTo(0, 0);
+                    }} 
+                    className="text-xs hover:text-blue-400 transition-colors"
+                  >
+                    {t.readTerms}
+                  </button>
+                </div>
               </div>
             </div>
             <div className="max-w-7xl mx-auto border-t border-slate-800 mt-8 pt-6 text-center text-[10px]">
@@ -1321,21 +1323,46 @@ function PublicSite({ onBookNow, pricing, t, lang, isLoading }: { onBookNow: (pl
             <div className="flex flex-col sm:flex-row flex-wrap gap-4">
               <Button 
                 size="lg" 
-                className="rounded-2xl bg-blue-500 hover:bg-blue-400 text-slate-950 font-black px-8 h-14 text-base shadow-[0_0_20px_rgba(59,130,246,0.4)] hover:shadow-[0_0_30px_rgba(59,130,246,0.6)] transition-all hover:-translate-y-1 active:scale-95" 
+                className="relative group overflow-hidden rounded-[2rem] bg-blue-600 hover:bg-blue-500 text-white font-black px-6 sm:px-10 h-16 text-sm sm:text-lg shadow-[0_20px_40px_rgba(37,99,235,0.3)] hover:shadow-[0_30px_60px_rgba(37,99,235,0.4)] transition-all hover:-translate-y-1.5 active:scale-95 flex items-center gap-3 border border-white/20" 
                 onClick={() => scrollToBooking()}
               >
-                {t.bookNow} <ArrowRight className="ml-2 w-5 h-5" />
+                <span className="relative z-10 flex items-center gap-3 uppercase tracking-wider">
+                  {t.bookNow}
+                  <motion.div
+                    animate={{ x: [0, 5, 0] }}
+                    transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
+                  >
+                    <ArrowRight className="w-5 h-5 sm:w-6 sm:h-6" />
+                  </motion.div>
+                </span>
+                
+                {/* Glassy Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                
+                {/* Pulsing Glow behind */}
+                <div className="absolute -inset-1 bg-blue-400 blur-2xl opacity-20 group-hover:opacity-40 transition-opacity" />
+                
+                {/* Shine Sweep Effect */}
+                <motion.div 
+                  className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-[25deg]"
+                  initial={{ left: '-150%' }}
+                  animate={{ left: '150%' }}
+                  transition={{ repeat: Infinity, duration: 3, ease: "easeInOut", repeatDelay: 1 }}
+                />
               </Button>
               <a 
                 href="tel:+995579129698"
-                className="inline-flex items-center justify-center rounded-2xl border-2 border-green-500/30 bg-green-500/10 backdrop-blur-md text-green-400 hover:bg-green-500/20 hover:border-green-500/40 px-8 h-14 text-base font-black transition-all hover:-translate-y-1 active:scale-95 shadow-[0_0_20px_rgba(34,197,94,0.1)]" 
+                className="inline-flex items-center justify-center rounded-[2rem] border-2 border-green-500/20 bg-green-500/5 backdrop-blur-md text-green-400 hover:bg-green-500/10 hover:border-green-500/40 px-6 sm:px-10 h-16 text-sm sm:text-lg font-black transition-all hover:-translate-y-1.5 active:scale-95 shadow-xl group gap-3" 
               >
-                <Phone className="mr-2 w-5 h-5" /> {t.bookPhone}
+                <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center group-hover:bg-green-500 group-hover:text-white transition-all shrink-0">
+                  <Phone className="w-4 h-4" />
+                </div>
+                <span className="uppercase tracking-wider truncate">{t.bookPhone}</span>
               </a>
               <Button 
                 variant="outline" 
                 size="lg" 
-                className="rounded-2xl border-2 border-white/10 bg-white/5 backdrop-blur-md text-white hover:bg-white/10 hover:border-white/20 px-8 h-14 text-base transition-all hover:-translate-y-1 active:scale-95 font-black sm:w-auto w-full" 
+                className="rounded-[2rem] border-2 border-white/5 bg-white/5 backdrop-blur-md text-white hover:bg-white/10 hover:border-white/20 px-6 sm:px-10 h-16 text-sm sm:text-lg transition-all hover:-translate-y-1.5 active:scale-95 font-black sm:w-auto w-full uppercase tracking-wider" 
                 onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}
               >
                 {t.viewServices}

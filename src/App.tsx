@@ -1497,10 +1497,15 @@ function PublicSite({ onBookNow, pricing, t, lang, isLoading }: { onBookNow: (pl
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mb-12"
+            className="text-center mb-12 flex flex-col items-center"
           >
-            <h2 className="text-3xl md:text-4xl font-black text-white mb-4 tracking-tight">{t.pricingTitle}</h2>
-            <p className="text-sm md:text-base text-slate-400 max-w-2xl mx-auto">{t.pricingDesc}</p>
+            <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-blue-500/5 border border-blue-500/20 mb-6 backdrop-blur-xl shadow-[0_8px_16px_rgba(59,130,246,0.05)] transition-all hover:border-blue-500/40 group">
+              <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)] animate-pulse" />
+              <h2 className="text-[10px] md:text-xs font-black text-blue-400 uppercase tracking-[0.25em] leading-none">{t.pricingTitle}</h2>
+            </div>
+            <h3 className="text-3xl md:text-4xl font-black text-white max-w-2xl mx-auto tracking-tight">
+              {t.pricingDesc}
+            </h3>
           </motion.div>
 
           <div className="max-w-xl mx-auto relative z-10">
@@ -1517,7 +1522,6 @@ function PublicSite({ onBookNow, pricing, t, lang, isLoading }: { onBookNow: (pl
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-400/10 to-transparent opacity-50" />
                 <div className="p-6 md:p-8 relative z-10">
                   <div className="mb-6 text-center sm:text-left">
-                    <h3 className="text-2xl font-black mb-3 text-white">{t.standardClean}</h3>
                     <div className="flex items-baseline justify-center sm:justify-start gap-2">
                       {isLoading ? (
                         <Skeleton className="h-10 w-24" />
@@ -1540,14 +1544,23 @@ function PublicSite({ onBookNow, pricing, t, lang, isLoading }: { onBookNow: (pl
                       </div>
                     )}
                   </div>
-                  <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3 mb-8">
+                  <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
                     {t.standardDetails.map((item: string, i: number) => (
-                      <li key={i} className="flex items-center gap-2.5 text-xs text-slate-300">
-                        <div className="w-5 h-5 rounded-full bg-blue-400/10 flex items-center justify-center flex-shrink-0">
-                          <CheckCircle className="w-3.5 h-3.5 text-blue-400 shadow-[0_0_10px_rgba(48,195,252,0.3)]" />
+                      <motion.li 
+                        key={i}
+                        initial={{ opacity: 0, y: 10 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: i * 0.05 }}
+                        className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5 hover:border-blue-400/30 hover:bg-white/10 transition-all duration-300 group/item"
+                      >
+                        <div className="w-6 h-6 rounded-lg bg-blue-400/10 flex items-center justify-center flex-shrink-0 group-hover/item:bg-blue-400 group-hover/item:text-slate-950 transition-colors duration-300 shadow-lg shadow-blue-400/5">
+                          <CheckCircle className="w-4 h-4 text-blue-400 group-hover/item:text-inherit" />
                         </div>
-                        {item}
-                      </li>
+                        <span className="text-[11px] font-medium text-slate-300 group-hover/item:text-white transition-colors leading-tight">
+                          {item}
+                        </span>
+                      </motion.li>
                     ))}
                   </ul>
                   <Button 

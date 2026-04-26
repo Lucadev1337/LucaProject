@@ -102,7 +102,7 @@ const translations = {
     premiumDetailing: "პრემიუმ დითეილინგი",
     features: [
       { title: "სისწრაფე", desc: "სამუშაო სრულდება მაქსიმუმ 3 საათში თქვენს ლოკაციაზე." },
-      { title: "პროფესიონალიზმი", desc: "ვიყენებთ პრემიუმ ქიმიკატებს და ორთქლის ტექნოლოგიას." },
+      { title: "პროფესიონალიზმი", desc: "ვიყენებთ პრემიუმ ხარისხის ხსნარებს და ხელსაწყოებს." },
       { title: "მოქნილობა", desc: "ჩვენ მოვალთ თქვენს ლოკაციაზე. ნებისმიერ ადგილას, ნებისმიერ დროს." }
     ],
     pricingTitle: "მისაღები ფასები",
@@ -189,6 +189,7 @@ const translations = {
       "ხალიჩების ქიმწმენდა",
       "ჰაერის არომატიზაცია"
     ],
+    next: "შემდეგი",
     howItWorks: "როგორ ვმუშაობთ",
     steps: [
       { title: "დაჯავშნა", desc: "აირჩიეთ სასურველი სერვისი და დრო ონლაინ." },
@@ -209,7 +210,7 @@ const translations = {
     premiumDetailing: "Premium Detailing",
     features: [
       { title: "Speed", desc: "Work is completed in maximum 2 hours at your location." },
-      { title: "Professionalism", desc: "We use premium chemicals and steam technology." },
+      { title: "Professionalism", desc: "We use premium chemicals and tools." },
       { title: "Flexibility", desc: "We come to your location. Anywhere, anytime." }
     ],
     pricingTitle: "Affordable Price",
@@ -296,6 +297,7 @@ const translations = {
       "Mat cleaning",
       "Air freshening"
     ],
+    next: "Next",
     howItWorks: "How it works",
     steps: [
       { title: "Booking", desc: "Choose your desired service and time online." },
@@ -874,9 +876,10 @@ function PublicSite({ onBookNow, pricing, t, lang, isLoading }: { onBookNow: (pl
 
   return (
     <motion.div 
-      initial={{ opacity: 0 }} 
-      animate={{ opacity: 1 }} 
-      exit={{ opacity: 0 }}
+      initial={{ opacity: 0, y: 20 }} 
+      animate={{ opacity: 1, y: 0 }} 
+      exit={{ opacity: 0, scale: 0.98, transition: { duration: 0.2 } }}
+      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
     >
       {/* Preload Hero/Results Images for zero-lag carousel */}
       <div className="hidden" aria-hidden="true">
@@ -1761,9 +1764,10 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms }: { onBack: () => 
 
   return (
     <motion.div 
-      initial={{ opacity: 0 }} 
-      animate={{ opacity: 1 }} 
-      exit={{ opacity: 0 }}
+      initial={{ opacity: 0, y: 20 }} 
+      animate={{ opacity: 1, y: 0 }} 
+      exit={{ opacity: 0, scale: 0.98, transition: { duration: 0.2 } }}
+      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
       className="bg-slate-950 text-slate-100 relative overflow-hidden pb-20"
     >
       {/* Visual Depth Background */}
@@ -1972,12 +1976,32 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms }: { onBack: () => 
               </div>
 
               <div className="pt-6">
+                {formError && step === 1 && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-4 mb-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-500 text-xs font-bold text-center"
+                  >
+                    {formError}
+                  </motion.div>
+                )}
                 <Button 
-                  onClick={() => setStep(2)} 
-                  disabled={!bookingData.date || !bookingData.timeSlot}
-                  className="w-full py-5 rounded-[2rem] bg-blue-600 hover:bg-blue-700 font-black text-lg shadow-2xl shadow-blue-600/20 flex gap-3"
+                  onClick={() => {
+                    if (bookingData.date && bookingData.timeSlot) {
+                      setStep(2);
+                      setFormError(null);
+                    } else {
+                      setFormError(t.errorDateTime);
+                    }
+                  }} 
+                  className={cn(
+                    "w-full py-5 rounded-[2rem] font-black text-lg shadow-2xl flex gap-3 transition-all duration-300",
+                    (!bookingData.date || !bookingData.timeSlot) 
+                      ? "bg-slate-800 text-slate-500 shadow-none cursor-pointer" 
+                      : "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/20"
+                  )}
                 >
-                  <span>{lang === 'GE' ? 'გაგრძელება' : 'Continue'}</span>
+                  <span>{t.next}</span>
                   <ChevronRight className="w-6 h-6" />
                 </Button>
               </div>
@@ -2038,9 +2062,14 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms }: { onBack: () => 
                         setFormError(t.errorLocation);
                       }
                     }} 
-                    className="flex-[2] py-5 rounded-[1.5rem] bg-blue-600 hover:bg-blue-700 font-black text-lg shadow-2xl shadow-blue-600/30 flex gap-3 relative overflow-hidden group"
+                    className={cn(
+                      "flex-[2] py-5 rounded-[1.5rem] font-black text-lg shadow-2xl flex gap-3 relative overflow-hidden group transition-all duration-300",
+                      !bookingData.location
+                        ? "bg-slate-800 text-slate-500 shadow-none cursor-pointer"
+                        : "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/30"
+                    )}
                   >
-                    <span>{lang === 'GE' ? 'გაგრძელება' : 'Continue'}</span>
+                    <span>{t.next}</span>
                     <ChevronRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
                   </Button>
                 </div>
@@ -2181,9 +2210,14 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms }: { onBack: () => 
                         setFormError(t.fillAllFields || 'გთხოვთ შეავსოთ ყველა ველი');
                       }
                     }} 
-                    className="flex-[2] py-5 rounded-[1.5rem] bg-blue-600 hover:bg-blue-700 font-black text-lg shadow-2xl shadow-blue-600/30 flex gap-3 relative overflow-hidden group"
+                    className={cn(
+                      "flex-[2] py-5 rounded-[1.5rem] font-black text-lg shadow-2xl flex gap-3 relative overflow-hidden group transition-all duration-300",
+                      (!bookingData.customerName || !bookingData.carModel || !bookingData.phone)
+                        ? "bg-slate-800 text-slate-500 shadow-none cursor-pointer"
+                        : "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/30"
+                    )}
                   >
-                    <span>{lang === 'GE' ? 'გაგრძელება' : 'Continue'}</span>
+                    <span>{t.next}</span>
                     <ChevronRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
                   </Button>
                 </div>
@@ -2446,8 +2480,7 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms }: { onBack: () => 
             <li>Luca’s AutoSpa უზრუნველყოფს მომსახურებას კლიენტის მიერ მითითებულ ლოკაციაზე</li>
             <li>კლიენტი ვალდებულია უზრუნველყოს:
               <ul className="list-disc pl-6 mt-2 space-y-1">
-                <li>ავტომობილის დროებითი დაქოქვის შესაძლებლობა (მტვერსასრუტისთვის) ან</li>
-                <li>საკმარისი ადგილი ჩვენი სერვისის ავტომობილისთვის დენის მიწოდების მიზნით</li>
+                <li>საკმარისი ადგილი ჩვენი სერვისის ავტომობილის გვერდზე დაყენებისთვის დენის მიწოდების მიზნით</li>
               </ul>
             </li>
           </ul>
@@ -2705,6 +2738,8 @@ function TermsOfService({ onBack, t }: { onBack: () => void, t: any, key?: strin
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.98, transition: { duration: 0.2 } }}
+      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
       className="max-w-4xl mx-auto pt-24 pb-16 px-6 text-slate-300"
     >
       <Button 
@@ -2751,8 +2786,7 @@ function TermsOfService({ onBack, t }: { onBack: () => void, t: any, key?: strin
             <li>Luca’s AutoSpa უზრუნველყოფს მომსახურებას კლიენტის მიერ მითითებულ ლოკაციაზე</li>
             <li>კლიენტი ვალდებულია უზრუნველყოს:
               <ul className="list-disc pl-6 mt-2 space-y-1">
-                <li>ავტომობილის დროებითი დაქოქვის შესაძლებლობა (მტვერსასრუტისთვის) ან</li>
-                <li>საკმარისი ადგილი ჩვენი სერვისის ავტომობილისთვის დენის მიწოდების მიზნით</li>
+                <li>საკმარისი ადგილი ჩვენი სერვისის ავტომობილის გვერდზე დაყენებისთვის დენის მიწოდების მიზნით</li>
               </ul>
             </li>
           </ul>
@@ -3040,7 +3074,8 @@ function AdminDashboard({ onBack, pricing, lang }: { onBack: () => void, pricing
     <motion.div 
       initial={{ opacity: 0, y: 20 }} 
       animate={{ opacity: 1, y: 0 }} 
-      exit={{ opacity: 0, y: 20 }}
+      exit={{ opacity: 0, scale: 0.98, transition: { duration: 0.2 } }}
+      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
       className="max-w-7xl mx-auto px-4 pt-24 pb-8"
     >
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">

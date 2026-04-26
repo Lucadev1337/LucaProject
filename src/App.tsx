@@ -876,6 +876,7 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [lang, setLang] = useState<Language>('GE');
+  const [isLangSelected, setIsLangSelected] = useState(false);
   const t = translations[lang];
   const [isPricingLoading, setIsPricingLoading] = useState(true);
   const [pricing, setPricing] = useState<PricingSettings>({
@@ -897,6 +898,13 @@ export default function App() {
         setIsAdmin(false);
       }
     });
+
+    // Check if language is already selected in localStorage
+    const savedLang = localStorage.getItem('preferredLang') as Language;
+    if (savedLang && (savedLang === 'GE' || savedLang === 'EN')) {
+      setLang(savedLang);
+      setIsLangSelected(true);
+    }
 
     // Fetch pricing
     const unsubPricing = onSnapshot(doc(db, 'settings', 'pricing'), (doc) => {
@@ -942,6 +950,85 @@ export default function App() {
     setView('public');
   };
 
+  const handleLanguageSelect = (selectedLang: Language) => {
+    setLang(selectedLang);
+    setIsLangSelected(true);
+    localStorage.setItem('preferredLang', selectedLang);
+  };
+
+  if (!isLangSelected) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 relative overflow-hidden">
+        {/* Background Gradients */}
+        <div className="absolute top-0 -left-20 w-96 h-96 bg-blue-500/10 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-0 -right-20 w-96 h-96 bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none" />
+        
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="relative z-10 w-full max-w-md text-center"
+        >
+          <div className="flex justify-center mb-10">
+            <div className="w-24 h-24 rounded-3xl overflow-hidden shadow-2xl shadow-blue-500/20 border border-white/10 p-1 bg-slate-900">
+               <img src={logo} alt="Luca's AutoSpa" className="w-full h-full object-cover rounded-[1.2rem]" />
+            </div>
+          </div>
+          
+          <h1 className="text-3xl font-black tracking-tight text-white mb-2 font-orbitron uppercase">
+            LUCA'S AUTOSPA
+          </h1>
+          <p className="text-slate-400 mb-10 tracking-widest text-[10px] font-black uppercase">
+            Professional Mobile Detailing
+          </p>
+
+          <div className="grid gap-4">
+            <button 
+              onClick={() => handleLanguageSelect('GE')}
+              className="group relative flex items-center justify-between p-6 bg-slate-900/50 hover:bg-slate-900 border border-slate-800 hover:border-blue-500/50 rounded-[2rem] transition-all duration-300 active:scale-[0.98]"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl overflow-hidden border border-white/5 shadow-lg group-hover:scale-110 transition-transform">
+                  <img src="https://flagcdn.com/w80/ge.png" alt="GE" className="w-full h-full object-cover" />
+                </div>
+                <div className="text-left">
+                  <p className="text-white font-black text-lg">ქართული</p>
+                  <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">Georgia</p>
+                </div>
+              </div>
+              <ChevronRight className="w-6 h-6 text-slate-700 group-hover:text-blue-500 group-hover:translate-x-1 transition-all" />
+              {/* Glow effect on hover */}
+              <div className="absolute inset-0 bg-blue-500/5 rounded-[2rem] opacity-0 group-hover:opacity-100 transition-opacity" />
+            </button>
+
+            <button 
+              onClick={() => handleLanguageSelect('EN')}
+              className="group relative flex items-center justify-between p-6 bg-slate-900/50 hover:bg-slate-900 border border-slate-800 hover:border-[#30c3fc]/50 rounded-[2rem] transition-all duration-300 active:scale-[0.98]"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl overflow-hidden border border-white/5 shadow-lg group-hover:scale-110 transition-transform">
+                  <img src="https://flagcdn.com/w80/gb.png" alt="EN" className="w-full h-full object-cover" />
+                </div>
+                <div className="text-left">
+                  <p className="text-white font-black text-lg">English</p>
+                  <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">United Kingdom</p>
+                </div>
+              </div>
+              <ChevronRight className="w-6 h-6 text-slate-700 group-hover:text-[#30c3fc] group-hover:translate-x-1 transition-all" />
+               {/* Glow effect on hover */}
+               <div className="absolute inset-0 bg-[#30c3fc]/5 rounded-[2rem] opacity-0 group-hover:opacity-100 transition-opacity" />
+            </button>
+          </div>
+          
+          <div className="mt-16 text-slate-600 flex items-center justify-center gap-2">
+             <ShieldCheck className="w-4 h-4" />
+             <span className="text-[10px] font-black uppercase tracking-widest">Secure & Professional Service</span>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
   return (
     <div className={cn(
         "min-h-screen font-sans transition-colors duration-300 bg-slate-950 text-slate-100",
@@ -961,7 +1048,11 @@ export default function App() {
                   <div className="flex items-center gap-4">
                     {/* Language Switcher */}
                     <button 
-                      onClick={() => setLang(lang === 'GE' ? 'EN' : 'GE')}
+                      onClick={() => {
+                        const newLang = lang === 'GE' ? 'EN' : 'GE';
+                        setLang(newLang);
+                        localStorage.setItem('preferredLang', newLang);
+                      }}
                       className="p-2 hover:bg-slate-800 rounded-xl transition-all active:scale-90 border border-slate-800"
                       title={lang === 'GE' ? 'Switch to English' : 'გადართვა ქართულზე'}
                     >

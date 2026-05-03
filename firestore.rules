@@ -5,11 +5,10 @@ service cloud.firestore {
       return request.auth != null;
     }
     function isAdmin() {
-      return isAuthenticated() && 
-        (request.auth.token.email.matches("(?i)luca\\.mergell@gmail\\.com") || 
-         request.auth.token.email == "Luca.mergell@gmail.com" || 
-         request.auth.token.email == "luca.mergell@gmail.com") && 
-        request.auth.token.email_verified == true;
+      return isAuthenticated() && (
+        request.auth.token.email.lower() == "luca.mergell@gmail.com" ||
+        request.auth.uid == "EcPBJmo8AJdJ9UHTFVmwb0dB8ym2"
+      );
     }
     match /bookings/{bookingId} {
       allow create: if true;
@@ -41,6 +40,13 @@ service cloud.firestore {
     match /addons/{addonId} {
       allow read: if true;
       allow write: if isAdmin();
+    }
+    match /clients/{phoneNumber} {
+      allow get, create, update: if true;
+      allow list, delete: if isAdmin();
+      match /cars/{carId} {
+        allow read, write: if true;
+      }
     }
   }
 }

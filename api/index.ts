@@ -234,23 +234,13 @@ app.post('/api/notify-booking', async (req, res) => {
             : `\n➕ Add-ons: ${addons.map((a: any) => a.nameEN).join(', ')}`)
       : '';
     
-    // 1. Send Admin Notification (WhatsApp)
+    // 1. [Removed Admin Notification WhatsApp logic]
     if (db) {
       try {
         const pricingSnap = await getDoc(doc(db, 'settings', 'pricing'));
         if (pricingSnap.exists()) {
           const pricing = pricingSnap.data();
           
-          // ADMIN NOTIFICATION
-          if (pricing.isWhatsappEnabled && pricing.whatsappNumber) {
-            const promoInfo = promoCode ? `\n🎟 პრომო: ${promoCode}` : '';
-            const carInfo = bookingData.carModel ? `\n🚗 მანქანა: ${bookingData.carModel}` : '';
-            const contactInfo = bookingData.phone ? `📞 ტელ: ${bookingData.phone}` : '';
-            const adminMessage = `🚗 *ახალი ჯავშანი!* \n\n👤 კლიენტი: ${bookingData.customerName}${carInfo}\n${contactInfo}${customerEmail ? `\n📧 Email: ${customerEmail}` : ''}\n🛠 სერვისი: ${serviceName}${addonText}\n📅 თარიღი: ${bookingData.date}\n⏰ დრო: ${bookingData.timeSlot}\n📍 მისამართი: ${bookingData.location}\n💰 ფასი: ${price}₾${promoInfo}`;
-            
-            await sendMultiChannelHelper(pricing, pricing.whatsappNumber, adminMessage, 'whatsapp');
-          }
-
           // 2. CUSTOMER CONFIRMATION
           const promoLine = promoCode ? (lang === 'GE' ? `\n🎟 პრომო კოდი: ${promoCode}` : lang === 'RU' ? `\n🎟 Промокод: ${promoCode}` : `\n🎟 Promo Code: ${promoCode}`) : '';
           const customerMessage = lang === 'GE'

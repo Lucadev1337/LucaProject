@@ -12,7 +12,8 @@ import {
   orderBy, 
   serverTimestamp,
   getDoc,
-  deleteDoc
+  deleteDoc,
+  getDocFromServer
 } from 'firebase/firestore';
 import { 
   signInWithPopup, 
@@ -58,9 +59,14 @@ import {
   Smartphone,
   ChevronDown,
   PlusCircle,
-  Edit3
+  Edit3,
+  Car,
+  History,
+  Search,
+  Filter,
+  Info
 } from 'lucide-react';
-import { format, addDays, startOfToday, isSameDay, parseISO, isToday, startOfMonth, endOfMonth } from 'date-fns';
+import { format, addDays, subDays, startOfToday, isSameDay, parseISO, isToday, startOfMonth, endOfMonth } from 'date-fns';
 import { ka, ru } from 'date-fns/locale';
 import { cn } from './lib/utils';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
@@ -101,18 +107,17 @@ const translations = {
     bookPhone: "დაჯავშნე ტელეფონზე",
     viewServices: "სერვისების ნახვა",
     lastResult: "ბოლო შედეგი",
-    premiumDetailing: "პრემიუმ დითეილინგი",
+    detailingService: "ავტომობილის დეტალური ქიმწმენდა",
     features: [
       { title: "სისწრაფე", desc: "სამუშაო სრულდება მაქსიმუმ 3 საათში თქვენს ლოკაციაზე." },
       { title: "პროფესიონალიზმი", desc: "ვიყენებთ პრემიუმ ხარისხის ხსნარებს და ხელსაწყოებს." },
       { title: "მოქნილობა", desc: "ჩვენ მოვალთ თქვენს ლოკაციაზე. ნებისმიერ ადგილას, ნებისმიერ დროს." }
     ],
     pricingTitle: "მისაღები ფასები",
-    standardClean: "ინტერიერის დეტალური ქიმწმენდა",
     pricingDesc: "პროფესიონალური დითეილინგი თქვენს მისამართზე.",
     perService: "/ სერვისი ადგილზე",
     sale: "ფასდაკლება",
-    selectStandard: "დაჯავშნა",
+    selectService: "დაჯავშნა",
     readyForNew: "მზად ხართ ",
     readyForNewSpan: "სიახლისთვის?",
     ctaDesc: "ენდეთ Luca's AutoSpa-ს და დაუბრუნეთ თქვენს ავტომობილს პირვანდელი სახე.",
@@ -352,7 +357,7 @@ const translations = {
     bookPhone: "Book by Phone",
     viewServices: "View Services",
     lastResult: "Last Result",
-    premiumDetailing: "Premium Detailing",
+    detailingService: "Detailed Interior Dry Cleaning",
     features: [
       { title: "Speed", desc: "Work is completed in maximum 3 hours at your location." },
       { title: "Professionalism", desc: "We use premium chemicals and tools." },
@@ -360,10 +365,9 @@ const translations = {
     ],
     pricingTitle: "Affordable Price",
     pricingDesc: "Professional detailing at your desired address.",
-    standardClean: "Detailed Interior Dry Cleaning",
     perService: "/ on-site service",
     sale: "Sale",
-    selectStandard: "Book Now",
+    selectService: "Book Now",
     readyForNew: "Ready for ",
     readyForNewSpan: "something new?",
     ctaDesc: "Trust Luca's AutoSpa and give your car its original look back.",
@@ -603,7 +607,7 @@ const translations = {
       bookPhone: "Забронировать по телефону",
       viewServices: "Посмотреть услуги",
       lastResult: "Последний результат",
-      premiumDetailing: "Премиум детейлинг",
+      detailingService: "Детальная химчистка салона",
       features: [
         { title: "Скорость", desc: "Работа выполняется максимум за 3 часа на вашем месте." },
         { title: "Профессионализм", desc: "Мы используем химию и инструменты премиум-класса." },
@@ -611,10 +615,9 @@ const translations = {
       ],
       pricingTitle: "Доступные цены",
       pricingDesc: "Профессиональный детейлинг по вашему адресу.",
-      standardClean: "Детальная химчистка салона",
       perService: "/ услуга на месте",
       sale: "Скидка",
-      selectStandard: "Забронировать",
+      selectService: "Забронировать",
       readyForNew: "Готовы к ",
       readyForNewSpan: "новому?",
       ctaDesc: "Доверьтесь Luca's AutoSpa и верните своему автомобилю первозданный вид.",
@@ -896,16 +899,33 @@ interface PromoCode {
   createdAt: any;
 }
 
+interface Client {
+  id: string;
+  fullName: string;
+  phone: string;
+  email?: string;
+  notes?: string;
+  createdAt: any;
+  updatedAt: any;
+}
+
+interface Car {
+  id: string;
+  brand: string;
+  model: string;
+  year?: string;
+  licensePlate: string;
+  color?: string;
+  notes?: string;
+}
+
 interface PricingSettings {
-  basicPrice: number;
+  price: number;
   salePercentage: number;
   isSaleActive: boolean;
   heroReviews?: HeroReview[];
-  whatsappNumber?: string;
-  whatsappApiKey?: string;
-  isWhatsappEnabled?: boolean;
-  smsApiKey?: string;
-  isWhatsappVerificationEnabled?: boolean;
+  isSmsEnabled?: boolean;
+  verificationMethod?: 'sms' | 'email';
   isViberVerificationEnabled?: boolean;
   isEmailVerificationEnabled?: boolean;
   smsProvider?: 'twilio' | 'smsto' | 'vonage' | 'wasender';
@@ -1150,7 +1170,6 @@ const Card = ({ children, className, ...props }: { children: React.ReactNode, cl
 
 export default function App() {
   const [view, setView] = useState<'public' | 'admin' | 'booking' | 'terms' | 'confirmation'>('public');
-  const [selectedPlan, setSelectedPlan] = useState<'Basic' | 'Premium' | undefined>(undefined);
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [lang, setLang] = useState<Language>('GE');
@@ -1158,19 +1177,36 @@ export default function App() {
 
   const t = translations[lang];
   const [isPricingLoading, setIsPricingLoading] = useState(true);
+
+  // Firestore Connection Test
+  useEffect(() => {
+    const testConnection = async () => {
+      try {
+        await getDocFromServer(doc(db, 'settings', 'pricing'));
+        console.log("Firestore connection verified successfully.");
+      } catch (error) {
+        if (error instanceof Error && error.message.includes('the client is offline')) {
+          console.error("Please check your Firebase configuration: the client is offline.");
+        } else {
+          console.error("Firestore connectivity issue:", error);
+        }
+      }
+    };
+    testConnection();
+  }, []);
+
   const [pricing, setPricing] = useState<PricingSettings>({
-    basicPrice: 59,
-    premiumPrice: 119,
+    price: 59,
     salePercentage: 20,
     isSaleActive: false,
     isSmsEnabled: true,
-    isWhatsappEnabled: true,
     verificationMethod: 'sms'
   });
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (u) => {
       setUser(u);
+      console.log("Current User UID:", u?.uid);
       if (u && u.email?.toLowerCase() === 'luca.mergell@gmail.com') {
         setIsAdmin(true);
       } else {
@@ -1440,8 +1476,7 @@ export default function App() {
             {view === 'public' ? (
               <PublicSite 
                 key="public" 
-                onBookNow={(plan) => {
-                  setSelectedPlan(plan);
+                onBookNow={() => {
                   setView('booking');
                 }} 
                 pricing={pricing} 
@@ -1863,11 +1898,11 @@ function PublicSite({ onBookNow, pricing, t, lang, isLoading }: { onBookNow: (pl
                         <>
                           {pricing.isSaleActive ? (
                             <>
-                              <span className="text-4xl font-black text-white">{Math.round(pricing.basicPrice * (1 - (pricing.salePercentage || 0) / 100))}₾</span>
-                              <span className="text-xl text-slate-500 line-through">{pricing.basicPrice}₾</span>
+                              <span className="text-4xl font-black text-white">{Math.round(pricing.price * (1 - (pricing.salePercentage || 0) / 100))}₾</span>
+                              <span className="text-xl text-slate-500 line-through">{pricing.price}₾</span>
                             </>
                           ) : (
-                            <span className="text-4xl font-black text-white">{pricing.basicPrice}₾</span>
+                            <span className="text-4xl font-black text-white">{pricing.price}₾</span>
                           )}
                         </>
                       )}
@@ -1902,7 +1937,7 @@ function PublicSite({ onBookNow, pricing, t, lang, isLoading }: { onBookNow: (pl
                     onClick={() => scrollToBooking()}
                   >
                     <span className="relative z-10 flex items-center justify-center gap-2">
-                      {t.selectStandard}
+                      {t.selectService}
                       <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover/btn:translate-x-1" />
                     </span>
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-1000" />
@@ -2117,13 +2152,13 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms, onSuccess }: { onB
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [step]);
   const [bookingData, setBookingData] = useState<Partial<Booking>>({
-    service: 'Basic',
+    service: 'DetailingService',
     status: 'pending',
     date: format(startOfToday(), 'yyyy-MM-dd')
   });
 
   const getPrice = () => {
-    const base = pricing.basicPrice;
+    const base = pricing.price;
     let finalPrice = base;
     
     const addonsTotal = selectedAddonIds.reduce((sum, id) => {
@@ -2570,6 +2605,56 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms, onSuccess }: { onB
           customerEmail: bookingData.email || null,
           createdAt: serverTimestamp()
         });
+        
+        // --- AUTO SYNC CLIENT ---
+        try {
+          const targetClientId = bookingData.phone;
+          if (!targetClientId) return;
+
+          const clientRef = doc(db, 'clients', targetClientId);
+          const clientSnap = await getDoc(clientRef);
+          
+          if (clientSnap.exists()) {
+            await updateDoc(clientRef, {
+              fullName: bookingData.customerName,
+              email: bookingData.email || clientSnap.data().email || null,
+              updatedAt: serverTimestamp()
+            });
+          } else {
+            await setDoc(clientRef, {
+              fullName: bookingData.customerName,
+              phone: bookingData.phone,
+              email: bookingData.email || null,
+              notes: '',
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp()
+            });
+          }
+
+          if (bookingData.carModel) {
+            const carModelLower = bookingData.carModel.toLowerCase().trim();
+            const carsSnap = await getDocs(collection(db, 'clients', targetClientId, 'cars'));
+            const carExists = carsSnap.docs.some(d => {
+              const data = d.data();
+              const existingBrand = (data.brand || '').toLowerCase();
+              const existingModel = (data.model || '').toLowerCase();
+              return carModelLower.includes(existingBrand) && carModelLower.includes(existingModel);
+            });
+
+            if (!carExists) {
+              const parts = bookingData.carModel.split(' ');
+              await addDoc(collection(db, 'clients', targetClientId, 'cars'), {
+                brand: parts[0] || 'Unknown',
+                model: parts.slice(1).join(' ') || parts[0] || 'Unknown',
+                licensePlate: '-',
+                notes: 'Automatically added from booking'
+              });
+            }
+          }
+        } catch (clientSyncError) {
+          console.error("Error syncing client:", clientSyncError);
+        }
+        // --- END AUTO SYNC CLIENT ---
         
         // Track booking event
         track('Booking Confirmed', {
@@ -3132,7 +3217,7 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms, onSuccess }: { onB
                     </div>
                     <div>
                       <h3 className="font-black text-white text-lg">
-                        {t.standardClean}
+                        {t.detailingService}
                       </h3>
                       <p className="text-blue-400 font-black text-xl">{getPrice()}₾</p>
                     </div>
@@ -3675,7 +3760,7 @@ function TermsOfService({ onBack, t }: { onBack: () => void, t: any, key?: strin
 
 function AdminDashboard({ onBack, pricing, lang }: { onBack: () => void, pricing: PricingSettings, lang: Language, key?: string }) {
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [activeTab, setActiveTab] = useState<'bookings' | 'availability' | 'pricing' | 'reviews' | 'promo' | 'addons'>('bookings');
+  const [activeTab, setActiveTab] = useState<'bookings' | 'availability' | 'pricing' | 'reviews' | 'promo' | 'addons' | 'clients'>('bookings');
   const [isLoading, setIsLoading] = useState(true);
   const [sortBy, setSortBy] = useState<'date' | 'createdAt'>('createdAt');
   const [filterStatus, setFilterStatus] = useState<'future' | 'completed' | 'all'>('future');
@@ -3780,9 +3865,9 @@ function AdminDashboard({ onBack, pricing, lang }: { onBack: () => void, pricing
         track('Order Completed', { service: booking.service, bookingId: id });
         
         const serviceName = getLangValue(lang, 
-          booking.service === 'Premium' ? 'პრემიუმ დითეილინგი' : 'ინტერიერის წმენდა',
-          booking.service === 'Premium' ? 'Premium Detailing' : 'Interior Cleaning',
-          booking.service === 'Premium' ? 'Премиум детейлинг' : 'Химчистка салона'
+          'ინტერიერის დეტალური ქიმწმენდა',
+          'Detailed Interior Dry Cleaning',
+          'Детальная химчистка салона'
         );
           
         const message = lang === 'GE'
@@ -3895,6 +3980,15 @@ function AdminDashboard({ onBack, pricing, lang }: { onBack: () => void, pricing
               >
                 დამატებითი სერვისები
               </button>
+              <button 
+                onClick={() => setActiveTab('clients')}
+                className={cn(
+                  "px-4 md:px-6 py-2 rounded-lg text-xs md:text-sm font-medium transition-all whitespace-nowrap",
+                  activeTab === 'clients' ? "bg-blue-600 text-white shadow-md" : "text-slate-400 hover:bg-slate-800"
+                )}
+              >
+                კლიენტები
+              </button>
             </div>
           </div>
         </div>
@@ -3981,7 +4075,7 @@ function AdminDashboard({ onBack, pricing, lang }: { onBack: () => void, pricing
                     </div>
                     <div className="flex items-center gap-4">
                       <span className="text-xs font-bold text-slate-400 bg-slate-800 px-3 py-1 rounded-full">
-                        {booking.service === 'Premium' ? 'პრემიუმი' : 'სტანდარტი'}
+                        {booking.service === 'DetailingService' ? getLangValue(lang, 'ქიმწმენდა', 'Detailing', 'Детейлинг') : booking.service}
                       </span>
                       <ChevronRight className={cn(
                         "w-5 h-5 text-slate-600 transition-transform",
@@ -4124,6 +4218,8 @@ function AdminDashboard({ onBack, pricing, lang }: { onBack: () => void, pricing
         <PromoCodeManager onBack={onBack} />
       ) : activeTab === 'addons' ? (
         <AddonManager onBack={onBack} lang={lang} />
+      ) : activeTab === 'clients' ? (
+        <ClientManager onBack={onBack} lang={lang} bookings={bookings} pricing={pricing} />
       ) : (
         <ReviewsManager pricing={pricing} onBack={onBack} />
       )}
@@ -4272,9 +4368,9 @@ function PricingManager({ pricing, onBack }: { pricing: PricingSettings, onBack:
                 <label className="text-xs font-bold text-slate-500">ფასი (₾)</label>
                 <input 
                   type="number"
-                  value={localPricing.basicPrice || 0}
-                  onChange={(e) => setLocalPricing({ ...localPricing, basicPrice: Number(e.target.value) })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all"
+                  value={localPricing.price || 0}
+                  onChange={(e) => setLocalPricing({ ...localPricing, price: Number(e.target.value) })}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all font-ge"
                 />
               </div>
               <div className="space-y-2">
@@ -4283,7 +4379,7 @@ function PricingManager({ pricing, onBack }: { pricing: PricingSettings, onBack:
                   type="number"
                   value={localPricing.salePercentage || 0}
                   onChange={(e) => setLocalPricing({ ...localPricing, salePercentage: Number(e.target.value) })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all font-ge"
                 />
               </div>
             </div>
@@ -4350,31 +4446,6 @@ function PricingManager({ pricing, onBack }: { pricing: PricingSettings, onBack:
                   placeholder="onboarding@resend.dev"
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-indigo-600 transition-all font-mono text-sm"
                 />
-              </div>
-            </div>
-
-            <div className="space-y-4 pt-6 md:pt-0 border-t md:border-t-0 md:border-l border-white/5 md:pl-6">
-              <h4 className="text-sm font-bold text-slate-400 uppercase flex items-center gap-2">
-                <MessageCircle className="w-4 h-4" /> WhatsApp Settings
-              </h4>
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Admin Notification Number</label>
-                <input 
-                  type="text"
-                  value={localPricing.whatsappNumber || ''}
-                  onChange={(e) => setLocalPricing({ ...localPricing, whatsappNumber: e.target.value })}
-                  placeholder="+995..."
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-green-600 transition-all font-mono text-sm"
-                />
-              </div>
-              <div className="flex items-center gap-2 p-3 bg-slate-900 rounded-xl border border-slate-800">
-                <input 
-                  type="checkbox"
-                  checked={localPricing.isWhatsappEnabled || false}
-                  onChange={(e) => setLocalPricing({ ...localPricing, isWhatsappEnabled: e.target.checked })}
-                  className="w-4 h-4 rounded border-slate-800 bg-slate-950 text-green-600 focus:ring-green-600"
-                />
-                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Admin Alerts (WhatsApp)</span>
               </div>
             </div>
           </div>
@@ -4467,56 +4538,6 @@ function PricingManager({ pricing, onBack }: { pricing: PricingSettings, onBack:
           </div>
         </Card>
 
-        {/* Admin Notifications Card */}
-        <Card className="bg-slate-900 border-slate-800 p-6 space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-600/10 text-blue-500 rounded-xl flex items-center justify-center">
-                <ShieldCheck className="w-5 h-5" />
-              </div>
-              <h3 className="text-xl font-bold text-white">ადმინის შეტყობინებები</h3>
-            </div>
-            <button 
-              onClick={() => setLocalPricing({ ...localPricing, isWhatsappEnabled: !localPricing.isWhatsappEnabled })}
-              className={cn(
-                "w-12 h-6 rounded-full transition-all relative",
-                localPricing.isWhatsappEnabled ? "bg-blue-600" : "bg-slate-800"
-              )}
-            >
-              <div className={cn(
-                "absolute top-1 w-4 h-4 rounded-full bg-white transition-all",
-                localPricing.isWhatsappEnabled ? "left-7" : "left-1"
-              )} />
-            </button>
-          </div>
-          
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">WhatsApp ნომერი (ადმინის)</label>
-              <input 
-                type="text"
-                value={localPricing.whatsappNumber || ''}
-                onChange={(e) => setLocalPricing({ ...localPricing, whatsappNumber: e.target.value })}
-                placeholder="+995..."
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">CallMeBot API Key</label>
-              <input 
-                type="password"
-                value={localPricing.whatsappApiKey || ''}
-                onChange={(e) => setLocalPricing({ ...localPricing, whatsappApiKey: e.target.value })}
-                placeholder="API Key"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all"
-              />
-              <p className="text-[10px] text-slate-500 italic">
-                * CallMeBot გამოიყენება მხოლოდ ადმინისთვის (უფასოა).
-              </p>
-            </div>
-          </div>
-        </Card>
-
         {/* General Settings Card */}
         <Card className="bg-slate-900 border-slate-800 p-6 space-y-6">
           <div className="flex items-center gap-3">
@@ -4598,6 +4619,781 @@ function PricingManager({ pricing, onBack }: { pricing: PricingSettings, onBack:
           {isSaving ? 'ინახება...' : 'ცვლილებების შენახვა'}
         </Button>
       </div>
+    </div>
+  );
+}
+
+function ClientManager({ onBack, lang, bookings: allBookings, pricing }: { onBack: () => void, lang: Language, bookings: Booking[], pricing: PricingSettings }) {
+  const [clients, setClients] = useState<Client[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [isAddingClient, setIsAddingClient] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [activeFilter, setActiveFilter] = useState<'all' | 'recent' | 'frequent'>('all');
+
+  useEffect(() => {
+    const q = query(collection(db, 'clients'), orderBy('updatedAt', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setClients(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Client)));
+      setIsLoading(false);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'clients');
+    });
+    return unsubscribe;
+  }, []);
+
+  const filteredClients = clients.filter(c => {
+    const matchesSearch = 
+      c.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.phone.includes(searchTerm) ||
+      c.email?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    if (!matchesSearch) return false;
+
+    const clientBookings = allBookings.filter(b => 
+      b.phone === c.phone || (c.email && b.email === c.email)
+    );
+
+    if (activeFilter === 'recent') {
+      const thirtyDaysAgo = subDays(new Date(), 30);
+      return clientBookings.some(b => parseISO(b.date) >= thirtyDaysAgo);
+    }
+
+    if (activeFilter === 'frequent') {
+      return clientBookings.length >= 3;
+    }
+
+    return true;
+  });
+
+  const handleAddClient = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const clientData = {
+      fullName: formData.get('fullName') as string,
+      phone: formData.get('phone') as string,
+      email: formData.get('email') as string,
+      notes: formData.get('notes') as string,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    };
+
+    try {
+      const phone = formData.get('phone') as string;
+      if (editingClient) {
+        await updateDoc(doc(db, 'clients', editingClient.id), {
+          ...clientData,
+          updatedAt: serverTimestamp(),
+        });
+        setEditingClient(null);
+      } else {
+        await setDoc(doc(db, 'clients', phone), clientData);
+        setSelectedClientId(phone);
+      }
+      setIsAddingClient(false);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, 'clients');
+    }
+  };
+
+  const deleteClient = async (id: string) => {
+    if (!window.confirm("ნამდვილად გსურთ კლიენტის წაშლა?")) return;
+    try {
+      await deleteDoc(doc(db, 'clients', id));
+      if (selectedClientId === id) setSelectedClientId(null);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `clients/${id}`);
+    }
+  };
+
+  if (selectedClientId) {
+    return <ClientProfileView 
+      clientId={selectedClientId} 
+      onBack={() => setSelectedClientId(null)} 
+      lang={lang}
+      allBookings={allBookings}
+      pricing={pricing}
+    />;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <Button variant="ghost" onClick={onBack} className="gap-2 text-slate-300 hover:bg-slate-900">
+          <ArrowLeft className="w-4 h-4" /> უკან
+        </Button>
+        <div className="flex w-full md:w-auto gap-2">
+          <div className="flex bg-slate-900 border border-slate-800 rounded-xl p-1 gap-1">
+            <button 
+              onClick={() => setActiveFilter('all')}
+              className={cn(
+                "px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all",
+                activeFilter === 'all' ? "bg-slate-800 text-white shadow-sm" : "text-slate-500 hover:text-slate-300"
+              )}
+            >
+              ყველა
+            </button>
+            <button 
+              onClick={() => setActiveFilter('recent')}
+              className={cn(
+                "px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all",
+                activeFilter === 'recent' ? "bg-blue-600/20 text-blue-500 shadow-sm" : "text-slate-500 hover:text-slate-300"
+              )}
+            >
+              ბოლო (30დღე)
+            </button>
+            <button 
+              onClick={() => setActiveFilter('frequent')}
+              className={cn(
+                "px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all",
+                activeFilter === 'frequent' ? "bg-indigo-600/20 text-indigo-500 shadow-sm" : "text-slate-500 hover:text-slate-300"
+              )}
+            >
+              აქტიური
+            </button>
+          </div>
+          <div className="relative flex-1 md:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+            <input 
+              type="text"
+              placeholder="ძებნა (სახელი, ტელ...)"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 pl-10 pr-4 text-white text-sm outline-none focus:border-blue-600 transition-all font-ge"
+            />
+          </div>
+          <Button onClick={() => setIsAddingClient(true)} className="gap-2 shrink-0">
+            <Plus className="w-4 h-4" /> კლიენტის დამატება
+          </Button>
+        </div>
+      </div>
+
+      <Card className="bg-slate-900 border-slate-800 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-slate-800 bg-slate-950/50">
+                <th className="px-6 py-4 text-[10px] uppercase font-bold text-slate-500 tracking-wider">სახელი</th>
+                <th className="px-6 py-4 text-[10px] uppercase font-bold text-slate-500 tracking-wider">საკონტაქტო</th>
+                <th className="px-6 py-4 text-[10px] uppercase font-bold text-slate-500 tracking-wider">შექმნილია</th>
+                <th className="px-6 py-4 text-[10px] uppercase font-bold text-slate-500 tracking-wider text-right">მოქმედება</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800">
+              {isLoading ? (
+                <tr>
+                  <td colSpan={4} className="px-6 py-10 text-center text-slate-500">იტვირთება...</td>
+                </tr>
+              ) : filteredClients.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-6 py-10 text-center text-slate-500">კლიენტები არ მოიძებნა</td>
+                </tr>
+              ) : (
+                filteredClients.map(client => (
+                  <tr 
+                    key={client.id} 
+                    className="hover:bg-slate-800/30 transition-colors cursor-pointer group"
+                    onClick={() => setSelectedClientId(client.id)}
+                  >
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-blue-600/10 text-blue-500 flex items-center justify-center font-bold text-sm">
+                          {client.fullName.charAt(0)}
+                        </div>
+                        <span className="font-bold text-white text-sm">{client.fullName}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-xs space-y-1">
+                        <div className="text-slate-300 flex items-center gap-2 font-mono"><Phone className="w-3 h-3 text-slate-500" /> {client.phone}</div>
+                        {client.email && <div className="text-slate-500 flex items-center gap-2 font-mono"><Mail className="w-3 h-3 text-slate-500" /> {client.email}</div>}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-xs text-slate-500">
+                        {client.createdAt?.seconds ? format(new Date(client.createdAt.seconds * 1000), 'dd.MM.yyyy') : '-'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2" onClick={e => e.stopPropagation()}>
+                        <button 
+                          onClick={() => {
+                            setEditingClient(client);
+                            setIsAddingClient(true);
+                          }}
+                          className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-all"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => deleteClient(client.id)}
+                          className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      <AnimatePresence>
+        {isAddingClient && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-white">{editingClient ? 'კლიენტის რედაქტირება' : 'ახალი კლიენტი'}</h3>
+                <button onClick={() => { setIsAddingClient(false); setEditingClient(null); }} className="text-slate-500 hover:text-white">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <form onSubmit={handleAddClient} className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-500 uppercase">სრული სახელი</label>
+                  <input 
+                    name="fullName"
+                    required
+                    defaultValue={editingClient?.fullName || ''}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all font-ge"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-500 uppercase">ტელეფონი</label>
+                  <input 
+                    name="phone"
+                    required
+                    defaultValue={editingClient?.phone || ''}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-500 uppercase">Email</label>
+                  <input 
+                    name="email"
+                    type="email"
+                    defaultValue={editingClient?.email || ''}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all font-mono text-sm"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-500 uppercase">შენიშვნები კლიენტზე</label>
+                  <textarea 
+                    name="notes"
+                    defaultValue={editingClient?.notes || ''}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all min-h-[100px]"
+                  />
+                </div>
+                <Button type="submit" className="w-full py-4 rounded-xl font-bold bg-blue-600 hover:bg-blue-500">
+                  {editingClient ? 'შენახვა' : 'დამატება'}
+                </Button>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function ClientProfileView({ clientId, onBack, lang, allBookings, pricing }: { clientId: string, onBack: () => void, lang: Language, allBookings: Booking[], pricing: PricingSettings }) {
+  const [client, setClient] = useState<Client | null>(null);
+  const [cars, setCars] = useState<Car[]>([]);
+  const [activeSubTab, setActiveSubTab] = useState<'info' | 'cars' | 'history'>('info');
+  const [isAddingCar, setIsAddingCar] = useState(false);
+  const [isAddingBooking, setIsAddingBooking] = useState(false);
+  const [editingCar, setEditingCar] = useState<Car | null>(null);
+
+  useEffect(() => {
+    const unsubClient = onSnapshot(doc(db, 'clients', clientId), (doc) => {
+      setClient({ id: doc.id, ...doc.data() } as Client);
+    });
+    const unsubCars = onSnapshot(collection(db, 'clients', clientId, 'cars'), (snap) => {
+      setCars(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Car)));
+    });
+    return () => {
+      unsubClient();
+      unsubCars();
+    };
+  }, [clientId]);
+
+  const clientBookings = allBookings.filter(b => 
+    b.phone === client?.phone || (client?.email && b.email === client.email)
+  );
+
+  const handleAddCar = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const carData = {
+      brand: formData.get('brand') as string,
+      model: formData.get('model') as string,
+      year: formData.get('year') as string,
+      licensePlate: formData.get('licensePlate') as string,
+      color: formData.get('color') as string,
+      notes: formData.get('notes') as string,
+    };
+
+    try {
+      if (editingCar) {
+        await updateDoc(doc(db, 'clients', clientId, 'cars', editingCar.id), carData);
+        setEditingCar(null);
+      } else {
+        await addDoc(collection(db, 'clients', clientId, 'cars'), carData);
+      }
+      setIsAddingCar(false);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `clients/${clientId}/cars`);
+    }
+  };
+
+  const deleteCar = async (carId: string) => {
+    if (!window.confirm("ნამდვილად გსურთ მანქანის წაშლა?")) return;
+    try {
+      await deleteDoc(doc(db, 'clients', clientId, 'cars', carId));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `clients/${clientId}/cars/${carId}`);
+    }
+  };
+
+  const handleAddBooking = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const price = pricing.price;
+
+    const bookingData = {
+      customerName: client.fullName,
+      phone: client.phone,
+      email: client.email || '',
+      service: 'DetailingService',
+      date: formData.get('date') as string,
+      timeSlot: formData.get('timeSlot') as string,
+      location: formData.get('location') as string,
+      carModel: formData.get('carModel') as string,
+      price: price,
+      finalPrice: price,
+      status: formData.get('status') as string,
+      createdAt: serverTimestamp(),
+    };
+
+    try {
+      await addDoc(collection(db, 'bookings'), bookingData);
+      setIsAddingBooking(false);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, 'bookings');
+    }
+  };
+
+  if (!client) return <div className="text-center py-20 text-slate-500 uppercase font-black tracking-tighter animate-pulse">Loading Identity...</div>;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <Button variant="ghost" onClick={onBack} className="gap-2 text-slate-300 hover:bg-slate-900">
+          <ArrowLeft className="w-4 h-4" /> კლიენტებში დაბრუნება
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Sidebar Mini Profile */}
+        <div className="lg:col-span-1 space-y-4">
+          <Card className="bg-slate-900 border-slate-800 p-6 text-center">
+            <div className="w-20 h-20 rounded-3xl bg-blue-600/10 text-blue-500 flex items-center justify-center font-bold text-3xl mx-auto mb-4 border border-blue-500/20 shadow-xl shadow-blue-600/10">
+              {client.fullName.charAt(0)}
+            </div>
+            <h3 className="text-xl font-bold text-white mb-1">{client.fullName}</h3>
+            <p className="text-xs text-slate-500 mb-6">{client.phone}</p>
+            
+            <div className="flex flex-col gap-2">
+              <button 
+                onClick={() => setActiveSubTab('info')}
+                className={cn(
+                  "w-full text-left px-4 py-3 rounded-xl text-sm font-bold transition-all flex items-center gap-3",
+                  activeSubTab === 'info' ? "bg-slate-800 text-white shadow-lg" : "text-slate-500 hover:text-slate-300"
+                )}
+              >
+                <Info className="w-4 h-4" /> ინფორმაცია
+              </button>
+              <button 
+                onClick={() => setActiveSubTab('cars')}
+                className={cn(
+                  "w-full text-left px-4 py-3 rounded-xl text-sm font-bold transition-all flex items-center gap-3",
+                  activeSubTab === 'cars' ? "bg-slate-800 text-white shadow-lg" : "text-slate-500 hover:text-slate-300"
+                )}
+              >
+                <Car className="w-4 h-4" /> მანქანები <span className="ml-auto bg-slate-950 px-2 py-0.5 rounded-lg text-[10px] font-black">{cars.length}</span>
+              </button>
+              <button 
+                onClick={() => setActiveSubTab('history')}
+                className={cn(
+                  "w-full text-left px-4 py-3 rounded-xl text-sm font-bold transition-all flex items-center gap-3",
+                  activeSubTab === 'history' ? "bg-slate-800 text-white shadow-lg" : "text-slate-500 hover:text-slate-300"
+                )}
+              >
+                <History className="w-4 h-4" /> ისტორია <span className="ml-auto bg-slate-950 px-2 py-0.5 rounded-lg text-[10px] font-black">{clientBookings.length}</span>
+              </button>
+            </div>
+          </Card>
+        </div>
+
+        {/* Content Area */}
+        <div className="lg:col-span-3">
+          <AnimatePresence mode="wait">
+            {activeSubTab === 'info' && (
+              <motion.div 
+                key="info"
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                className="space-y-6"
+              >
+                <Card className="bg-slate-900 border-slate-800 p-6 space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">საკონტაქტო ნომერი</label>
+                        <p className="text-white font-bold flex items-center gap-2">
+                          <Phone className="w-4 h-4 text-blue-500" /> {client.phone}
+                        </p>
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Email</label>
+                        <p className="text-white font-medium flex items-center gap-2">
+                          <Mail className="w-4 h-4 text-indigo-500" /> {client.email || 'არ არის მითითებული'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">შექმნის თარიღი</label>
+                        <p className="text-slate-300 text-sm flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-slate-500" /> 
+                          {client.createdAt?.seconds ? format(new Date(client.createdAt.seconds * 1000), 'MMM dd, yyyy HH:mm') : '-'}
+                        </p>
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">ბოლო განახლება</label>
+                        <p className="text-slate-300 text-sm flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-slate-500" /> 
+                          {client.updatedAt?.seconds ? format(new Date(client.updatedAt.seconds * 1000), 'MMM dd, yyyy HH:mm') : '-'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="pt-6 border-t border-slate-800">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2">შენიშვნები კლიენტზე</label>
+                    <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 text-sm text-slate-400 min-h-[120px] whitespace-pre-wrap leading-relaxed">
+                      {client.notes || 'შენიშვნები არ არის...'}
+                    </div>
+                  </div>
+                </Card>
+              </motion.div>
+            )}
+
+            {activeSubTab === 'cars' && (
+              <motion.div 
+                key="cars"
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                className="space-y-4"
+              >
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="text-lg font-bold text-white">მანქანების სია</h3>
+                  <Button variant="outline" size="sm" onClick={() => setIsAddingCar(true)} className="gap-2 border-slate-700 hover:bg-slate-800 text-slate-300">
+                    <Plus className="w-4 h-4" /> მანქანის დამატება
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {cars.length === 0 ? (
+                    <div className="md:col-span-2 text-center py-10 text-slate-500 border border-dashed border-slate-800 rounded-3xl bg-slate-900/50 flex flex-col items-center gap-3">
+                      <Car className="w-8 h-8 opacity-20" />
+                      <span className="text-sm">მანქანები არ არის დამატებული</span>
+                    </div>
+                  ) : (
+                    cars.map(car => (
+                      <Card key={car.id} className="bg-slate-900 border-slate-800 p-5 group hover:border-blue-600/30 transition-all relative overflow-hidden">
+                        <div className="absolute top-2 right-2 p-1 flex gap-1 z-10">
+                          <button onClick={() => { setEditingCar(car); setIsAddingCar(true); }} className="p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded">
+                            <Edit3 className="w-4 h-4" />
+                          </button>
+                          <button onClick={() => deleteCar(car.id)} className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                        
+                        <div className="flex items-start gap-4">
+                          <div className="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center text-slate-400 group-hover:bg-blue-600/10 group-hover:text-blue-500 transition-colors shrink-0">
+                            <Car className="w-6 h-6" />
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="font-black text-lg text-white leading-tight">{car.brand} {car.model}</h4>
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              <span className="text-[10px] font-black uppercase text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">{car.licensePlate}</span>
+                              {car.year && <span className="text-[10px] font-bold text-slate-500">{car.year}</span>}
+                              {car.color && <span className="text-[10px] font-bold text-slate-500 capitalize">{car.color}</span>}
+                            </div>
+                          </div>
+                        </div>
+
+                        {car.notes && (
+                          <div className="mt-4 p-3 bg-slate-950 rounded-xl text-xs text-slate-500 italic border border-slate-800/50">
+                            "{car.notes}"
+                          </div>
+                        )}
+                      </Card>
+                    ))
+                  )}
+                </div>
+              </motion.div>
+            )}
+
+            {activeSubTab === 'history' && (
+              <motion.div 
+                key="history"
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                className="space-y-4"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-lg font-bold text-white">დაჯავშნების ისტორია</h3>
+                  <div className="flex items-center gap-3">
+                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{clientBookings.length} ჯავშანი</div>
+                    <Button variant="outline" size="sm" onClick={() => setIsAddingBooking(true)} className="gap-2 border-slate-700 hover:bg-slate-800 text-slate-300">
+                      <Plus className="w-4 h-4" /> ჯავშნის დამატება
+                    </Button>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  {clientBookings.length === 0 ? (
+                    <div className="text-center py-20 text-slate-500 border border-dashed border-slate-800 rounded-3xl bg-slate-900/50 flex flex-col items-center gap-4">
+                      <History className="w-10 h-10 opacity-10" />
+                      <span className="text-sm font-bold tracking-widest uppercase">ისტორია ცარიელია</span>
+                    </div>
+                  ) : (
+                    clientBookings.sort((a,b) => b.date.localeCompare(a.date)).map(booking => (
+                      <Card key={booking.id} className="bg-slate-900 border-slate-800 p-4 hover:border-slate-700 transition-all flex items-center justify-between group">
+                        <div className="flex items-center gap-4">
+                          <div className={cn(
+                            "w-1 h-10 rounded-full",
+                            booking.status === 'pending' ? "bg-yellow-500" : booking.status === 'completed' ? "bg-green-500" : "bg-red-500"
+                          )} />
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="font-bold text-white text-sm">
+                                {booking.service === 'DetailingService' ? 'Exclusive Package' : booking.service}
+                              </p>
+                              {booking.carModel && (
+                                <span className="text-[10px] text-slate-500 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800">{booking.carModel}</span>
+                              )}
+                            </div>
+                            <p className="text-xs text-slate-500 flex items-center gap-2 mt-0.5">
+                              <Calendar className="w-3 h-3" /> {format(parseISO(booking.date), 'MMM dd, yyyy')} • {booking.timeSlot}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-black text-white text-sm">{booking.finalPrice}₾</p>
+                          <span className={cn(
+                            "text-[9px] font-black uppercase px-2 py-0.5 rounded mt-1 inline-block",
+                            booking.status === 'pending' ? "bg-yellow-500/10 text-yellow-500" : booking.status === 'completed' ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"
+                          )}>
+                            {booking.status}
+                          </span>
+                        </div>
+                      </Card>
+                    ))
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {isAddingCar && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-white">{editingCar ? 'მანქანის რედაქტირება' : 'ახალი მანქანა'}</h3>
+                <button onClick={() => { setIsAddingCar(false); setEditingCar(null); }} className="text-slate-500 hover:text-white">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <form onSubmit={handleAddCar} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase">ბრენდი</label>
+                    <input 
+                      name="brand"
+                      required
+                      defaultValue={editingCar?.brand || ''}
+                      placeholder="e.g. BMW"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all font-ge"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase">მოდელი</label>
+                    <input 
+                      name="model"
+                      required
+                      defaultValue={editingCar?.model || ''}
+                      placeholder="e.g. X5"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase">წელი</label>
+                    <input 
+                      name="year"
+                      defaultValue={editingCar?.year || ''}
+                      placeholder="2020"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase">ნომერი (Plate)</label>
+                    <input 
+                      name="licensePlate"
+                      required
+                      defaultValue={editingCar?.licensePlate || ''}
+                      placeholder="AA-123-AA"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all font-mono"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-500 uppercase">ფერი</label>
+                  <input 
+                    name="color"
+                    defaultValue={editingCar?.color || ''}
+                    placeholder="Black"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-500 uppercase">შენიშვნები</label>
+                  <textarea 
+                    name="notes"
+                    defaultValue={editingCar?.notes || ''}
+                    placeholder="leather interior..."
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all min-h-[80px]"
+                  />
+                </div>
+                <Button type="submit" className="w-full py-4 rounded-xl font-bold bg-blue-600 hover:bg-blue-500 transition-all shadow-lg shadow-blue-600/20">
+                  {editingCar ? 'შენახვა' : 'დამატება'}
+                </Button>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isAddingBooking && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-white">ჯავშნის დამატება</h3>
+                <button onClick={() => setIsAddingBooking(false)} className="text-slate-500 hover:text-white">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <form onSubmit={handleAddBooking} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase">თარიღი</label>
+                    <input 
+                      name="date"
+                      type="date"
+                      required
+                      defaultValue={format(new Date(), 'yyyy-MM-dd')}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase">დრო</label>
+                    <input 
+                      name="timeSlot"
+                      required
+                      placeholder="e.g. 14:00"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase">მანქანა</label>
+                    <select 
+                      name="carModel"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all font-ge"
+                    >
+                      <option value="">აირჩიეთ მანქანა</option>
+                      {cars.map(car => (
+                        <option key={car.id} value={`${car.brand} ${car.model} (${car.licensePlate})`}>
+                          {car.brand} {car.model} - {car.licensePlate}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase">სტატუსი</label>
+                    <select 
+                      name="status"
+                      required
+                      defaultValue="completed"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all font-ge"
+                    >
+                      <option value="pending">Pending</option>
+                      <option value="completed">Completed</option>
+                      <option value="canceled">Canceled</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-500 uppercase">მისამართი</label>
+                  <input 
+                    name="location"
+                    required
+                    placeholder="ლოკაცია"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all font-ge"
+                  />
+                </div>
+
+                <Button type="submit" className="w-full py-4 rounded-xl font-bold bg-blue-600 hover:bg-blue-500 transition-all shadow-lg shadow-blue-600/20">
+                  ჯავშნის დამატება
+                </Button>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

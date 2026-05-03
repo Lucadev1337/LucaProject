@@ -8,7 +8,7 @@
         "customerName": { "type": "string", "description": "Full name of the customer." },
         "email": { "type": "string", "format": "email", "description": "Email address." },
         "phone": { "type": "string", "description": "Phone number." },
-        "service": { "type": "string", "enum": ["Basic", "Premium"], "description": "Selected detailing package." },
+        "service": { "type": "string", "description": "Detailing service name." },
         "date": { "type": "string", "description": "Date of the booking (YYYY-MM-DD)." },
         "timeSlot": { "type": "string", "description": "Selected time slot (e.g., 09:00)." },
         "location": { "type": "string", "description": "Customer's location for the mobile service." },
@@ -60,8 +60,7 @@
       "description": "Global pricing and sales settings.",
       "type": "object",
       "properties": {
-        "basicPrice": { "type": "number", "description": "Price for the Basic package." },
-        "premiumPrice": { "type": "number", "description": "Price for the Premium package." },
+        "price": { "type": "number", "description": "Price for the detailing service." },
         "salePercentage": { "type": "number", "description": "Sale percentage (e.g., 20 for 20% off)." },
         "isSaleActive": { "type": "boolean", "description": "Whether the sale is currently active." },
         "heroReviews": {
@@ -76,7 +75,7 @@
           "description": "List of reviewer avatars with links for the hero section."
         }
       },
-      "required": ["basicPrice", "premiumPrice", "salePercentage", "isSaleActive"]
+      "required": ["price", "salePercentage", "isSaleActive"]
     },
     "PromoCode": {
       "title": "PromoCode",
@@ -89,6 +88,34 @@
         "createdAt": { "type": "string", "format": "date-time", "description": "When the code was created." }
       },
       "required": ["code", "discount", "active", "createdAt"]
+    },
+    "Client": {
+      "title": "Client",
+      "description": "A customer profile for tracking cars and history.",
+      "type": "object",
+      "properties": {
+        "fullName": { "type": "string", "description": "Full name of the client." },
+        "phone": { "type": "string", "description": "Primary phone number." },
+        "email": { "type": "string", "format": "email", "description": "Optional email address." },
+        "notes": { "type": "string", "description": "General notes about the client." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the client was created." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "When the client was last updated." }
+      },
+      "required": ["fullName", "phone", "createdAt", "updatedAt"]
+    },
+    "Car": {
+      "title": "Car",
+      "description": "A vehicle owned by a client.",
+      "type": "object",
+      "properties": {
+        "brand": { "type": "string", "description": "Car brand (e.g., BMW)." },
+        "model": { "type": "string", "description": "Car model (e.g., X5)." },
+        "year": { "type": "string", "description": "Car year (optional)." },
+        "licensePlate": { "type": "string", "description": "Car license plate." },
+        "color": { "type": "string", "description": "Car color (optional)." },
+        "notes": { "type": "string", "description": "Notes about the specific car." }
+      },
+      "required": ["brand", "model", "licensePlate"]
     }
   },
   "firestore": {
@@ -119,6 +146,14 @@
     "/addons/{addonId}": {
       "schema": "Addon",
       "description": "Collection of add-on services."
+    },
+    "/clients/{clientId}": {
+      "schema": "Client",
+      "description": "Collection of all clients."
+    },
+    "/clients/{clientId}/cars/{carId}": {
+      "schema": "Car",
+      "description": "List of cars owned by a client."
     }
   }
 }

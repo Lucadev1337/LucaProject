@@ -1261,6 +1261,7 @@ function PublicSite({ onBookNow, pricing, t, lang, isLoading }: { onBookNow: (pl
   const y = useTransform(scrollY, [0, 500], [0, 150]);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [addons, setAddons] = useState<Addon[]>([]);
+  const [expandedAddonId, setExpandedAddonId] = useState<string | null>(null);
 
   useEffect(() => {
     const q = query(collection(db, 'addons'), where('active', '==', true));
@@ -1606,40 +1607,90 @@ function PublicSite({ onBookNow, pricing, t, lang, isLoading }: { onBookNow: (pl
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.1 }}
-                className="mt-8 space-y-4"
+                className="mt-12 space-y-6"
               >
-                <div className="flex items-center gap-3 px-2">
-                  <div className="w-8 h-8 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400">
-                    <PlusCircle className="w-5 h-5" />
+                <div className="flex flex-col items-center gap-2 mb-2">
+                  <div className="w-10 h-10 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-400 border border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.1)]">
+                    <PlusCircle className="w-6 h-6" />
                   </div>
-                  <h4 className="text-lg font-black text-white uppercase tracking-tight">
-                    {lang === 'GE' ? 'დამატებითი სერვისები' : 'Additional Services'}
+                  <h4 className="text-xl font-black text-white uppercase tracking-tight">
+                    {lang === 'GE' ? 'დამატებითი სერვისები' : 'Premium Add-ons'}
                   </h4>
+                  <div className="h-1 w-12 bg-blue-500/30 rounded-full" />
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {addons.map((addon, i) => (
-                    <motion.div 
-                      key={addon.id}
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      whileInView={{ opacity: 1, scale: 1 }}
-                      viewport={{ once: true, amount: 0.1 }}
-                      transition={{ delay: i * 0.1 }}
-                      className="group/addon relative p-4 rounded-2xl bg-slate-900/40 border border-white/5 hover:border-blue-400/30 hover:bg-slate-900 transition-all duration-300 overflow-hidden"
-                    >
-                      <div className="relative z-10 flex items-center justify-between gap-4">
-                        <div className="min-w-0">
-                          <h5 className="font-bold text-white text-sm truncate">{lang === 'GE' ? addon.nameGE : addon.nameEN}</h5>
-                          <p className="text-[10px] text-slate-500 group-hover/addon:text-slate-400 transition-colors">
-                            {lang === 'GE' ? addon.descriptionGE : addon.descriptionEN}
-                          </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {addons.map((addon, i) => {
+                    const isExpanded = expandedAddonId === addon.id;
+                    return (
+                      <motion.div 
+                        key={addon.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true, amount: 0.1 }}
+                        transition={{ delay: i * 0.1 }}
+                        onClick={() => setExpandedAddonId(isExpanded ? null : addon.id)}
+                        className={cn(
+                          "group/addon relative rounded-3xl border transition-all duration-500 cursor-pointer overflow-hidden",
+                          isExpanded 
+                            ? "bg-slate-900 border-blue-400/40 shadow-[0_20px_40px_rgba(0,0,0,0.3)] ring-1 ring-blue-400/20" 
+                            : "bg-slate-900/40 border-white/5 hover:border-blue-400/30 hover:bg-slate-900/60"
+                        )}
+                      >
+                        <div className="p-5 sm:p-6 flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-4 min-w-0">
+                            <div className={cn(
+                              "w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500 shrink-0",
+                              isExpanded ? "bg-blue-500 text-white shadow-lg shadow-blue-500/30" : "bg-blue-500/10 text-blue-400"
+                            )}>
+                              <PlusCircle className={cn("w-6 h-6 transition-transform duration-500", isExpanded && "rotate-45")} />
+                            </div>
+                            <div className="min-w-0">
+                              <h5 className="font-black text-white text-base sm:text-lg leading-tight truncate">
+                                {lang === 'GE' ? addon.nameGE : addon.nameEN}
+                              </h5>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-blue-400 font-black text-sm whitespace-nowrap">+{addon.price}₾</span>
+                                {!isExpanded && (
+                                  <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">
+                                    {lang === 'GE' ? 'დეტალები' : 'Details'}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <div className={cn(
+                            "w-8 h-8 rounded-full border flex items-center justify-center transition-all duration-300",
+                            isExpanded ? "border-blue-400/40 bg-blue-400/10 text-blue-400" : "border-white/10 text-slate-500 group-hover/addon:border-blue-400/30 group-hover/addon:text-blue-400"
+                          )}>
+                            <ChevronDown className={cn("w-4 h-4 transition-transform duration-500", isExpanded && "rotate-180")} />
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <span className="text-blue-400 font-black text-sm">+{addon.price}₾</span>
-                        </div>
-                      </div>
-                      <div className="absolute inset-0 bg-gradient-to-br from-blue-400/5 to-transparent opacity-0 group-hover/addon:opacity-100 transition-opacity" />
-                    </motion.div>
-                  ))}
+
+                        <AnimatePresence>
+                          {isExpanded && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: "auto", opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.3, ease: "easeInOut" }}
+                            >
+                              <div className="px-6 pb-6 pt-2 border-t border-white/5 mx-6 mt-0">
+                                <p className="text-sm text-slate-400 leading-relaxed font-medium">
+                                  {lang === 'GE' ? addon.descriptionGE : addon.descriptionEN}
+                                </p>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                        
+                        <div className={cn(
+                          "absolute inset-0 bg-gradient-to-br from-blue-400/10 to-transparent transition-opacity duration-500",
+                          isExpanded ? "opacity-100" : "opacity-0"
+                        )} />
+                      </motion.div>
+                    );
+                  })}
                 </div>
               </motion.div>
             )}

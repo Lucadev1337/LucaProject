@@ -57,7 +57,8 @@ import {
   Users,
   Smartphone,
   ChevronDown,
-  PlusCircle
+  PlusCircle,
+  Edit3
 } from 'lucide-react';
 import { format, addDays, startOfToday, isSameDay, parseISO, isToday, startOfMonth, endOfMonth } from 'date-fns';
 import { ka } from 'date-fns/locale';
@@ -1259,6 +1260,17 @@ function PublicSite({ onBookNow, pricing, t, lang, isLoading }: { onBookNow: (pl
   const { scrollY } = useScroll();
   const y = useTransform(scrollY, [0, 500], [0, 150]);
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [addons, setAddons] = useState<Addon[]>([]);
+
+  useEffect(() => {
+    const q = query(collection(db, 'addons'), where('active', '==', true));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetched = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Addon));
+      setAddons(fetched);
+    });
+    return unsubscribe;
+  }, []);
+
   const heroImages = [
     "https://iili.io/BgUTxQ1.jpg",
     "https://iili.io/BgUTnTB.jpg",
@@ -1289,7 +1301,6 @@ function PublicSite({ onBookNow, pricing, t, lang, isLoading }: { onBookNow: (pl
     <motion.div 
       initial={{ opacity: 0, y: 20 }} 
       animate={{ opacity: 1, y: 0 }} 
-      exit={{ opacity: 0, scale: 0.98, transition: { duration: 0.2 } }}
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
     >
       {/* Preload Hero/Results Images for zero-lag carousel */}
@@ -1508,7 +1519,7 @@ function PublicSite({ onBookNow, pricing, t, lang, isLoading }: { onBookNow: (pl
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+            viewport={{ once: true, amount: 0.1 }}
             className="text-center mb-12 flex flex-col items-center"
           >
             <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-blue-500/5 border border-blue-500/20 mb-6 backdrop-blur-xl shadow-[0_8px_16px_rgba(59,130,246,0.05)] transition-all hover:border-blue-500/40 group">
@@ -1525,7 +1536,7 @@ function PublicSite({ onBookNow, pricing, t, lang, isLoading }: { onBookNow: (pl
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
+              viewport={{ once: true, amount: 0.1 }}
             >
               <Card className="flex flex-col h-full bg-slate-900/60 backdrop-blur-xl border-blue-400/30 ring-1 ring-blue-400/10 relative overflow-hidden group rounded-[2rem]">
                 <div className="absolute top-0 right-0 bg-blue-400 text-slate-950 px-3 py-1 rounded-bl-xl text-[10px] font-black uppercase tracking-widest shadow-lg">
@@ -1562,7 +1573,7 @@ function PublicSite({ onBookNow, pricing, t, lang, isLoading }: { onBookNow: (pl
                         key={i}
                         initial={{ opacity: 0, y: 10 }}
                         whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
+                        viewport={{ once: true, amount: 0.1 }}
                         transition={{ delay: i * 0.05 }}
                         className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5 hover:border-blue-400/30 hover:bg-white/10 transition-all duration-300 group/item"
                       >
@@ -1588,6 +1599,50 @@ function PublicSite({ onBookNow, pricing, t, lang, isLoading }: { onBookNow: (pl
                 </div>
               </Card>
             </motion.div>
+
+            {/* Addons Section */}
+            {addons.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.1 }}
+                className="mt-8 space-y-4"
+              >
+                <div className="flex items-center gap-3 px-2">
+                  <div className="w-8 h-8 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400">
+                    <PlusCircle className="w-5 h-5" />
+                  </div>
+                  <h4 className="text-lg font-black text-white uppercase tracking-tight">
+                    {lang === 'GE' ? 'დამატებითი სერვისები' : 'Additional Services'}
+                  </h4>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {addons.map((addon, i) => (
+                    <motion.div 
+                      key={addon.id}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      whileInView={{ opacity: 1, scale: 1 }}
+                      viewport={{ once: true, amount: 0.1 }}
+                      transition={{ delay: i * 0.1 }}
+                      className="group/addon relative p-4 rounded-2xl bg-slate-900/40 border border-white/5 hover:border-blue-400/30 hover:bg-slate-900 transition-all duration-300 overflow-hidden"
+                    >
+                      <div className="relative z-10 flex items-center justify-between gap-4">
+                        <div className="min-w-0">
+                          <h5 className="font-bold text-white text-sm truncate">{lang === 'GE' ? addon.nameGE : addon.nameEN}</h5>
+                          <p className="text-[10px] text-slate-500 group-hover/addon:text-slate-400 transition-colors">
+                            {lang === 'GE' ? addon.descriptionGE : addon.descriptionEN}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className="text-blue-400 font-black text-sm">+{addon.price}₾</span>
+                        </div>
+                      </div>
+                      <div className="absolute inset-0 bg-gradient-to-br from-blue-400/5 to-transparent opacity-0 group-hover/addon:opacity-100 transition-opacity" />
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
           </div>
         </div>
       </section>
@@ -1598,7 +1653,7 @@ function PublicSite({ onBookNow, pricing, t, lang, isLoading }: { onBookNow: (pl
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+            viewport={{ once: true, amount: 0.1 }}
             className="text-center mb-12"
           >
             <h2 className="text-3xl md:text-4xl font-black text-white mb-4 tracking-tight">{t.howItWorks}</h2>
@@ -1613,7 +1668,7 @@ function PublicSite({ onBookNow, pricing, t, lang, isLoading }: { onBookNow: (pl
                 key={i}
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
+                viewport={{ once: true, amount: 0.1 }}
                 transition={{ delay: i * 0.2 }}
                 className="relative flex flex-col items-center text-center group"
               >
@@ -1637,7 +1692,7 @@ function PublicSite({ onBookNow, pricing, t, lang, isLoading }: { onBookNow: (pl
               key={i}
               initial={{ opacity: 0, scale: 0.95 }}
               whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
+              viewport={{ once: true, amount: 0.1 }}
               transition={{ delay: i * 0.1 }}
               className="flex flex-col gap-4 p-8 rounded-[2rem] bg-slate-900/40 backdrop-blur-xl border border-white/5 hover:border-white/10 transition-all duration-500 group"
             >
@@ -4294,6 +4349,9 @@ function AddonManager({ onBack, lang }: { onBack: () => void, lang: Language }) 
     active: true
   });
 
+  const [editingAddonId, setEditingAddonId] = useState<string | null>(null);
+  const [editFormData, setEditFormData] = useState<Partial<Addon>>({});
+
   useEffect(() => {
     const q = query(collection(db, 'addons'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -4326,6 +4384,24 @@ function AddonManager({ onBack, lang }: { onBack: () => void, lang: Language }) 
       handleFirestoreError(error, OperationType.WRITE, 'addons');
     } finally {
       setIsAdding(false);
+    }
+  };
+
+  const startEditing = (addon: Addon) => {
+    setEditingAddonId(addon.id);
+    setEditFormData(addon);
+  };
+
+  const handleUpdateAddon = async () => {
+    if (!editingAddonId || !editFormData.nameGE || !editFormData.nameEN) return;
+    try {
+      await updateDoc(doc(db, 'addons', editingAddonId), {
+        ...editFormData,
+        updatedAt: serverTimestamp()
+      });
+      setEditingAddonId(null);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `addons/${editingAddonId}`);
     }
   };
 
@@ -4432,39 +4508,105 @@ function AddonManager({ onBack, lang }: { onBack: () => void, lang: Language }) 
           </Card>
         ) : (
           <div className="grid grid-cols-1 gap-4">
-            {addons.map(addon => (
-              <Card key={addon.id} className="bg-slate-900 border-slate-800 p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 group transition-all hover:border-slate-700">
-                <div className="flex items-center gap-4 flex-1">
-                  <div className={cn(
-                    "w-12 h-12 rounded-xl flex items-center justify-center font-black text-lg shrink-0",
-                    addon.active ? "bg-blue-600/10 text-blue-500" : "bg-slate-800 text-slate-500"
-                  )}>
-                    {addon.price}₾
+            {addons.map(addon => {
+              const isEditing = editingAddonId === addon.id;
+              
+              if (isEditing) {
+                return (
+                  <Card key={addon.id} className="bg-slate-900 border-blue-600/50 p-6 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">სახელი (GE)</label>
+                        <input 
+                          type="text"
+                          value={editFormData.nameGE}
+                          onChange={(e) => setEditFormData({ ...editFormData, nameGE: e.target.value })}
+                          className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-white text-sm"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">სახელი (EN)</label>
+                        <input 
+                          type="text"
+                          value={editFormData.nameEN}
+                          onChange={(e) => setEditFormData({ ...editFormData, nameEN: e.target.value })}
+                          className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-white text-sm"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">აღწერა (GE)</label>
+                        <textarea 
+                          value={editFormData.descriptionGE}
+                          onChange={(e) => setEditFormData({ ...editFormData, descriptionGE: e.target.value })}
+                          className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-white text-sm min-h-[60px]"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">აღწერა (EN)</label>
+                        <textarea 
+                          value={editFormData.descriptionEN}
+                          onChange={(e) => setEditFormData({ ...editFormData, descriptionEN: e.target.value })}
+                          className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-white text-sm min-h-[60px]"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">ფასი (₾)</label>
+                        <input 
+                          type="number"
+                          value={editFormData.price}
+                          onChange={(e) => setEditFormData({ ...editFormData, price: Number(e.target.value) })}
+                          className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-white text-sm"
+                        />
+                      </div>
+                      <div className="flex items-end gap-2">
+                        <Button onClick={handleUpdateAddon} className="flex-1">შენახვა</Button>
+                        <Button variant="ghost" onClick={() => setEditingAddonId(null)} className="flex-1 bg-slate-800">გაუქმება</Button>
+                      </div>
+                    </div>
+                  </Card>
+                );
+              }
+
+              return (
+                <Card key={addon.id} className="bg-slate-900 border-slate-800 p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 group transition-all hover:border-slate-700">
+                  <div className="flex items-center gap-4 flex-1">
+                    <div className={cn(
+                      "w-12 h-12 rounded-xl flex items-center justify-center font-black text-lg shrink-0",
+                      addon.active ? "bg-blue-600/10 text-blue-500" : "bg-slate-800 text-slate-500"
+                    )}>
+                      {addon.price}₾
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="font-black text-white text-lg tracking-tight truncate">{lang === 'GE' ? addon.nameGE : addon.nameEN}</h4>
+                      <p className="text-xs text-slate-500 line-clamp-1">{lang === 'GE' ? addon.descriptionGE : addon.descriptionEN}</p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <h4 className="font-black text-white text-lg tracking-tight truncate">{lang === 'GE' ? addon.nameGE : addon.nameEN}</h4>
-                    <p className="text-xs text-slate-500 line-clamp-1">{lang === 'GE' ? addon.descriptionGE : addon.descriptionEN}</p>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button 
+                      onClick={() => startEditing(addon)}
+                      className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center hover:bg-blue-500/20 transition-all"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                    </button>
+                    <button 
+                      onClick={() => toggleAddonStatus(addon.id, addon.active)}
+                      className={cn(
+                        "w-10 h-10 rounded-xl flex items-center justify-center transition-all",
+                        addon.active ? "bg-green-500/10 text-green-500 hover:bg-green-500/20" : "bg-slate-800 text-slate-500 hover:bg-slate-700"
+                      )}
+                    >
+                      <Power className="w-4 h-4" />
+                    </button>
+                    <button 
+                      onClick={() => deleteAddon(addon.id)}
+                      className="w-10 h-10 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500/20 transition-all"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <button 
-                    onClick={() => toggleAddonStatus(addon.id, addon.active)}
-                    className={cn(
-                      "w-10 h-10 rounded-xl flex items-center justify-center transition-all",
-                      addon.active ? "bg-green-500/10 text-green-500 hover:bg-green-500/20" : "bg-slate-800 text-slate-500 hover:bg-slate-700"
-                    )}
-                  >
-                    <Power className="w-4 h-4" />
-                  </button>
-                  <button 
-                    onClick={() => deleteAddon(addon.id)}
-                    className="w-10 h-10 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500/20 transition-all"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </Card>
-            ))}
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>

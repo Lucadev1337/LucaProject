@@ -14,9 +14,24 @@
         "location": { "type": "string", "description": "Customer's location for the mobile service." },
         "status": { "type": "string", "enum": ["pending", "completed", "cancelled"], "description": "Current status of the booking." },
         "createdAt": { "type": "string", "format": "date-time", "description": "When the booking was created." },
-        "uid": { "type": "string", "description": "Optional user ID if logged in, but public bookings might not have this." }
+        "uid": { "type": "string", "description": "Optional user ID if logged in, but public bookings might not have this." },
+        "addons": { "type": "array", "items": { "type": "string" }, "description": "List of selected addon IDs." }
       },
       "required": ["customerName", "email", "phone", "service", "date", "timeSlot", "location", "status", "createdAt"]
+    },
+    "Addon": {
+      "title": "Addon",
+      "description": "An additional service that can be added to a booking.",
+      "type": "object",
+      "properties": {
+        "nameGE": { "type": "string", "description": "Name of the addon in Georgian." },
+        "nameEN": { "type": "string", "description": "Name of the addon in English." },
+        "descriptionGE": { "type": "string", "description": "Details of the addon in Georgian." },
+        "descriptionEN": { "type": "string", "description": "Details of the addon in English." },
+        "price": { "type": "number", "description": "Price of the addon." },
+        "active": { "type": "boolean", "description": "Whether the addon is available for booking." }
+      },
+      "required": ["nameGE", "nameEN", "price", "active"]
     },
     "Availability": {
       "title": "Availability",
@@ -100,6 +115,10 @@
     "/promo_codes/{codeId}": {
       "schema": "PromoCode",
       "description": "Collection of discount codes."
+    },
+    "/addons/{addonId}": {
+      "schema": "Addon",
+      "description": "Collection of add-on services."
     }
   }
 }

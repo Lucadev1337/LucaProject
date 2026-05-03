@@ -218,22 +218,15 @@ app.post('/api/send-whatsapp', async (req, res) => {
 
 app.post('/api/notify-booking', async (req, res) => {
   try {
-    const { bookingData, price, bookingId, promoCode, customerMethod, customerEmail, lang } = req.body;
+    const { bookingData, addons, price, bookingId, promoCode, customerMethod, customerEmail, lang } = req.body;
     const serviceName = bookingData.service === 'Premium' ? (lang === 'GE' ? 'პრემიუმ დითეილინგი' : 'Premium Detailing') : (lang === 'GE' ? 'სტანდარტული წმენდა' : 'Standard Cleaning');
     
-    // Update booking metadata (Removed redundant update as frontend already sends these fields)
-    /*
-    if (bookingId && db) {
-      try {
-        await updateDoc(doc(db, 'bookings', bookingId), {
-          verificationMethod: customerMethod,
-          customerEmail: customerEmail || bookingData.email || null
-        });
-      } catch (e) {
-        console.error('Failed to update booking metadata', e);
-      }
-    }
-    */
+    // Addon string for WhatsApp
+    const addonText = addons && addons.length > 0 
+      ? (lang === 'GE' 
+          ? `\n➕ დამატებითი: ${addons.map((a: any) => a.nameGE).join(', ')}` 
+          : `\n➕ Add-ons: ${addons.map((a: any) => a.nameEN).join(', ')}`)
+      : '';
     
     // 1. Send Admin Notification (WhatsApp)
     if (db) {
@@ -247,7 +240,7 @@ app.post('/api/notify-booking', async (req, res) => {
             const promoInfo = promoCode ? `\n🎟 პრომო: ${promoCode}` : '';
             const carInfo = bookingData.carModel ? `\n🚗 მანქანა: ${bookingData.carModel}` : '';
             const contactInfo = bookingData.phone ? `📞 ტელ: ${bookingData.phone}` : '';
-            const adminMessage = `🚗 *ახალი ჯავშანი!* \n\n👤 კლიენტი: ${bookingData.customerName}${carInfo}\n${contactInfo}${customerEmail ? `\n📧 Email: ${customerEmail}` : ''}\n🛠 სერვისი: ${serviceName}\n📅 თარიღი: ${bookingData.date}\n⏰ დრო: ${bookingData.timeSlot}\n📍 მისამართი: ${bookingData.location}\n💰 ფასი: ${price}₾${promoInfo}`;
+            const adminMessage = `🚗 *ახალი ჯავშანი!* \n\n👤 კლიენტი: ${bookingData.customerName}${carInfo}\n${contactInfo}${customerEmail ? `\n📧 Email: ${customerEmail}` : ''}\n🛠 სერვისი: ${serviceName}${addonText}\n📅 თარიღი: ${bookingData.date}\n⏰ დრო: ${bookingData.timeSlot}\n📍 მისამართი: ${bookingData.location}\n💰 ფასი: ${price}₾${promoInfo}`;
             
             await sendMultiChannelHelper(pricing, pricing.whatsappNumber, adminMessage, 'whatsapp');
           }
@@ -255,8 +248,8 @@ app.post('/api/notify-booking', async (req, res) => {
           // 2. CUSTOMER CONFIRMATION
           const promoLine = promoCode ? (lang === 'GE' ? `\n🎟 პრომო კოდი: ${promoCode}` : `\n🎟 Promo Code: ${promoCode}`) : '';
           const customerMessage = lang === 'GE'
-            ? `✅ ჯავშანი დადასტურებულია!\n\n👤 კლიენტი: ${bookingData.customerName}\n🚗 მანქანა: ${bookingData.carModel || '-'}\n🛠 სერვისი: ${serviceName}\n📅 თარიღი: ${bookingData.date}\n⏰ დრო: ${bookingData.timeSlot}\n📍 მისამართი: ${bookingData.location}\n💰 გადასახდელი თანხა: ${price}₾${promoLine}\n\nგმადლობთ, რომ გვირჩევთ!`
-            : `✅ Booking Confirmed!\n\n👤 Client: ${bookingData.customerName}\n🚗 Car: ${bookingData.carModel || '-'}\n🛠 Service: ${serviceName}\n📅 Date: ${bookingData.date}\n⏰ Time: ${bookingData.timeSlot}\n📍 Address: ${bookingData.location}\n💰 Total Price: ${price}₾${promoLine}\n\nThank you for choosing us!`;
+            ? `✅ ჯავშანი დადასტურებულია!\n\n👤 კლიენტი: ${bookingData.customerName}\n🚗 მანქანა: ${bookingData.carModel || '-'}\n🛠 სერვისი: ${serviceName}${addonText}\n📅 თარიღი: ${bookingData.date}\n⏰ დრო: ${bookingData.timeSlot}\n📍 მისამართი: ${bookingData.location}\n💰 გადასახდელი თანხა: ${price}₾${promoLine}\n\nგმადლობთ, რომ გვირჩევთ!`
+            : `✅ Booking Confirmed!\n\n👤 Client: ${bookingData.customerName}\n🚗 Car: ${bookingData.carModel || '-'}\n🛠 Service: ${serviceName}${addonText}\n📅 Date: ${bookingData.date}\n⏰ Time: ${bookingData.timeSlot}\n📍 Address: ${bookingData.location}\n💰 Total Price: ${price}₾${promoLine}\n\nThank you for choosing us!`;
 
           if (customerMethod === 'whatsapp' && bookingData.phone) {
             await sendMultiChannelHelper(pricing, bookingData.phone, customerMessage, 'whatsapp');
@@ -283,6 +276,15 @@ app.post('/api/notify-booking', async (req, res) => {
                   <span style="display: block; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: bold;">${lang === 'GE' ? 'მომსახურება' : 'Service'}</span>
                   <span style="font-size: 15px; color: #1e293b; font-weight: 500;">${serviceName}</span>
                 </div>
+
+                ${addons && addons.length > 0 ? `
+                <div style="margin-bottom: 20px;">
+                  <span style="display: block; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: bold;">${lang === 'GE' ? 'დამატებითი სერვისები' : 'Add-ons'}</span>
+                  <span style="font-size: 14px; color: #1e293b; font-weight: 500;">
+                    ${addons.map((a: any) => lang === 'GE' ? a.nameGE : a.nameEN).join(', ')}
+                  </span>
+                </div>
+                ` : ''}
 
                 <div style="margin-bottom: 20px;">
                   <span style="display: block; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: bold;">${lang === 'GE' ? 'მდებარეობა' : 'Location'}</span>

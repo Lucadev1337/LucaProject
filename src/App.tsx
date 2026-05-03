@@ -56,7 +56,8 @@ import {
   Check,
   Users,
   Smartphone,
-  ChevronDown
+  ChevronDown,
+  PlusCircle
 } from 'lucide-react';
 import { format, addDays, startOfToday, isSameDay, parseISO, isToday, startOfMonth, endOfMonth } from 'date-fns';
 import { ka } from 'date-fns/locale';
@@ -610,6 +611,17 @@ interface Booking {
   finalPrice?: number;
   promoCode?: string | null;
   discountAmount?: number;
+  addons?: string[];
+}
+
+interface Addon {
+  id: string;
+  nameGE: string;
+  nameEN: string;
+  descriptionGE: string;
+  descriptionEN: string;
+  price: number;
+  active: boolean;
 }
 
 interface Availability {
@@ -1698,9 +1710,19 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms, onSuccess }: { onB
     const base = pricing.basicPrice;
     let finalPrice = base;
     
+    const addonsTotal = selectedAddonIds.reduce((sum, id) => {
+      const addon = allAddons.find(a => a.id === id);
+      return sum + (addon?.price || 0);
+    }, 0);
+
+    finalPrice += addonsTotal;
+
     if (pricing.isSaleActive) {
       const discount = pricing.salePercentage || 0;
-      finalPrice = Math.round(base * (1 - discount / 100));
+      // Note: Sale typically applies to the service price, not addons?
+      // User didn't specify, but I'll apply to total for now or just service? 
+      // Most salons apply it to the base. I'll stick to base for now.
+      finalPrice = Math.round(base * (1 - discount / 100)) + addonsTotal;
     }
 
     if (appliedPromo && appliedPromo.active) {
@@ -1842,8 +1864,21 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms, onSuccess }: { onB
   const [isApplyingPromo, setIsApplyingPromo] = useState(false);
   const [emailPopup, setEmailPopup] = useState(false);
   const [sessionVerificationMethod, setSessionVerificationMethod] = useState<'whatsapp' | 'email' | null>(null);
-  
+  const [showAddonsPopup, setShowAddonsPopup] = useState(false);
+  const [selectedAddonIds, setSelectedAddonIds] = useState<string[]>([]);
+  const [allAddons, setAllAddons] = useState<Addon[]>([]);
+  const [expandedAddonId, setExpandedAddonId] = useState<string | null>(null);
+
   const currentMethod = sessionVerificationMethod || 'whatsapp';
+
+  useEffect(() => {
+    const q = query(collection(db, 'addons'), where('active', '==', true));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetched = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Addon));
+      setAllAddons(fetched);
+    });
+    return unsubscribe;
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -2113,6 +2148,7 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms, onSuccess }: { onB
           status: 'pending',
           promoCode: appliedPromo?.code || null,
           discountAmount: appliedPromo ? appliedPromo.discount : 0,
+          addons: selectedAddonIds,
           finalPrice: getPrice(),
           verificationMethod: sessionVerificationMethod,
           customerEmail: bookingData.email || null,
@@ -2123,6 +2159,7 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms, onSuccess }: { onB
         track('Booking Confirmed', {
           service: 'Detailed Interior Clean',
           price: getPrice(),
+          addons: selectedAddonIds.join(', '),
           promoCode: appliedPromo?.code || null,
           method: sessionVerificationMethod
         });
@@ -2145,6 +2182,14 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms, onSuccess }: { onB
                 verificationMethod: sessionVerificationMethod,
                 customerEmail: bookingData.email || null
               },
+              addons: selectedAddonIds.map(id => {
+                const addon = allAddons.find(a => a.id === id);
+                return {
+                  nameGE: addon?.nameGE,
+                  nameEN: addon?.nameEN,
+                  price: addon?.price
+                };
+              }),
               price: getPrice(),
               bookingId: bookingRef.id,
               promoCode: appliedPromo?.code || null,
@@ -2625,7 +2670,11 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms, onSuccess }: { onB
                   <Button 
                     onClick={() => {
                       if (bookingData.customerName && bookingData.carModel && bookingData.phone) {
-                        setStep(4);
+                        if (allAddons.length > 0) {
+                          setShowAddonsPopup(true);
+                        } else {
+                          setStep(4);
+                        }
                         setFormError(null);
                       } else {
                         setFormError(t.fillAllFields || 'გთხოვთ შეავსოთ ყველა ველი');
@@ -2686,6 +2735,28 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms, onSuccess }: { onB
                       <p className="text-slate-400 text-sm font-bold">{bookingData.timeSlot}</p>
                     </div>
                   </div>
+
+                  {/* Addons Summary */}
+                  {selectedAddonIds.length > 0 && (
+                    <div className="flex items-start gap-4 py-4 border-t border-white/5">
+                      <div className="w-10 h-10 bg-blue-600/10 text-blue-500 rounded-xl flex items-center justify-center">
+                        <PlusCircle className="w-5 h-5" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{lang === 'GE' ? 'დამატებითი სერვისები' : 'Additional Services'}</p>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {selectedAddonIds.map(id => {
+                            const addon = allAddons.find(a => a.id === id);
+                            return (
+                              <span key={id} className="text-[10px] font-black bg-blue-600/20 text-blue-400 px-2 py-1 rounded-md uppercase tracking-tighter">
+                                {lang === 'GE' ? addon?.nameGE : addon?.nameEN} (+{addon?.price}₾)
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Location Summary */}
                   <div className="flex items-start gap-4 py-4">
@@ -2841,6 +2912,134 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms, onSuccess }: { onB
           )}
         </AnimatePresence>
       </div>
+
+      {/* Addons Popup */}
+      <AnimatePresence>
+        {showAddonsPopup && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowAddonsPopup(false)}
+              className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-lg bg-slate-900 border border-white/10 rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
+            >
+              <div className="p-6 border-b border-white/5 flex items-center justify-between bg-slate-900/50 backdrop-blur-md">
+                <div>
+                  <h3 className="text-xl font-black text-white tracking-tight">{lang === 'GE' ? 'დამატებითი სერვისები' : 'Additional Services'}</h3>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{lang === 'GE' ? 'აირჩიეთ და მიიღეთ მეტი' : 'Choose and get more'}</p>
+                </div>
+                <button onClick={() => setShowAddonsPopup(false)} className="p-2 hover:bg-white/5 rounded-full transition-colors text-slate-400">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+                {allAddons.map(addon => {
+                  const isSelected = selectedAddonIds.includes(addon.id);
+                  const isExpanded = expandedAddonId === addon.id;
+                  
+                  return (
+                    <motion.div 
+                      key={addon.id}
+                      layout
+                      className={cn(
+                        "rounded-[1.75rem] border transition-all duration-300 overflow-hidden",
+                        isSelected ? "bg-blue-600/10 border-blue-600/30" : "bg-slate-950/50 border-white/5 hover:border-white/10"
+                      )}
+                    >
+                      <div className="p-4 flex items-center gap-4">
+                        <button 
+                          onClick={() => {
+                            if (isSelected) {
+                              setSelectedAddonIds(selectedAddonIds.filter(id => id !== addon.id));
+                              if (expandedAddonId === addon.id) setExpandedAddonId(null);
+                            } else {
+                              setSelectedAddonIds([...selectedAddonIds, addon.id]);
+                              setExpandedAddonId(addon.id);
+                            }
+                          }}
+                          className={cn(
+                            "w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all shrink-0",
+                            isSelected ? "bg-blue-600 border-blue-600" : "border-white/20 bg-transparent"
+                          )}
+                        >
+                          {isSelected && <Check className="w-4 h-4 text-white" />}
+                        </button>
+                        
+                        <div className="flex-1 min-w-0" onClick={() => {
+                          if (isSelected) {
+                            setSelectedAddonIds(selectedAddonIds.filter(id => id !== addon.id));
+                            if (expandedAddonId === addon.id) setExpandedAddonId(null);
+                          } else {
+                            setSelectedAddonIds([...selectedAddonIds, addon.id]);
+                            setExpandedAddonId(addon.id);
+                          }
+                        }}>
+                          <div className="flex items-center justify-between gap-2">
+                            <h4 className="font-bold text-white text-base leading-tight">{lang === 'GE' ? addon.nameGE : addon.nameEN}</h4>
+                            <span className="text-blue-400 font-black shrink-0">{addon.price}₾</span>
+                          </div>
+                        </div>
+
+                        <button 
+                          onClick={() => setExpandedAddonId(isExpanded ? null : addon.id)}
+                          className={cn(
+                            "p-2 hover:bg-white/5 rounded-xl transition-all text-slate-500 shrink-0",
+                            isExpanded && "rotate-180 text-white"
+                          )}
+                        >
+                          <ChevronDown className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      <AnimatePresence>
+                        {isExpanded && (
+                          <motion.div 
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="px-4 pb-4"
+                          >
+                            <div className="p-4 bg-slate-900 border border-white/5 rounded-2xl text-xs text-slate-400 leading-relaxed italic">
+                              {lang === 'GE' ? addon.descriptionGE : addon.descriptionEN}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </motion.div>
+                  );
+                })}
+              </div>
+
+              <div className="p-6 bg-slate-950/50 border-t border-white/5 space-y-4">
+                <div className="flex items-center justify-between px-2">
+                  <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">{lang === 'GE' ? 'ჯამი დამატებით' : 'Addons Total'}</span>
+                  <span className="text-xl font-black text-white">
+                    {selectedAddonIds.reduce((sum, id) => sum + (allAddons.find(a => a.id === id)?.price || 0), 0)}₾
+                  </span>
+                </div>
+                <Button 
+                  onClick={() => {
+                    setShowAddonsPopup(false);
+                    setStep(4);
+                  }}
+                  className="w-full py-5 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black shadow-xl shadow-blue-600/20 text-lg flex gap-3"
+                >
+                  <span>{lang === 'GE' ? 'გაგრძელება' : 'Continue'}</span>
+                  <ArrowRight className="w-6 h-6" />
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Terms of Service Popup */}
       <AnimatePresence>
@@ -3060,14 +3259,20 @@ function TermsOfService({ onBack, t }: { onBack: () => void, t: any, key?: strin
 
 function AdminDashboard({ onBack, pricing, lang }: { onBack: () => void, pricing: PricingSettings, lang: Language, key?: string }) {
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [activeTab, setActiveTab] = useState<'bookings' | 'availability' | 'pricing' | 'reviews' | 'promo'>('bookings');
+  const [activeTab, setActiveTab] = useState<'bookings' | 'availability' | 'pricing' | 'reviews' | 'promo' | 'addons'>('bookings');
   const [isLoading, setIsLoading] = useState(true);
   const [sortBy, setSortBy] = useState<'date' | 'createdAt'>('createdAt');
   const [filterStatus, setFilterStatus] = useState<'future' | 'completed' | 'all'>('future');
   const [expandedBookingId, setExpandedBookingId] = useState<string | null>(null);
   const [showActionsId, setShowActionsId] = useState<string | null>(null);
+  const [allAddons, setAllAddons] = useState<Addon[]>([]);
 
   useEffect(() => {
+    const qA = query(collection(db, 'addons'));
+    const unsubA = onSnapshot(qA, (snap) => {
+      setAllAddons(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Addon)));
+    });
+
     const q = query(collection(db, 'bookings'), orderBy(sortBy, 'desc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const fetchedBookings = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Booking));
@@ -3076,7 +3281,10 @@ function AdminDashboard({ onBack, pricing, lang }: { onBack: () => void, pricing
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, 'bookings');
     });
-    return unsubscribe;
+    return () => {
+      unsubA();
+      unsubscribe();
+    };
   }, [sortBy]);
 
   const filteredBookings = bookings.filter(booking => {
@@ -3258,6 +3466,15 @@ function AdminDashboard({ onBack, pricing, lang }: { onBack: () => void, pricing
               >
                 პრომო კოდები
               </button>
+              <button 
+                onClick={() => setActiveTab('addons')}
+                className={cn(
+                  "px-4 md:px-6 py-2 rounded-lg text-xs md:text-sm font-medium transition-all whitespace-nowrap",
+                  activeTab === 'addons' ? "bg-blue-600 text-white shadow-md" : "text-slate-400 hover:bg-slate-800"
+                )}
+              >
+                დამატებითი სერვისები
+              </button>
             </div>
           </div>
         </div>
@@ -3396,6 +3613,21 @@ function AdminDashboard({ onBack, pricing, lang }: { onBack: () => void, pricing
                                 {booking.promoCode && (
                                   <p><span className="text-slate-500">პრომო:</span> <span className="text-blue-400 font-medium">{booking.promoCode}</span> (-{booking.discountAmount}₾)</p>
                                 )}
+                                {booking.addons && booking.addons.length > 0 && (
+                                  <div className="mt-2 pt-2 border-t border-slate-800">
+                                    <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">დამატებითი სერვისები:</p>
+                                    <div className="flex flex-wrap gap-1">
+                                      {booking.addons.map(id => {
+                                        const addon = allAddons.find(a => a.id === id);
+                                        return (
+                                          <span key={id} className="text-[9px] bg-blue-600/10 text-blue-400 px-1.5 py-0.5 rounded border border-blue-600/20">
+                                            {lang === 'GE' ? addon?.nameGE : addon?.nameEN}
+                                          </span>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             </div>
                             <div>
@@ -3470,6 +3702,8 @@ function AdminDashboard({ onBack, pricing, lang }: { onBack: () => void, pricing
         <PricingManager pricing={pricing} onBack={onBack} />
       ) : activeTab === 'promo' ? (
         <PromoCodeManager onBack={onBack} />
+      ) : activeTab === 'addons' ? (
+        <AddonManager onBack={onBack} lang={lang} />
       ) : (
         <ReviewsManager pricing={pricing} onBack={onBack} />
       )}
@@ -4043,6 +4277,197 @@ function AvailabilityManager({ onBack }: { onBack: () => void }) {
           </Button>
         </div>
       </Card>
+    </div>
+  );
+}
+
+function AddonManager({ onBack, lang }: { onBack: () => void, lang: Language }) {
+  const [addons, setAddons] = useState<Addon[]>([]);
+  const [isAdding, setIsAdding] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [newAddon, setNewAddon] = useState<Partial<Addon>>({
+    nameGE: '',
+    nameEN: '',
+    descriptionGE: '',
+    descriptionEN: '',
+    price: 0,
+    active: true
+  });
+
+  useEffect(() => {
+    const q = query(collection(db, 'addons'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetched = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Addon));
+      setAddons(fetched);
+      setIsLoading(false);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'addons');
+    });
+    return unsubscribe;
+  }, []);
+
+  const handleAddAddon = async () => {
+    if (!newAddon.nameGE || !newAddon.nameEN) return;
+    setIsAdding(true);
+    try {
+      await addDoc(collection(db, 'addons'), {
+        ...newAddon,
+        createdAt: serverTimestamp()
+      });
+      setNewAddon({
+        nameGE: '',
+        nameEN: '',
+        descriptionGE: '',
+        descriptionEN: '',
+        price: 0,
+        active: true
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, 'addons');
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
+  const toggleAddonStatus = async (id: string, currentStatus: boolean) => {
+    try {
+      await updateDoc(doc(db, 'addons', id), { active: !currentStatus });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `addons/${id}`);
+    }
+  };
+
+  const deleteAddon = async (id: string) => {
+    if (!window.confirm(lang === 'GE' ? 'ნამდვილად გსურთ წაშლა?' : 'Are you sure you want to delete?')) return;
+    try {
+      await deleteDoc(doc(db, 'addons', id));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `addons/${id}`);
+    }
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto space-y-8">
+      <div className="flex items-center justify-between">
+        <Button variant="ghost" onClick={onBack} className="gap-2 text-slate-300 hover:bg-slate-900">
+          <ArrowLeft className="w-4 h-4" /> საიტზე დაბრუნება
+        </Button>
+        <h2 className="text-2xl font-bold text-white">{lang === 'GE' ? 'დამატებითი სერვისების მართვა' : 'Manage Additional Services'}</h2>
+      </div>
+
+      <Card className="bg-slate-900 border-slate-800 p-6 space-y-6">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-10 h-10 bg-blue-600/10 text-blue-500 rounded-xl flex items-center justify-center">
+            <Plus className="w-5 h-5" />
+          </div>
+          <h3 className="text-xl font-bold text-white">{lang === 'GE' ? 'ახალი სერვისი' : 'New Service'}</h3>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">სახელი (GE)</label>
+            <input 
+              type="text"
+              value={newAddon.nameGE}
+              onChange={(e) => setNewAddon({ ...newAddon, nameGE: e.target.value })}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">სახელი (EN)</label>
+            <input 
+              type="text"
+              value={newAddon.nameEN}
+              onChange={(e) => setNewAddon({ ...newAddon, nameEN: e.target.value })}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">ფასი (₾)</label>
+            <input 
+              type="number"
+              value={newAddon.price}
+              onChange={(e) => setNewAddon({ ...newAddon, price: Number(e.target.value) })}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all"
+            />
+          </div>
+          <div className="flex items-end">
+            <Button 
+              onClick={handleAddAddon} 
+              disabled={isAdding || !newAddon.nameGE}
+              className="w-full py-3 rounded-xl font-bold"
+            >
+              {isAdding ? 'ემატება...' : 'დამატება'}
+            </Button>
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">აღწერა (GE)</label>
+            <textarea 
+              value={newAddon.descriptionGE}
+              onChange={(e) => setNewAddon({ ...newAddon, descriptionGE: e.target.value })}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all min-h-[100px]"
+            />
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">აღწერა (EN)</label>
+            <textarea 
+              value={newAddon.descriptionEN}
+              onChange={(e) => setNewAddon({ ...newAddon, descriptionEN: e.target.value })}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all min-h-[100px]"
+            />
+          </div>
+        </div>
+      </Card>
+
+      <div className="space-y-4">
+        <h3 className="text-lg font-bold text-white flex items-center gap-2">
+          <Zap className="w-5 h-5 text-blue-500" /> {lang === 'GE' ? 'არსებული სერვისები' : 'Existing Services'}
+        </h3>
+        
+        {isLoading ? (
+          <div className="text-center py-10 text-slate-500">იტვირთება...</div>
+        ) : addons.length === 0 ? (
+          <Card className="p-10 text-center bg-slate-900 border-slate-800 border-dashed">
+            <p className="text-slate-500">სერვისები არ არის დამატებული.</p>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 gap-4">
+            {addons.map(addon => (
+              <Card key={addon.id} className="bg-slate-900 border-slate-800 p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 group transition-all hover:border-slate-700">
+                <div className="flex items-center gap-4 flex-1">
+                  <div className={cn(
+                    "w-12 h-12 rounded-xl flex items-center justify-center font-black text-lg shrink-0",
+                    addon.active ? "bg-blue-600/10 text-blue-500" : "bg-slate-800 text-slate-500"
+                  )}>
+                    {addon.price}₾
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="font-black text-white text-lg tracking-tight truncate">{lang === 'GE' ? addon.nameGE : addon.nameEN}</h4>
+                    <p className="text-xs text-slate-500 line-clamp-1">{lang === 'GE' ? addon.descriptionGE : addon.descriptionEN}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button 
+                    onClick={() => toggleAddonStatus(addon.id, addon.active)}
+                    className={cn(
+                      "w-10 h-10 rounded-xl flex items-center justify-center transition-all",
+                      addon.active ? "bg-green-500/10 text-green-500 hover:bg-green-500/20" : "bg-slate-800 text-slate-500 hover:bg-slate-700"
+                    )}
+                  >
+                    <Power className="w-4 h-4" />
+                  </button>
+                  <button 
+                    onClick={() => deleteAddon(addon.id)}
+                    className="w-10 h-10 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500/20 transition-all"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

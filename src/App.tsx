@@ -61,7 +61,7 @@ import {
   Edit3
 } from 'lucide-react';
 import { format, addDays, startOfToday, isSameDay, parseISO, isToday, startOfMonth, endOfMonth } from 'date-fns';
-import { ka } from 'date-fns/locale';
+import { ka, ru } from 'date-fns/locale';
 import { cn } from './lib/utils';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -88,7 +88,7 @@ let DefaultIcon = L.icon({
 L.Marker.prototype.options.icon = DefaultIcon;
 
 // --- Types ---
-type Language = 'GE' | 'EN';
+type Language = 'GE' | 'EN' | 'RU';
 
 const translations = {
   GE: {
@@ -592,7 +592,258 @@ const translations = {
         }
       ]
     }
-  }
+  },
+  RU: {
+    socialMedia: "Социальные сети",
+      heroBadge: "Мобильный сервис - Мы приедем к вам!",
+      heroTitle: "Мы чистим на месте, ",
+      heroTitleSpan: "вы экономите время",
+      heroDesc: "Детальная химчистка салона автомобиля по вашему адресу. Профессиональными средствами, по доступной цене.",
+      bookNow: "Забронировать онлайн",
+      bookPhone: "Забронировать по телефону",
+      viewServices: "Посмотреть услуги",
+      lastResult: "Последний результат",
+      premiumDetailing: "Премиум детейлинг",
+      features: [
+        { title: "Скорость", desc: "Работа выполняется максимум за 3 часа на вашем месте." },
+        { title: "Профессионализм", desc: "Мы используем химию и инструменты премиум-класса." },
+        { title: "Гибкость", desc: "Мы приедем к вам. В любое место, в любое время." }
+      ],
+      pricingTitle: "Доступные цены",
+      pricingDesc: "Профессиональный детейлинг по вашему адресу.",
+      standardClean: "Детальная химчистка салона",
+      perService: "/ услуга на месте",
+      sale: "Скидка",
+      selectStandard: "Забронировать",
+      readyForNew: "Готовы к ",
+      readyForNewSpan: "новому?",
+      ctaDesc: "Доверьтесь Luca's AutoSpa и верните своему автомобилю первозданный вид.",
+      fiveStar: "5 звезд",
+      googleReviews: "Отзывы клиентов",
+      mobile: "Мобильный",
+      footerDesc: "Детальная химчистка (детейлинг) салона по вашему адресу. Экономьте время и энергию, мы приедем к вам и вернем вашему авто первозданный вид.",
+      serviceArea: "Зона обслуживания",
+      serviceAreaDesc: "Тбилиси. Мобильный сервис у вашей двери.",
+      contact: "Контакт",
+      rights: "Все права защищены.",
+      adminPanel: "Панель админа",
+      viewSite: "На сайт",
+      details: "Детали",
+      chooseDate: "Выберите дату и время",
+      availableTimes: "Доступное время",
+      location: "Место обслуживания",
+      address: "Адрес",
+      name: "Имя",
+      phone: "Телефон",
+      enterCode: "Введите 6-значный код",
+      codeSent: "Код был отправлен выбранным вами способом.",
+      changeEmail: "Изменить данные",
+      total: "Итого",
+      confirmBooking: "Подтвердить бронь",
+      verifyingBtn: "Проверить и забронировать",
+      bookingConfirmed: "Бронирование подтверждено!",
+      successDesc: "Спасибо, что выбрали Luca's AutoSpa. Мы получили ваш запрос и скоро свяжемся с вами для подтверждения деталей.",
+      backToHome: "Вернуться на главную",
+      searchAddress: "Введите адрес...",
+      search: "Поиск",
+      clickMap: "Кликните на карту, чтобы выбрать точное местопололожение",
+      sendCode: "Отправить код",
+      verification: "Верификация",
+      sendingCode: "Код отправляется...",
+      chooseVerificationMethod: "Выберите способ верификации",
+      whatsapp: "WhatsApp",
+      viber: "Viber",
+      email: "Email",
+      codeSentVia: "Код отправлен через: ",
+      verifying: "Проверка...",
+      processing: "Обработка...",
+      noTimes: "На этот день нет доступного времени.",
+      namePlaceholder: "Ваше имя",
+      detailsLink: "Детали",
+      chooseService: "Выберите услугу",
+      invalidCode: "Неверный или просроченный код",
+      verificationError: "Ошибка верификации",
+      sendCodeError: "Не удалось отправить код верификации",
+      generalError: "Ошибка при отправке кода",
+      fillAllFields: "Пожалуйста, заполните все обязательные поля",
+      termsOfService: "Правила и условия",
+      agreeToTerms: "Я согласен с правилами и условиями",
+      readTerms: "Прочитать правила и условия",
+      acceptAndConfirm: "Принять и подтвердить",
+      carModel: "Модель автомобиля",
+      carModelPlaceholder: "Напр: Toyota Camry",
+      errorService: "Пожалуйста, выберите услугу",
+      errorDateTime: "Пожалуйста, выберите дату и время",
+      errorLocation: "Пожалуйста, укажите адрес обслуживания",
+      errorPersonalInfo: "Пожалуйста, заполните контактную информацию",
+      errorTerms: "Пожалуйста, согласитесь с правилами и условиями",
+      cancel: "Отмена",
+      termsTitle: "Правила и условия",
+      bestValue: "Лучшая цена",
+      secure: "Безопасно",
+      fast: "Быстро",
+      premium: "Высокое качество",
+      standardDetails: [
+        "Полная очистка салона пылесосом",
+        "Глубокая химчистка профессиональной пеной и щеткой",
+        "Удаление пятен с потолка",
+        "Глубокая чистка сидений",
+        "Тщательная обработка всех деталей",
+        "Чистка стекол",
+        "Чистка ковриков",
+        "Ароматизация воздуха"
+      ],
+      next: "Далее",
+      howItWorks: "Как это работает",
+      steps: [
+        { title: "Бронирование", desc: "Выберите услугу и время онлайн." },
+        { title: "Приезжаем к вам", desc: "Наша команда приедет по вашему адресу со всем необходимым оборудованием." },
+        { title: "Результат", desc: "Получите идеально чистый автомобиль, не выходя из дома." }
+      ],
+      terms: {
+        spaName: "Luca’s AutoSpa",
+        sections: [
+          {
+            title: "1. Общая информация",
+            content: "Luca's AutoSpa — это мобильный сервис, предоставляющий профессиональную химчистку салона автомобиля в Тбилиси. Используя сервис, пользователь автоматически соглашается с условиями, перечисленными ниже."
+          },
+          {
+            title: "2. Описание услуг",
+            subtitle: "2.1 Детальная сухая химчистка салона",
+            listTitle: "Услуга включает в себя:",
+            items: [
+              "Полная чистка салона пылесосом",
+              "Чистка стекол",
+              "Чистка ковриков",
+              "Ароматизация воздуха",
+              "Глубокая чистка профессиональной пеной и щеткой",
+              "Удаление пятен с потолка",
+              "Глубокая чистка сидений"
+            ]
+          },
+          {
+            title: "3. Условия обслуживания",
+            items: [
+              "Услуга предоставляется только на территории Тбилиси",
+              "Luca’s AutoSpa предоставляет услуги по адресу, указанному клиентом",
+              "Клиент несет ответственность за предоставление:",
+              {
+                subItems: [
+                  "Достаточного места для парковки нашего сервисного автомобиля рядом для целей электроснабжения"
+                ]
+              }
+            ]
+          },
+          {
+            title: "4. Оплата",
+            items: [
+              "Оплата производится на месте:",
+              {
+                subItems: [
+                  "Наличными",
+                  "Или банковским переводом"
+                ]
+              },
+              "Luca’s AutoSpa оставляет за собой право изменить цену на месте, если состояние автомобиля существенно отличается от предварительного описания"
+            ]
+          },
+          {
+            title: "5. Отмена и перенос бронирования",
+            items: [
+              "Клиент должен отменить бронирование не менее чем за 2 часа",
+              "В случае поздней отмены клиент обязан оплатить 50% стоимости услуги",
+              "Luca’s AutoSpa оставляет за собой право перенести или отменить обслуживание:",
+              {
+                subItems: [
+                  "В случае плохих погодных условий",
+                  "В случае технических проблем"
+                ]
+              }
+            ]
+          },
+          {
+            title: "6. Опоздание",
+            items: [
+              "Если клиент опаздывает более чем на 15 минут,",
+              {
+                subItems: [
+                  "Бронирование будет автоматически аннулировано",
+                  "Клиент несет ответственность за оплату 100% стоимости услуги"
+                ]
+              },
+              "Если Luca’s AutoSpa не может прибыть вовремя,",
+              {
+                subItems: [
+                  "Клиент имеет право отменить бронирование без какой-либо оплаты"
+                ]
+              }
+            ]
+          },
+          {
+            title: "7. Ответственность",
+            items: [
+              "Клиент обязан проверить автомобиль сразу после завершения услуги",
+              "Luca’s AutoSpa не несет ответственности за повреждения, зафиксированные после отъезда сотрудника",
+              "Luca’s AutoSpa не несет ответственности за:",
+              {
+                subItems: [
+                  "Ранее существовавшие повреждения",
+                  "Старые, глубоко въевшиеся пятна",
+                  "Дефекты, возникшие в результате естественного износа",
+                  "Возможные неисправности электроники автомобиля, за исключением случаев, когда ущерб вызван непосредственно небрежностью"
+                ]
+              }
+            ]
+          },
+          {
+            title: "8. Вещи в машине",
+            items: [
+              "Клиент обязан убрать все личные и ценные вещи из машины перед началом обслуживания",
+              "Luca’s AutoSpa не несет ответственности за потерянные или поврежденные вещи"
+            ]
+          },
+          {
+            title: "9. Право на отказ в обслуживании",
+            content: "Luca’s AutoSpa оставляет за собой право отказать в обслуживании, если:",
+            items: [
+              "Машина очень грязная",
+              "Существует биологическая или опасная для здоровья среда"
+            ]
+          },
+          {
+            title: "10. Дополнительные сборы",
+            content: "В случае исключительно грязного автомобиля Luca’s AutoSpa имеет право:",
+            items: [
+              "Предложить дополнительную плату",
+              "Или отказать в обслуживании"
+            ]
+          },
+          {
+            title: "11. Ограничение результата",
+            items: [
+              "Luca’s AutoSpa не гарантирует 100% удаление всех пятен",
+              "Некоторые пятна могут быть постоянными и не подлежать полной очистке"
+            ]
+          },
+          {
+            title: "12. Фото и видео материалы",
+            content: "Пользуясь услугой, клиент автоматически дает Luca’s AutoSpa право делать фото и видео автомобиля и использовать их в маркетинговых целях (социальные сети, реклама)."
+          },
+          {
+            title: "13. Онлайн-бронирование и данные",
+            items: [
+              "Совершая бронирование на сайте (www.lucasautospa.ge), пользователь соглашается с этими правилами",
+              "Сайт может использовать файлы cookie (Cookies) для улучшения работы сервиса для пользователя",
+              "Данные пользователя используются только для целей предоставления услуги и не передаются третьим лицам"
+            ]
+          },
+          {
+            title: "14. Изменения",
+            content: "Luca’s AutoSpa оставляет за собой право изменять эти правила и условия в любое время без предварительного уведомления."
+          }
+        ]
+      }
+    }
 };
 
 interface Booking {
@@ -619,8 +870,10 @@ interface Addon {
   id: string;
   nameGE: string;
   nameEN: string;
+  nameRU: string;
   descriptionGE: string;
   descriptionEN: string;
+  descriptionRU: string;
   price: number;
   active: boolean;
 }
@@ -875,6 +1128,18 @@ const Button = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HT
   }
 );
 
+const getLangValue = (lang: Language, ge: any, en: any, ruText: any) => {
+  if (lang === 'GE') return ge;
+  if (lang === 'EN') return en;
+  return ruText || en;
+};
+
+const getDateLocale = (lang: Language) => {
+  if (lang === 'GE') return ka;
+  if (lang === 'RU') return ru;
+  return undefined;
+};
+
 const Card = ({ children, className, ...props }: { children: React.ReactNode, className?: string, [key: string]: any }) => (
   <div className={cn('bg-slate-900 rounded-2xl border border-slate-800 shadow-sm p-5 text-slate-100', className)} {...props}>
     {children}
@@ -890,6 +1155,7 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [lang, setLang] = useState<Language>('GE');
   const [isLangSelected, setIsLangSelected] = useState(false);
+
   const t = translations[lang];
   const [isPricingLoading, setIsPricingLoading] = useState(true);
   const [pricing, setPricing] = useState<PricingSettings>({
@@ -914,7 +1180,7 @@ export default function App() {
 
     // Check if language is already selected in localStorage
     const savedLang = localStorage.getItem('preferredLang') as Language;
-    if (savedLang && (savedLang === 'GE' || savedLang === 'EN')) {
+    if (savedLang && (savedLang === 'GE' || savedLang === 'EN' || savedLang === 'RU')) {
       setLang(savedLang);
       setIsLangSelected(true);
     }
@@ -1039,6 +1305,24 @@ export default function App() {
                {/* Glow effect on hover */}
                <div className="absolute inset-0 bg-[#30c3fc]/5 rounded-[2rem] opacity-0 group-hover:opacity-100 transition-opacity" />
             </button>
+
+            <button 
+              onClick={() => handleLanguageSelect('RU')}
+              className="group relative flex items-center justify-between p-6 bg-slate-900/50 hover:bg-slate-900 border border-slate-800 hover:border-[#facc15]/50 rounded-[2rem] transition-all duration-300 active:scale-[0.98]"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl overflow-hidden border border-white/5 shadow-lg group-hover:scale-110 transition-transform">
+                  <img src="https://flagcdn.com/w80/ru.png" alt="RU" className="w-full h-full object-cover" />
+                </div>
+                <div className="text-left">
+                  <p className="text-white font-black text-lg">Русский</p>
+                  <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">Russia</p>
+                </div>
+              </div>
+              <ChevronRight className="w-6 h-6 text-slate-700 group-hover:text-[#facc15] group-hover:translate-x-1 transition-all" />
+               {/* Glow effect on hover */}
+               <div className="absolute inset-0 bg-[#facc15]/5 rounded-[2rem] opacity-0 group-hover:opacity-100 transition-opacity" />
+            </button>
           </div>
           
           <div className="mt-16 text-slate-600 flex items-center justify-center gap-2">
@@ -1066,23 +1350,49 @@ export default function App() {
                   </span>
                 </div>
                 
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
                     {/* Language Switcher */}
-                    <button 
-                      onClick={() => {
-                        const newLang = lang === 'GE' ? 'EN' : 'GE';
-                        setLang(newLang);
-                        localStorage.setItem('preferredLang', newLang);
-                      }}
-                      className="p-2 hover:bg-slate-800 rounded-xl transition-all active:scale-90 border border-slate-800"
-                      title={lang === 'GE' ? 'Switch to English' : 'გადართვა ქართულზე'}
-                    >
-                      {lang === 'GE' ? (
-                        <img src="https://flagcdn.com/w40/gb.png" alt="UK Flag" className="w-6 h-4 object-cover rounded-sm" />
-                      ) : (
-                        <img src="https://flagcdn.com/w40/ge.png" alt="Georgia Flag" className="w-6 h-4 object-cover rounded-sm" />
-                      )}
-                    </button>
+                    <div className="flex items-center bg-slate-900/50 p-1 rounded-xl border border-slate-800 gap-1">
+                      <button 
+                        onClick={() => {
+                          setLang('GE');
+                          localStorage.setItem('preferredLang', 'GE');
+                        }}
+                        className={cn(
+                          "p-1.5 rounded-lg transition-all active:scale-90",
+                          lang === 'GE' ? "bg-blue-600 shadow-lg shadow-blue-600/30" : "hover:bg-slate-800"
+                        )}
+                        title="ქართული"
+                      >
+                        <img src="https://flagcdn.com/w40/ge.png" alt="Georgia Flag" className="w-5 h-3.5 object-cover rounded-sm" />
+                      </button>
+                      <button 
+                        onClick={() => {
+                          setLang('EN');
+                          localStorage.setItem('preferredLang', 'EN');
+                        }}
+                        className={cn(
+                          "p-1.5 rounded-lg transition-all active:scale-90",
+                          lang === 'EN' ? "bg-blue-600 shadow-lg shadow-blue-600/30" : "hover:bg-slate-800"
+                        )}
+                        title="English"
+                      >
+                        <img src="https://flagcdn.com/w40/gb.png" alt="UK Flag" className="w-5 h-3.5 object-cover rounded-sm" />
+                      </button>
+                      <button 
+                        onClick={() => {
+                          setLang('RU');
+                          localStorage.setItem('preferredLang', 'RU');
+                        }}
+                        className={cn(
+                          "p-1.5 rounded-lg transition-all active:scale-90",
+                          lang === 'RU' ? "bg-blue-600 shadow-lg shadow-blue-600/30" : "hover:bg-slate-800"
+                        )}
+                        title="Русский"
+                      >
+                        <img src="https://flagcdn.com/w40/ru.png" alt="Russia Flag" className="w-5 h-3.5 object-cover rounded-sm" />
+                      </button>
+                    </div>
 
                     {isAdmin && (
                       <>
@@ -1114,7 +1424,7 @@ export default function App() {
                           </Button>
                         ) : (
                           <Button variant="ghost" size="sm" onClick={logout} className="p-2 text-slate-400 hover:text-white hover:bg-slate-800">
-                            <LogOut className="w-4 h-4" /> {lang === 'GE' ? 'გამოსვლა' : 'Logout'}
+                            <LogOut className="w-4 h-4" /> {getLangValue(lang, 'გამოსვლა', 'Logout', 'Выйти')}
                           </Button>
                         )}
                       </div>
@@ -1614,7 +1924,7 @@ function PublicSite({ onBookNow, pricing, t, lang, isLoading }: { onBookNow: (pl
                     <PlusCircle className="w-6 h-6" />
                   </div>
                   <h4 className="text-xl font-black text-white uppercase tracking-tight">
-                    {lang === 'GE' ? 'დამატებითი სერვისები' : 'Premium Add-ons'}
+                    {getLangValue(lang, 'დამატებითი სერვისები', 'Premium Add-ons', 'Дополнительные услуги')}
                   </h4>
                   <div className="h-1 w-12 bg-blue-500/30 rounded-full" />
                 </div>
@@ -1647,13 +1957,13 @@ function PublicSite({ onBookNow, pricing, t, lang, isLoading }: { onBookNow: (pl
                             </div>
                             <div className="flex-1">
                               <h5 className="font-black text-white text-base sm:text-lg leading-tight">
-                                {lang === 'GE' ? addon.nameGE : addon.nameEN}
+                                {getLangValue(lang, addon.nameGE, addon.nameEN, addon.nameRU)}
                               </h5>
                               <div className="flex items-center gap-2 mt-1">
                                 <span className="text-blue-400 font-black text-sm whitespace-nowrap">+{addon.price}₾</span>
                                 {!isExpanded && (
                                   <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">
-                                    {lang === 'GE' ? 'დეტალები' : 'Details'}
+                                    {getLangValue(lang, 'დეტალები', 'Details', 'Детали')}
                                   </span>
                                 )}
                               </div>
@@ -1677,7 +1987,7 @@ function PublicSite({ onBookNow, pricing, t, lang, isLoading }: { onBookNow: (pl
                             >
                               <div className="px-6 pb-6 pt-2 border-t border-white/5 mx-6 mt-0">
                                 <p className="text-sm text-slate-400 leading-relaxed font-medium">
-                                  {lang === 'GE' ? addon.descriptionGE : addon.descriptionEN}
+                                  {getLangValue(lang, addon.descriptionGE, addon.descriptionEN, addon.descriptionRU)}
                                 </p>
                               </div>
                             </motion.div>
@@ -1865,14 +2175,14 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms, onSuccess }: { onB
           setAppliedPromo(promo);
           track('Promo Code Applied', { code: codeId, discount: promo.discount });
         } else {
-          setPromoError(lang === 'GE' ? 'პრომო კოდი არააქტიურია' : 'Promo code is inactive');
+          setPromoError(getLangValue(lang, 'პრომო კოდი არააქტიურია', 'Promo code is inactive', 'Промокод неактивен'));
         }
       } else {
-        setPromoError(lang === 'GE' ? 'პრომო კოდი არასწორია' : 'Invalid promo code');
+        setPromoError(getLangValue(lang, 'პრომო კოდი არასწორია', 'Invalid promo code', 'Неверный промокод'));
       }
     } catch (error) {
       console.error('Error applying promo:', error);
-      setPromoError(lang === 'GE' ? 'შეცდომა კოდის შემოწმებისას' : 'Error validating code');
+      setPromoError(getLangValue(lang, 'შეცდომა კოდის შემოწმებისას', 'Error validating code', 'Ошибка при проверке кода'));
     } finally {
       setIsApplyingPromo(false);
     }
@@ -1999,7 +2309,7 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms, onSuccess }: { onB
   const steps = [
     { id: 1, label: t.chooseDate, icon: Calendar, completed: !!(bookingData.date && bookingData.timeSlot) },
     { id: 2, label: t.location, icon: MapPin, completed: !!bookingData.location },
-    { id: 3, label: lang === 'GE' ? 'საკონტაქტო ინფორმაცია' : 'Contact Info', icon: Users, completed: !!(bookingData.customerName && bookingData.carModel && (currentMethod === 'email' ? !!bookingData.email : !!bookingData.phone)) }
+    { id: 3, label: getLangValue(lang, 'საკონტაქტო ინფორმაცია', 'Contact Info', 'Контактная информация'), icon: Users, completed: !!(bookingData.customerName && bookingData.carModel && (currentMethod === 'email' ? !!bookingData.email : !!bookingData.phone)) }
   ];
 
   const currentStep = steps.find(s => !s.completed)?.id || 1;
@@ -2190,7 +2500,7 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms, onSuccess }: { onB
     }
 
     if (!showVerification) {
-      setFormError(lang === 'GE' ? 'გთხოვთ ჯერ გაიაროთ ვერიფიკაცია' : 'Please verify first');
+      setFormError(getLangValue(lang, 'გთხოვთ ჯერ გაიაროთ ვერიფიკაცია', 'Please verify first', 'Пожалуйста, сначала пройдите верификацию'));
       return;
     }
 
@@ -2422,7 +2732,7 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms, onSuccess }: { onB
                     >
                       <ChevronLeft className="w-3.5 h-3.5 text-slate-400" />
                     </button>
-                    <span className="text-[10px] font-black uppercase text-white px-1">{format(currentMonth, 'MMMM yyyy', { locale: lang === 'GE' ? ka : undefined })}</span>
+                    <span className="text-[10px] font-black uppercase text-white px-1">{format(currentMonth, 'MMMM yyyy', { locale: getDateLocale(lang) })}</span>
                     <button 
                       onClick={() => setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}
                       disabled={currentMonth.getMonth() === new Date().getMonth() + 1}
@@ -2441,7 +2751,7 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms, onSuccess }: { onB
                       className="flex-shrink-0 w-14 h-20 rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all duration-500 border bg-slate-900/40 backdrop-blur-xl border-white/5 text-slate-400 hover:border-white/10"
                     >
                       <ChevronLeft className="w-5 h-5" />
-                      <span className="text-[8px] font-black uppercase text-center">{lang === 'GE' ? 'წინა თვე' : 'PREV'}</span>
+                      <span className="text-[8px] font-black uppercase text-center">{getLangValue(lang, 'წინა თვე', 'PREV', 'ПРЕД')}</span>
                     </button>
                   )}
 
@@ -2467,7 +2777,7 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms, onSuccess }: { onB
                               : "bg-slate-900/40 backdrop-blur-xl border-white/5 text-slate-400 hover:border-white/10"
                         )}
                       >
-                        <span className="text-[9px] font-black uppercase tracking-widest">{format(date, 'EEE', { locale: lang === 'GE' ? ka : undefined })}</span>
+                        <span className="text-[9px] font-black uppercase tracking-widest">{format(date, 'EEE', { locale: getDateLocale(lang) })}</span>
                         <span className="text-lg font-black">{format(date, 'd')}</span>
                         {isSelected && (
                           <motion.div 
@@ -2491,7 +2801,7 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms, onSuccess }: { onB
                       className="flex-shrink-0 w-14 h-20 rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all duration-500 border bg-slate-900/40 backdrop-blur-xl border-white/5 text-slate-400 hover:border-white/10"
                     >
                       <ChevronRight className="w-5 h-5" />
-                      <span className="text-[8px] font-black uppercase text-center">{lang === 'GE' ? 'შემდეგი' : 'NEXT'}</span>
+                      <span className="text-[8px] font-black uppercase text-center">{getLangValue(lang, 'შემდეგი', 'NEXT', 'СЛЕД')}</span>
                     </button>
                   )}
                 </div>
@@ -2658,7 +2968,7 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms, onSuccess }: { onB
               className="space-y-6"
             >
               <div className="space-y-6">
-                <h2 className="text-xl font-black text-white tracking-tight">{lang === 'GE' ? 'საკონტაქტო ინფორმაცია' : 'Contact Information'}</h2>
+                <h2 className="text-xl font-black text-white tracking-tight">{getLangValue(lang, 'საკონტაქტო ინფორმაცია', 'Contact Information', 'Контактная информация')}</h2>
                 
                 <div id="personal-info-section" className="grid grid-cols-1 gap-6">
                   <div className="space-y-2">
@@ -2707,7 +3017,7 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms, onSuccess }: { onB
                     {!appliedPromo ? (
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] ml-2">
-                          {lang === 'GE' ? 'პრომო კოდი (არასავალდებულო)' : 'Promo Code (Optional)'}
+                          {getLangValue(lang, 'პრომო კოდი (არასავალდებულო)', 'Promo Code (Optional)', 'Промокод (опционально)')}
                         </label>
                         <div className="flex gap-2">
                           <input 
@@ -2722,7 +3032,7 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms, onSuccess }: { onB
                             disabled={isApplyingPromo || !promoCodeInput}
                             className="px-6 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl"
                           >
-                            {isApplyingPromo ? '...' : (lang === 'GE' ? 'გამოყენება' : 'Apply')}
+                            {isApplyingPromo ? '...' : getLangValue(lang, 'გამოყენება', 'Apply', 'Применить')}
                           </Button>
                         </div>
                         {promoError && <p className="text-[10px] text-red-500 font-bold ml-2">{promoError}</p>}
@@ -2736,7 +3046,7 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms, onSuccess }: { onB
                           <div>
                             <p className="text-xs font-black text-white uppercase tracking-wider">{appliedPromo.code}</p>
                             <p className="text-[10px] text-green-500 font-bold">
-                              {lang === 'GE' ? `${appliedPromo.discount}% ფასდაკლება გამოყენებულია` : `${appliedPromo.discount}% Discount Applied`}
+                              {getLangValue(lang, `${appliedPromo.discount}% ფასდაკლება გამოყენებულია`, `${appliedPromo.discount}% Discount Applied`, `${appliedPromo.discount}% скидка применена`)}
                             </p>
                           </div>
                         </div>
@@ -2836,7 +3146,7 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms, onSuccess }: { onB
                     <div>
                       <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t.chooseDate}</p>
                       <p className="text-white font-medium">
-                        {bookingData.date ? format(parseISO(bookingData.date), 'EEEE, d MMMM', { locale: lang === 'GE' ? ka : undefined }) : ''}
+                        {bookingData.date ? format(parseISO(bookingData.date), 'EEEE, d MMMM', { locale: getDateLocale(lang) }) : ''}
                       </p>
                       <p className="text-slate-400 text-sm font-bold">{bookingData.timeSlot}</p>
                     </div>
@@ -2849,13 +3159,13 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms, onSuccess }: { onB
                         <PlusCircle className="w-5 h-5" />
                       </div>
                       <div className="flex-1">
-                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{lang === 'GE' ? 'დამატებითი სერვისები' : 'Additional Services'}</p>
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{getLangValue(lang, 'დამატებითი სერვისები', 'Additional Services', 'Дополнительные услуги')}</p>
                         <div className="flex flex-wrap gap-2 mt-2">
                           {selectedAddonIds.map(id => {
                             const addon = allAddons.find(a => a.id === id);
                             return (
                               <span key={id} className="text-[10px] font-black bg-blue-600/20 text-blue-400 px-2 py-1 rounded-md uppercase tracking-tighter">
-                                {lang === 'GE' ? addon?.nameGE : addon?.nameEN} (+{addon?.price}₾)
+                                {getLangValue(lang, addon?.nameGE, addon?.nameEN, addon?.nameRU)} (+{addon?.price}₾)
                               </span>
                             );
                           })}
@@ -2938,7 +3248,7 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms, onSuccess }: { onB
                         }}
                         className="text-[10px] font-black text-white/60 hover:text-white uppercase tracking-widest transition-colors"
                       >
-                        {lang === 'GE' ? 'შეცვლა' : 'Change'}
+                        {getLangValue(lang, 'შეცვლა', 'Change', 'Изм.')}
                       </button>
                     </div>
                     <input 
@@ -3038,8 +3348,8 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms, onSuccess }: { onB
             >
               <div className="p-6 border-b border-white/5 flex items-center justify-between bg-slate-900/50 backdrop-blur-md">
                 <div>
-                  <h3 className="text-xl font-black text-white tracking-tight">{lang === 'GE' ? 'დამატებითი სერვისები' : 'Additional Services'}</h3>
-                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{lang === 'GE' ? 'აირჩიეთ და მიიღეთ მეტი' : 'Choose and get more'}</p>
+                  <h3 className="text-xl font-black text-white tracking-tight">{getLangValue(lang, 'დამატებითი სერვისები', 'Additional Services', 'Дополнительные услуги')}</h3>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{getLangValue(lang, 'აირჩიეთ და მიიღეთ მეტი', 'Choose and get more', 'Выберите и получите больше')}</p>
                 </div>
                 <button onClick={() => setShowAddonsPopup(false)} className="p-2 hover:bg-white/5 rounded-full transition-colors text-slate-400">
                   <X className="w-5 h-5" />
@@ -3089,7 +3399,7 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms, onSuccess }: { onB
                           }
                         }}>
                           <div className="flex items-center justify-between gap-2">
-                            <h4 className="font-bold text-white text-base leading-tight">{lang === 'GE' ? addon.nameGE : addon.nameEN}</h4>
+                            <h4 className="font-bold text-white text-base leading-tight">{getLangValue(lang, addon.nameGE, addon.nameEN, addon.nameRU)}</h4>
                             <span className="text-blue-400 font-black shrink-0">{addon.price}₾</span>
                           </div>
                         </div>
@@ -3114,7 +3424,7 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms, onSuccess }: { onB
                             className="px-4 pb-4"
                           >
                             <div className="p-4 bg-slate-900 border border-white/5 rounded-2xl text-xs text-slate-400 leading-relaxed italic">
-                              {lang === 'GE' ? addon.descriptionGE : addon.descriptionEN}
+                              {getLangValue(lang, addon.descriptionGE, addon.descriptionEN, addon.descriptionRU)}
                             </div>
                           </motion.div>
                         )}
@@ -3126,7 +3436,7 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms, onSuccess }: { onB
 
               <div className="p-6 bg-slate-950/50 border-t border-white/5 space-y-4">
                 <div className="flex items-center justify-between px-2">
-                  <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">{lang === 'GE' ? 'ჯამი დამატებით' : 'Addons Total'}</span>
+                  <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">{getLangValue(lang, 'ჯამი დამატებით', 'Addons Total', 'Итого доп. услуги')}</span>
                   <span className="text-xl font-black text-white">
                     {selectedAddonIds.reduce((sum, id) => sum + (allAddons.find(a => a.id === id)?.price || 0), 0)}₾
                   </span>
@@ -3138,7 +3448,7 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms, onSuccess }: { onB
                   }}
                   className="w-full py-5 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black shadow-xl shadow-blue-600/20 text-lg flex gap-3"
                 >
-                  <span>{lang === 'GE' ? 'გაგრძელება' : 'Continue'}</span>
+                  <span>{getLangValue(lang, 'გაგრძელება', 'Continue', 'Продолжить')}</span>
                   <ArrowRight className="w-6 h-6" />
                 </Button>
               </div>
@@ -3249,10 +3559,10 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms, onSuccess }: { onB
                 
                 <div className="text-center space-y-2">
                   <h3 className="text-2xl font-black text-white tracking-tight">
-                    {lang === 'GE' ? 'შეიყვანეთ ელ-ფოსტა' : 'Enter Email Address'}
+                    {getLangValue(lang, 'შეიყვანეთ ელ-ფოსტა', 'Enter Email Address', 'Введите адрес эл. почты')}
                   </h3>
                   <p className="text-slate-400 text-sm font-medium">
-                    {lang === 'GE' ? 'დადასტურების კოდი გაიგზავნება მითითებულ ელ-ფოსტაზე' : 'A verification code will be sent to your email'}
+                    {getLangValue(lang, 'დადასტურების კოდი გაიგზავნება მითითებულ ელ-ფოსტაზე', 'A verification code will be sent to your email', 'Код подтверждения будет отправлен на вашу эл. почту')}
                   </p>
                 </div>
 
@@ -3279,7 +3589,7 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms, onSuccess }: { onB
                       variant="ghost"
                       className="flex-1 py-4 rounded-2xl border border-white/5 font-bold text-slate-400"
                     >
-                      {lang === 'GE' ? 'გაუქმება' : 'Cancel'}
+                      {getLangValue(lang, 'გაუქმება', 'Cancel', 'Отмена')}
                     </Button>
                     <Button 
                       onClick={() => sendVerificationCode('email')}
@@ -3290,7 +3600,7 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms, onSuccess }: { onB
                         <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                       ) : (
                         <>
-                          <span>{lang === 'GE' ? 'კოდის გაგზავნა' : 'Send Code'}</span>
+                          <span>{getLangValue(lang, 'კოდის გაგზავნა', 'Send Code', 'Отправить код')}</span>
                           <ChevronRight className="w-5 h-5" />
                         </>
                       )}
@@ -3469,13 +3779,17 @@ function AdminDashboard({ onBack, pricing, lang }: { onBack: () => void, pricing
       if (status === 'completed' && booking) {
         track('Order Completed', { service: booking.service, bookingId: id });
         
-        const serviceName = lang === 'GE' 
-          ? (booking.service === 'Premium' ? 'პრემიუმ დითეილინგი' : 'ინტერიერის წმენდა')
-          : (booking.service === 'Premium' ? 'Premium Detailing' : 'Interior Cleaning');
+        const serviceName = getLangValue(lang, 
+          booking.service === 'Premium' ? 'პრემიუმ დითეილინგი' : 'ინტერიერის წმენდა',
+          booking.service === 'Premium' ? 'Premium Detailing' : 'Interior Cleaning',
+          booking.service === 'Premium' ? 'Премиум детейлинг' : 'Химчистка салона'
+        );
           
         const message = lang === 'GE'
           ? `Luca's AutoSpa: ✅ სერვისი დასრულებულია!\n\n🛠 სერვისი: ${serviceName}\n🚗 მანქანა: ${booking.carModel || '-'}\n📅 თარიღი: ${booking.date}\n📍 მისამართი: ${booking.location}\n\nმადლობა ნდობისთვის! გთხოვთ დაგვიტოვეთ შეფასება: ${pricing.reviewLink || 'https://google.com'}`
-          : `Luca's AutoSpa: ✅ Service completed!\n\n🛠 Service: ${serviceName}\n🚗 Vehicle: ${booking.carModel || '-'}\n📅 Date: ${booking.date}\n📍 Location: ${booking.location}\n\nThank you for your trust! Please leave us a review: ${pricing.reviewLink || 'https://google.com'}`;
+          : lang === 'RU'
+            ? `Luca's AutoSpa: ✅ Услуга завершена!\n\n🛠 Услуга: ${serviceName}\n🚗 Автомобиль: ${booking.carModel || '-'}\n📅 Дата: ${booking.date}\n📍 Адрес: ${booking.location}\n\nСпасибо за доверие! Пожалуйста, оставьте отзыв: ${pricing.reviewLink || 'https://google.com'}`
+            : `Luca's AutoSpa: ✅ Service completed!\n\n🛠 Service: ${serviceName}\n🚗 Vehicle: ${booking.carModel || '-'}\n📅 Date: ${booking.date}\n📍 Location: ${booking.location}\n\nThank you for your trust! Please leave us a review: ${pricing.reviewLink || 'https://google.com'}`;
         
         if (booking.email && pricing.isEmailVerificationEnabled) {
           await handleEmailNotification(booking.email, lang === 'GE' ? 'სერვისი დასრულებულია - Luca\'s AutoSpa' : 'Service Completed - Luca\'s AutoSpa', message);
@@ -3870,7 +4184,7 @@ function ReviewsManager({ pricing, onBack }: { pricing: PricingSettings, onBack:
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">სურათის URL</label>
                 <input 
                   type="text"
-                  value={review.imageUrl}
+                  value={review.imageUrl || ''}
                   onChange={(e) => {
                     const newReviews = [...(localPricing.heroReviews || [])];
                     newReviews[index].imageUrl = e.target.value;
@@ -3884,7 +4198,7 @@ function ReviewsManager({ pricing, onBack }: { pricing: PricingSettings, onBack:
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">ბმული (Link)</label>
                 <input 
                   type="text"
-                  value={review.link}
+                  value={review.link || ''}
                   onChange={(e) => {
                     const newReviews = [...(localPricing.heroReviews || [])];
                     newReviews[index].link = e.target.value;
@@ -3958,7 +4272,7 @@ function PricingManager({ pricing, onBack }: { pricing: PricingSettings, onBack:
                 <label className="text-xs font-bold text-slate-500">ფასი (₾)</label>
                 <input 
                   type="number"
-                  value={localPricing.basicPrice}
+                  value={localPricing.basicPrice || 0}
                   onChange={(e) => setLocalPricing({ ...localPricing, basicPrice: Number(e.target.value) })}
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all"
                 />
@@ -4394,8 +4708,10 @@ function AddonManager({ onBack, lang }: { onBack: () => void, lang: Language }) 
   const [newAddon, setNewAddon] = useState<Partial<Addon>>({
     nameGE: '',
     nameEN: '',
+    nameRU: '',
     descriptionGE: '',
     descriptionEN: '',
+    descriptionRU: '',
     price: 0,
     active: true
   });
@@ -4416,7 +4732,7 @@ function AddonManager({ onBack, lang }: { onBack: () => void, lang: Language }) 
   }, []);
 
   const handleAddAddon = async () => {
-    if (!newAddon.nameGE || !newAddon.nameEN) return;
+    if (!newAddon.nameGE || !newAddon.nameEN || !newAddon.nameRU) return;
     setIsAdding(true);
     try {
       await addDoc(collection(db, 'addons'), {
@@ -4426,8 +4742,10 @@ function AddonManager({ onBack, lang }: { onBack: () => void, lang: Language }) 
       setNewAddon({
         nameGE: '',
         nameEN: '',
+        nameRU: '',
         descriptionGE: '',
         descriptionEN: '',
+        descriptionRU: '',
         price: 0,
         active: true
       });
@@ -4444,7 +4762,7 @@ function AddonManager({ onBack, lang }: { onBack: () => void, lang: Language }) 
   };
 
   const handleUpdateAddon = async () => {
-    if (!editingAddonId || !editFormData.nameGE || !editFormData.nameEN) return;
+    if (!editingAddonId || !editFormData.nameGE || !editFormData.nameEN || !editFormData.nameRU) return;
     try {
       await updateDoc(doc(db, 'addons', editingAddonId), {
         ...editFormData,
@@ -4497,7 +4815,7 @@ function AddonManager({ onBack, lang }: { onBack: () => void, lang: Language }) 
               type="text"
               value={newAddon.nameGE}
               onChange={(e) => setNewAddon({ ...newAddon, nameGE: e.target.value })}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all font-ge"
             />
           </div>
           <div className="space-y-2">
@@ -4510,6 +4828,15 @@ function AddonManager({ onBack, lang }: { onBack: () => void, lang: Language }) 
             />
           </div>
           <div className="space-y-2">
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">სახელი (RU)</label>
+            <input 
+              type="text"
+              value={newAddon.nameRU}
+              onChange={(e) => setNewAddon({ ...newAddon, nameRU: e.target.value })}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all"
+            />
+          </div>
+          <div className="space-y-2">
             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">ფასი (₾)</label>
             <input 
               type="number"
@@ -4518,29 +4845,37 @@ function AddonManager({ onBack, lang }: { onBack: () => void, lang: Language }) 
               className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all"
             />
           </div>
-          <div className="flex items-end">
-            <Button 
-              onClick={handleAddAddon} 
-              disabled={isAdding || !newAddon.nameGE}
-              className="w-full py-3 rounded-xl font-bold"
-            >
-              {isAdding ? 'ემატება...' : 'დამატება'}
-            </Button>
+          <div className="space-y-2 md:col-span-1 border-t border-slate-800/50 pt-4">
+             <Button 
+               onClick={handleAddAddon} 
+               disabled={isAdding || !newAddon.nameGE || !newAddon.nameEN || !newAddon.nameRU}
+               className="w-full py-3 rounded-xl font-bold"
+             >
+               {isAdding ? 'ემატება...' : 'დამატება'}
+             </Button>
           </div>
-          <div className="space-y-2 md:col-span-2">
+          <div className="space-y-2 md:col-span-3">
             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">აღწერა (GE)</label>
             <textarea 
               value={newAddon.descriptionGE}
               onChange={(e) => setNewAddon({ ...newAddon, descriptionGE: e.target.value })}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all min-h-[100px]"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all min-h-[80px] font-ge"
             />
           </div>
-          <div className="space-y-2 md:col-span-2">
+          <div className="space-y-2 md:col-span-3">
             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">აღწერა (EN)</label>
             <textarea 
               value={newAddon.descriptionEN}
               onChange={(e) => setNewAddon({ ...newAddon, descriptionEN: e.target.value })}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all min-h-[100px]"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all min-h-[80px]"
+            />
+          </div>
+          <div className="space-y-2 md:col-span-3">
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">აღწერა (RU)</label>
+            <textarea 
+              value={newAddon.descriptionRU}
+              onChange={(e) => setNewAddon({ ...newAddon, descriptionRU: e.target.value })}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white outline-none focus:border-blue-600 transition-all min-h-[80px]"
             />
           </div>
         </div>
@@ -4570,33 +4905,50 @@ function AddonManager({ onBack, lang }: { onBack: () => void, lang: Language }) 
                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">სახელი (GE)</label>
                         <input 
                           type="text"
-                          value={editFormData.nameGE}
+                          value={editFormData.nameGE || ''}
                           onChange={(e) => setEditFormData({ ...editFormData, nameGE: e.target.value })}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-white text-sm"
+                          className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-white text-sm font-ge"
                         />
                       </div>
                       <div className="space-y-2">
                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">სახელი (EN)</label>
                         <input 
                           type="text"
-                          value={editFormData.nameEN}
+                          value={editFormData.nameEN || ''}
                           onChange={(e) => setEditFormData({ ...editFormData, nameEN: e.target.value })}
+                          className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-white text-sm"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">სახელი (RU)</label>
+                        <input 
+                          type="text"
+                          value={editFormData.nameRU || ''}
+                          onChange={(e) => setEditFormData({ ...editFormData, nameRU: e.target.value })}
                           className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-white text-sm"
                         />
                       </div>
                       <div className="space-y-2">
                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">აღწერა (GE)</label>
                         <textarea 
-                          value={editFormData.descriptionGE}
+                          value={editFormData.descriptionGE || ''}
                           onChange={(e) => setEditFormData({ ...editFormData, descriptionGE: e.target.value })}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-white text-sm min-h-[60px]"
+                          className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-white text-sm min-h-[60px] font-ge"
                         />
                       </div>
                       <div className="space-y-2">
                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">აღწერა (EN)</label>
                         <textarea 
-                          value={editFormData.descriptionEN}
+                          value={editFormData.descriptionEN || ''}
                           onChange={(e) => setEditFormData({ ...editFormData, descriptionEN: e.target.value })}
+                          className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-white text-sm min-h-[60px]"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">აღწერა (RU)</label>
+                        <textarea 
+                          value={editFormData.descriptionRU || ''}
+                          onChange={(e) => setEditFormData({ ...editFormData, descriptionRU: e.target.value })}
                           className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-white text-sm min-h-[60px]"
                         />
                       </div>
@@ -4604,7 +4956,7 @@ function AddonManager({ onBack, lang }: { onBack: () => void, lang: Language }) 
                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">ფასი (₾)</label>
                         <input 
                           type="number"
-                          value={editFormData.price}
+                          value={editFormData.price || 0}
                           onChange={(e) => setEditFormData({ ...editFormData, price: Number(e.target.value) })}
                           className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2 px-3 text-white text-sm"
                         />
@@ -4628,8 +4980,8 @@ function AddonManager({ onBack, lang }: { onBack: () => void, lang: Language }) 
                       {addon.price}₾
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-black text-white text-lg tracking-tight">{lang === 'GE' ? addon.nameGE : addon.nameEN}</h4>
-                      <p className="text-xs text-slate-500">{lang === 'GE' ? addon.descriptionGE : addon.descriptionEN}</p>
+                      <h4 className="font-black text-white text-lg tracking-tight">{getLangValue(lang, addon.nameGE, addon.nameEN, addon.nameRU)}</h4>
+                      <p className="text-xs text-slate-500">{getLangValue(lang, addon.descriptionGE, addon.descriptionEN, addon.descriptionRU)}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">

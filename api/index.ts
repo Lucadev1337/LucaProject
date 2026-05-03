@@ -67,7 +67,9 @@ app.post('/api/send-otp', async (req, res) => {
 
     const messageText = lang === 'GE' 
       ? `${code} არის თქვენი ვერიფიკაციის კოდი.` 
-      : `${code} is your verification code.`;
+      : lang === 'RU'
+        ? `${code} — ваш код верификации.`
+        : `${code} is your verification code.`;
 
     if (method === 'email') {
       if (!pricing.resendApiKey) throw new Error('Email verification not configured');
@@ -75,20 +77,20 @@ app.post('/api/send-otp', async (req, res) => {
       
       const otpContent = `
         <div style="text-align: center;">
-          <p style="font-size: 16px; color: #475569; margin-bottom: 8px;">${lang === 'GE' ? 'თქვენი ვერიფიკაციის კოდია:' : 'Your verification code is:'}</p>
+          <p style="font-size: 16px; color: #475569; margin-bottom: 8px;">${lang === 'GE' ? 'თქვენი ვერიფიკაციის კოდია:' : lang === 'RU' ? 'Ваш код верификации:' : 'Your verification code is:'}</p>
           <h1 style="font-size: 48px; letter-spacing: 4px; color: #1e293b; margin: 0;">${code}</h1>
           <p style="font-size: 14px; color: #64748b; margin-top: 20px;">
-            ${lang === 'GE' ? 'ეს კოდი ვალიდურია 10 წუთის განმავლობაში.' : 'This code is valid for 10 minutes.'}
+            ${lang === 'GE' ? 'ეს კოდი ვალიდურია 10 წუთის განმავლობაში.' : lang === 'RU' ? 'Этот код действителен в течение 10 минут.' : 'This code is valid for 10 minutes.'}
           </p>
         </div>
       `;
-      const subtitle = lang === 'GE' ? 'ვერიფიკაცია' : 'Verification';
+      const subtitle = lang === 'GE' ? 'ვერიფიკაცია' : lang === 'RU' ? 'Верификация' : 'Verification';
       const html = getEmailWrapper(otpContent, subtitle, lang);
 
       await resend.emails.send({
         from: `Luca's AutoSpa <${pricing.resendSenderEmail || 'onboarding@resend.dev'}>`,
         to: email,
-        subject: lang === 'GE' ? 'ვერიფიკაციის კოდი' : 'Verification Code',
+        subject: lang === 'GE' ? 'ვერიფიკაციის კოდი' : lang === 'RU' ? 'Код верификации' : 'Verification Code',
         text: messageText,
         html: html
       });
@@ -156,9 +158,9 @@ const getEmailWrapper = (content: string, subtitle: string, lang: string = 'GE')
     </div>
 
     <div style="text-align: center; margin-top: 32px;">
-      <p style="color: #64748b; font-size: 14px; margin-bottom: 24px;">${lang === 'GE' ? 'გმადლობთ Luca\'s AutoSpa-ს არჩევისთვის!' : 'Thank you for choosing Luca\'s AutoSpa!'}</p>
+      <p style="color: #64748b; font-size: 14px; margin-bottom: 24px;">${lang === 'GE' ? 'გმადლობთ Luca\'s AutoSpa-ს არჩევისთვის!' : lang === 'RU' ? 'Спасибо, что выбрали Luca\'s AutoSpa!' : 'Thank you for choosing Luca\'s AutoSpa!'}</p>
       <div style="font-size: 12px; color: #94a3b8;">
-        © ${new Date().getFullYear()} Luca's AutoSpa. ${lang === 'GE' ? 'ყველა უფლება დაცულია.' : 'All rights reserved.'}
+        © ${new Date().getFullYear()} Luca's AutoSpa. ${lang === 'GE' ? 'ყველა უფლება დაცულია.' : lang === 'RU' ? 'Все права защищены.' : 'All rights reserved.'}
       </div>
     </div>
   </div>
@@ -219,13 +221,17 @@ app.post('/api/send-whatsapp', async (req, res) => {
 app.post('/api/notify-booking', async (req, res) => {
   try {
     const { bookingData, addons, price, bookingId, promoCode, customerMethod, customerEmail, lang } = req.body;
-    const serviceName = bookingData.service === 'Premium' ? (lang === 'GE' ? 'პრემიუმ დითეილინგი' : 'Premium Detailing') : (lang === 'GE' ? 'სტანდარტული წმენდა' : 'Standard Cleaning');
+    const serviceName = bookingData.service === 'Premium' 
+      ? (lang === 'GE' ? 'პრემიუმ დითეილინგი' : lang === 'RU' ? 'Премиум детейлинг' : 'Premium Detailing') 
+      : (lang === 'GE' ? 'სტანდარტული წმენდა' : lang === 'RU' ? 'Стандартная чистка' : 'Standard Cleaning');
     
     // Addon string for WhatsApp
     const addonText = addons && addons.length > 0 
       ? (lang === 'GE' 
           ? `\n➕ დამატებითი: ${addons.map((a: any) => a.nameGE).join(', ')}` 
-          : `\n➕ Add-ons: ${addons.map((a: any) => a.nameEN).join(', ')}`)
+          : lang === 'RU'
+            ? `\n➕ Доп. услуги: ${addons.map((a: any) => a.nameRU || a.nameEN).join(', ')}`
+            : `\n➕ Add-ons: ${addons.map((a: any) => a.nameEN).join(', ')}`)
       : '';
     
     // 1. Send Admin Notification (WhatsApp)
@@ -246,10 +252,12 @@ app.post('/api/notify-booking', async (req, res) => {
           }
 
           // 2. CUSTOMER CONFIRMATION
-          const promoLine = promoCode ? (lang === 'GE' ? `\n🎟 პრომო კოდი: ${promoCode}` : `\n🎟 Promo Code: ${promoCode}`) : '';
+          const promoLine = promoCode ? (lang === 'GE' ? `\n🎟 პრომო კოდი: ${promoCode}` : lang === 'RU' ? `\n🎟 Промокод: ${promoCode}` : `\n🎟 Promo Code: ${promoCode}`) : '';
           const customerMessage = lang === 'GE'
             ? `✅ ჯავშანი დადასტურებულია!\n\n👤 კლიენტი: ${bookingData.customerName}\n🚗 მანქანა: ${bookingData.carModel || '-'}\n🛠 სერვისი: ${serviceName}${addonText}\n📅 თარიღი: ${bookingData.date}\n⏰ დრო: ${bookingData.timeSlot}\n📍 მისამართი: ${bookingData.location}\n💰 გადასახდელი თანხა: ${price}₾${promoLine}\n\nგმადლობთ, რომ გვირჩევთ!`
-            : `✅ Booking Confirmed!\n\n👤 Client: ${bookingData.customerName}\n🚗 Car: ${bookingData.carModel || '-'}\n🛠 Service: ${serviceName}${addonText}\n📅 Date: ${bookingData.date}\n⏰ Time: ${bookingData.timeSlot}\n📍 Address: ${bookingData.location}\n💰 Total Price: ${price}₾${promoLine}\n\nThank you for choosing us!`;
+            : lang === 'RU'
+              ? `✅ Бронирование подтверждено!\n\n👤 Клиент: ${bookingData.customerName}\n🚗 Авто: ${bookingData.carModel || '-'}\n🛠 Услуга: ${serviceName}${addonText}\n📅 Дата: ${bookingData.date}\n⏰ Время: ${bookingData.timeSlot}\n📍 Адрес: ${bookingData.location}\n💰 Итоговая цена: ${price}₾${promoLine}\n\nСпасибо, что выбрали нас!`
+              : `✅ Booking Confirmed!\n\n👤 Client: ${bookingData.customerName}\n🚗 Car: ${bookingData.carModel || '-'}\n🛠 Service: ${serviceName}${addonText}\n📅 Date: ${bookingData.date}\n⏰ Time: ${bookingData.timeSlot}\n📍 Address: ${bookingData.location}\n💰 Total Price: ${price}₾${promoLine}\n\nThank you for choosing us!`;
 
           if (customerMethod === 'whatsapp' && bookingData.phone) {
             await sendMultiChannelHelper(pricing, bookingData.phone, customerMessage, 'whatsapp');
@@ -258,43 +266,43 @@ app.post('/api/notify-booking', async (req, res) => {
               const resend = new Resend(pricing.resendApiKey);
               const detailContent = `
                 <div style="margin-bottom: 20px; border-bottom: 1px solid #e2e8f0; padding-bottom: 20px;">
-                  <span style="display: block; font-size: 12px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; margin-bottom: 4px;">${lang === 'GE' ? 'კლიენტი' : 'Client'}</span>
+                  <span style="display: block; font-size: 12px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; margin-bottom: 4px;">${lang === 'GE' ? 'კლიენტი' : lang === 'RU' ? 'Клиент' : 'Client'}</span>
                   <span style="font-size: 18px; color: #1e293b; font-weight: 600;">${bookingData.customerName}</span>
                 </div>
 
                 <div style="margin-bottom: 20px;">
-                  <span style="display: block; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: bold;">${lang === 'GE' ? 'თარიღი და დრო' : 'Date & Time'}</span>
+                  <span style="display: block; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: bold;">${lang === 'GE' ? 'თარიღი და დრო' : lang === 'RU' ? 'Дата и время' : 'Date & Time'}</span>
                   <span style="font-size: 15px; color: #1e293b; font-weight: 500;">${bookingData.date} | ${bookingData.timeSlot}</span>
                 </div>
 
                 <div style="margin-bottom: 20px;">
-                  <span style="display: block; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: bold;">${lang === 'GE' ? 'ავტომობილი' : 'Vehicle'}</span>
+                  <span style="display: block; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: bold;">${lang === 'GE' ? 'ავტომობილი' : lang === 'RU' ? 'Автомобиль' : 'Vehicle'}</span>
                   <span style="font-size: 15px; color: #1e293b; font-weight: 500;">${bookingData.carModel || '-'}</span>
                 </div>
 
                 <div style="margin-bottom: 20px;">
-                  <span style="display: block; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: bold;">${lang === 'GE' ? 'მომსახურება' : 'Service'}</span>
+                  <span style="display: block; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: bold;">${lang === 'GE' ? 'მომსახურება' : lang === 'RU' ? 'Услуга' : 'Service'}</span>
                   <span style="font-size: 15px; color: #1e293b; font-weight: 500;">${serviceName}</span>
                 </div>
 
                 ${addons && addons.length > 0 ? `
                 <div style="margin-bottom: 20px;">
-                  <span style="display: block; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: bold;">${lang === 'GE' ? 'დამატებითი სერვისები' : 'Add-ons'}</span>
+                  <span style="display: block; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: bold;">${lang === 'GE' ? 'დამატებითი სერვისები' : lang === 'RU' ? 'Доп. услуги' : 'Add-ons'}</span>
                   <span style="font-size: 14px; color: #1e293b; font-weight: 500;">
-                    ${addons.map((a: any) => lang === 'GE' ? a.nameGE : a.nameEN).join(', ')}
+                    ${addons.map((a: any) => lang === 'GE' ? a.nameGE : lang === 'RU' ? a.nameRU || a.nameEN : a.nameEN).join(', ')}
                   </span>
                 </div>
                 ` : ''}
 
                 <div style="margin-bottom: 20px;">
-                  <span style="display: block; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: bold;">${lang === 'GE' ? 'მდებარეობა' : 'Location'}</span>
+                  <span style="display: block; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: bold;">${lang === 'GE' ? 'მდებარეობა' : lang === 'RU' ? 'Местоположение' : 'Location'}</span>
                   <span style="font-size: 15px; color: #1e293b; font-weight: 500;">${bookingData.location}</span>
                 </div>
 
                 <div style="margin-top: 24px; padding-top: 24px; border-top: 2px dashed #e2e8f0;">
                    <div style="display: flex; justify-content: space-between; align-items: center;">
                      <div>
-                       <span style="display: block; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: bold;">${lang === 'GE' ? 'სრული საფასური' : 'Total Amount'}</span>
+                       <span style="display: block; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: bold;">${lang === 'GE' ? 'სრული საფასური' : lang === 'RU' ? 'Итого' : 'Total Amount'}</span>
                        <span style="font-size: 24px; color: #4f46e5; font-weight: 900;">${price}₾</span>
                      </div>
                      ${promoCode ? `<span style="background-color: #ecfdf5; color: #059669; padding: 4px 12px; border-radius: 99px; font-size: 12px; font-weight: bold; border: 1px solid #10b98120;">${promoCode} Applied</span>` : ''}
@@ -302,12 +310,12 @@ app.post('/api/notify-booking', async (req, res) => {
                 </div>
               `;
 
-              const subtitle = lang === 'GE' ? 'ჯავშანი წარმატებით დადასტურდა' : 'Your booking has been confirmed';
+              const subtitle = lang === 'GE' ? 'ჯავშანი წარმატებით დადასტურდა' : lang === 'RU' ? 'Ваше бронирование подтверждено' : 'Your booking has been confirmed';
               const html = getEmailWrapper(detailContent, subtitle, lang);
               await resend.emails.send({
                 from: `Luca's AutoSpa <${pricing.resendSenderEmail || 'onboarding@resend.dev'}>`,
                 to: customerEmail,
-                subject: lang === 'GE' ? 'ჯავშნის დადასტურება - Luca\'s AutoSpa' : 'Booking Confirmation - Luca\'s AutoSpa',
+                subject: lang === 'GE' ? 'ჯავშნის დადასტურება - Luca\'s AutoSpa' : lang === 'RU' ? 'Подтверждение бронирования - Luca\'s AutoSpa' : 'Booking Confirmation - Luca\'s AutoSpa',
                 text: customerMessage,
                 html: html
               });
@@ -342,7 +350,9 @@ app.post('/api/finish-booking-notification', async (req, res) => {
     
     const messageText = lang === 'GE'
       ? `🙏 გმადლობთ, რომ ისარგებლეთ ჩვენი სერვისით! იმედია კმაყოფილი დარჩით.\n\nგთხოვთ, დაგვიტოვოთ შეფასება Google-ზე: ${reviewLink}`
-      : `🙏 Thank you for using our service! We hope you're satisfied.\n\nPlease leave us a review on Google: ${reviewLink}`;
+      : lang === 'RU'
+        ? `🙏 Спасибо, что воспользовались нашим сервисом! Надеемся, вы остались довольны.\n\nПожалуйста, оставьте отзыв в Google: ${reviewLink}`
+        : `🙏 Thank you for using our service! We hope you're satisfied.\n\nPlease leave us a review on Google: ${reviewLink}`;
 
     if (method === 'whatsapp' && booking.phone) {
       await sendMultiChannelHelper(pricing, booking.phone, messageText, 'whatsapp');
@@ -352,17 +362,17 @@ app.post('/api/finish-booking-notification', async (req, res) => {
         const html = `
           <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; text-align: center; border: 1px solid #e2e8f0; border-radius: 12px;">
             <h2 style="color: #4f46e5;">Luca's AutoSpa</h2>
-            <p style="font-size: 16px; color: #1e293b;">${lang === 'GE' ? 'გმადლობთ, რომ გვირჩევთ!' : 'Thank you for choosing us!'}</p>
-            <p style="color: #64748b;">${lang === 'GE' ? 'თქვენი აზრი ჩვენთვის მნიშვნელოვანია.' : 'Your opinion matters to us.'}</p>
+            <p style="font-size: 16px; color: #1e293b;">${lang === 'GE' ? 'გმადლობთ, რომ გვირჩევთ!' : lang === 'RU' ? 'Спасибо, что выбрали нас!' : 'Thank you for choosing us!'}</p>
+            <p style="color: #64748b;">${lang === 'GE' ? 'თქვენი აზრი ჩვენთვის მნიშვნელოვანია.' : lang === 'RU' ? 'Ваше мнение важно для нас.' : 'Your opinion matters to us.'}</p>
             <a href="${reviewLink}" style="display: inline-block; background-color: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; margin-top: 10px;">
-              ${lang === 'GE' ? 'დაგვიწერეთ შეფასება' : 'Write a Review'}
+              ${lang === 'GE' ? 'დაგვიწერეთ შეფასება' : lang === 'RU' ? 'Оставить отзыв' : 'Write a Review'}
             </a>
           </div>
         `;
         await resend.emails.send({
           from: `Luca's AutoSpa <${pricing.resendSenderEmail || 'onboarding@resend.dev'}>`,
           to: booking.customerEmail,
-          subject: lang === 'GE' ? 'გმადლობთ! - Luca\'s AutoSpa' : 'Thank you! - Luca\'s AutoSpa',
+          subject: lang === 'GE' ? 'გმადლობთ! - Luca\'s AutoSpa' : lang === 'RU' ? 'Спасибо! - Luca\'s AutoSpa' : 'Thank you! - Luca\'s AutoSpa',
           text: messageText,
           html: html
         });

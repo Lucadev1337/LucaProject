@@ -1645,8 +1645,8 @@ function PublicSite({ onBookNow, pricing, t, lang, isLoading }: { onBookNow: (pl
                             )}>
                               <PlusCircle className={cn("w-6 h-6 transition-transform duration-500", isExpanded && "rotate-45")} />
                             </div>
-                            <div className="min-w-0">
-                              <h5 className="font-black text-white text-base sm:text-lg leading-tight truncate">
+                            <div className="flex-1">
+                              <h5 className="font-black text-white text-base sm:text-lg leading-tight">
                                 {lang === 'GE' ? addon.nameGE : addon.nameEN}
                               </h5>
                               <div className="flex items-center gap-2 mt-1">
@@ -4627,9 +4627,9 @@ function AddonManager({ onBack, lang }: { onBack: () => void, lang: Language }) 
                     )}>
                       {addon.price}₾
                     </div>
-                    <div className="min-w-0">
-                      <h4 className="font-black text-white text-lg tracking-tight truncate">{lang === 'GE' ? addon.nameGE : addon.nameEN}</h4>
-                      <p className="text-xs text-slate-500 line-clamp-1">{lang === 'GE' ? addon.descriptionGE : addon.descriptionEN}</p>
+                    <div className="flex-1">
+                      <h4 className="font-black text-white text-lg tracking-tight">{lang === 'GE' ? addon.nameGE : addon.nameEN}</h4>
+                      <p className="text-xs text-slate-500">{lang === 'GE' ? addon.descriptionGE : addon.descriptionEN}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">

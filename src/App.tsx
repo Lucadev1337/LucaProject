@@ -864,6 +864,8 @@ interface Booking {
   status: 'pending' | 'completed' | 'cancelled';
   createdAt: any;
   finalPrice?: number;
+  fuelFee?: number;
+  distance?: number;
   promoCode?: string | null;
   discountAmount?: number;
   addons?: string[];
@@ -923,6 +925,8 @@ interface PricingSettings {
   price: number;
   salePercentage: number;
   isSaleActive: boolean;
+  pricePerKm?: number;
+  baseLocation?: { lat: number; lng: number };
   heroReviews?: HeroReview[];
   isSmsEnabled?: boolean;
   verificationMethod?: 'sms' | 'email';
@@ -1013,6 +1017,40 @@ function ChangeView({ center, zoom }: { center: [number, number], zoom: number }
     });
   }, [center, zoom, map]);
   return null;
+}
+
+// --- Utilities ---
+const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+  const R = 6371; // Earth's radius in KM
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a = 
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * 
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
+function AdminBaseMap({ location, onChange }: { location: { lat: number, lng: number }, onChange: (loc: { lat: number, lng: number }) => void }) {
+  return (
+    <div className="h-64 rounded-2xl overflow-hidden border border-white/5 relative group">
+      <MapContainer 
+        center={[location.lat, location.lng]} 
+        zoom={13} 
+        scrollWheelZoom={false} 
+        className="h-full w-full z-0"
+      >
+        <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
+        <Marker position={[location.lat, location.lng]} />
+        <MapEvents onClick={(e) => onChange({ lat: e.latlng.lat, lng: e.latlng.lng })} />
+        <ChangeView center={[location.lat, location.lng]} zoom={13} />
+      </MapContainer>
+      <div className="absolute top-4 right-4 z-10 bg-slate-900/80 backdrop-blur-xl px-3 py-1.5 rounded-lg border border-white/10 shadow-xl pointer-events-none">
+        <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Base Point Chosen</span>
+      </div>
+    </div>
+  );
 }
 
 function MapPicker({ onLocationSelect, initialLocation, initialLat, initialLng, t }: { onLocationSelect: (address: string, lat?: number, lng?: number) => void, initialLocation?: string, initialLat?: number, initialLng?: number, t: any }) {
@@ -1199,6 +1237,8 @@ export default function App() {
     price: 59,
     salePercentage: 20,
     isSaleActive: false,
+    pricePerKm: 2,
+    baseLocation: { lat: 41.7151, lng: 44.8271 }, // Default to Tbilisi
     isSmsEnabled: true,
     verificationMethod: 'sms'
   });
@@ -2159,6 +2199,7 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms, onSuccess }: { onB
 
   const getPrice = () => {
     const base = pricing.price;
+    const fuelFee = bookingData.fuelFee || 0;
     let finalPrice = base;
     
     const addonsTotal = selectedAddonIds.reduce((sum, id) => {
@@ -2166,14 +2207,11 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms, onSuccess }: { onB
       return sum + (addon?.price || 0);
     }, 0);
 
-    finalPrice += addonsTotal;
-
     if (pricing.isSaleActive) {
       const discount = pricing.salePercentage || 0;
-      // Note: Sale typically applies to the service price, not addons?
-      // User didn't specify, but I'll apply to total for now or just service? 
-      // Most salons apply it to the base. I'll stick to base for now.
-      finalPrice = Math.round(base * (1 - discount / 100)) + addonsTotal;
+      finalPrice = Math.round(base * (1 - discount / 100)) + addonsTotal + fuelFee;
+    } else {
+      finalPrice = base + addonsTotal + fuelFee;
     }
 
     if (appliedPromo && appliedPromo.active) {
@@ -2994,11 +3032,25 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms, onSuccess }: { onB
                         initialLocation={bookingData.location}
                         initialLat={bookingData.lat}
                         initialLng={bookingData.lng}
-                        onLocationSelect={(address, lat, lng) => setBookingData({ ...bookingData, location: address, lat, lng })}
+                        onLocationSelect={(address, lat, lng) => {
+                          let fuelFee = 0;
+                          let distance = 0;
+                          if (lat && lng && pricing.baseLocation && pricing.pricePerKm) {
+                            distance = calculateDistance(
+                              pricing.baseLocation.lat,
+                              pricing.baseLocation.lng,
+                              lat,
+                              lng
+                            );
+                            fuelFee = Math.round(distance * pricing.pricePerKm);
+                          }
+                          setBookingData({ ...bookingData, location: address, lat, lng, fuelFee, distance });
+                        }}
                         t={t}
                       />
                     </div>
                   </div>
+
                 </div>
 
                 {formError && (
@@ -3269,6 +3321,17 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms, onSuccess }: { onB
                       <p className="text-white text-sm line-clamp-2">{bookingData.location}</p>
                     </div>
                   </div>
+
+                  {/* Fuel Fee Summary */}
+                  {bookingData.fuelFee ? (
+                    <div className="py-2 border-t border-white/5 flex justify-between items-center px-1">
+                      <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">
+                        {getLangValue(lang, 'ადგილზე მოსვლის საფასური', 'Fuel Fee', 'Транспортировка')}
+                        <span className="ml-2 font-normal text-slate-700">({bookingData.distance?.toFixed(1)} KM)</span>
+                      </p>
+                      <p className="text-[11px] text-slate-500 font-bold">+{bookingData.fuelFee}₾</p>
+                    </div>
+                  ) : null}
 
                   {/* Personal Summary */}
                   <div className="flex items-center gap-4 py-4">
@@ -4124,6 +4187,9 @@ function AdminDashboard({ onBack, pricing, lang }: { onBack: () => void, pricing
                                 <p><span className="text-slate-500">მანქანა:</span> {booking.carModel || '-'}</p>
                                 <p><span className="text-slate-500">თარიღი:</span> {booking.date} {booking.timeSlot}</p>
                                 <p><span className="text-slate-500">ფასი:</span> <span className="text-green-400 font-bold">{booking.finalPrice || '-'}₾</span></p>
+                                {booking.fuelFee && (
+                                  <p><span className="text-slate-500">საწვავი:</span> <span className="text-indigo-400 font-bold">{booking.fuelFee}₾</span> ({booking.distance?.toFixed(1)} კმ)</p>
+                                )}
                                 {booking.promoCode && (
                                   <p><span className="text-slate-500">პრომო:</span> <span className="text-blue-400 font-medium">{booking.promoCode}</span> (-{booking.discountAmount}₾)</p>
                                 )}
@@ -4410,6 +4476,65 @@ function PricingManager({ pricing, onBack }: { pricing: PricingSettings, onBack:
           </div>
           <div className="p-4 bg-blue-600/5 border border-blue-600/10 rounded-2xl">
             <p className="text-xs text-slate-400">აქტიური აქციის დროს გამოყენებული იქნება ზემოთ მითითებული პროცენტები.</p>
+          </div>
+        </Card>
+
+        {/* Distance & Fuel Fee */}
+        <Card className="bg-slate-900 border-slate-800 p-6 space-y-6 md:col-span-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-indigo-600/10 text-indigo-400 rounded-xl flex items-center justify-center">
+                <MapPin className="w-5 h-5" />
+              </div>
+              <h3 className="text-xl font-bold text-white">მანძილი და საწვავის გადასახადი</h3>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <p className="text-sm text-slate-400">აირჩიეთ საწყისი წერტილი რუკაზე, საიდანაც მოხდება მანძილის გამოთვლა კლიენტის მისამართამდე.</p>
+              <AdminBaseMap 
+                location={localPricing.baseLocation || { lat: 41.7151, lng: 44.8271 }}
+                onChange={(loc) => setLocalPricing({ ...localPricing, baseLocation: loc })}
+              />
+              <div className="flex items-center gap-2 p-3 bg-slate-950 rounded-xl border border-white/5">
+                <Info className="w-4 h-4 text-blue-400" />
+                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-tight">
+                  Lat: {localPricing.baseLocation?.lat.toFixed(4)}, Lng: {localPricing.baseLocation?.lng.toFixed(4)}
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500 flex items-center gap-2 uppercase tracking-widest ml-1">
+                  ფასი 1 კმ-ზე (₾)
+                </label>
+                <div className="relative group">
+                  <input 
+                    type="number"
+                    step="0.1"
+                    value={localPricing.pricePerKm || 0}
+                    onChange={(e) => setLocalPricing({ ...localPricing, pricePerKm: Number(e.target.value) })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-[1.5rem] py-4 px-6 text-white text-xl font-black outline-none focus:border-indigo-500 transition-all shadow-inner"
+                    placeholder="2.0"
+                  />
+                  <div className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-500 font-bold">₾/KM</div>
+                </div>
+              </div>
+
+              <div className="p-5 bg-indigo-500/5 rounded-[2rem] border border-indigo-500/10 space-y-3">
+                <h4 className="text-xs font-black text-indigo-400 uppercase tracking-widest">როგორ მუშაობს?</h4>
+                <p className="text-xs text-slate-400 leading-relaxed font-medium">
+                  დაჯავშნისას სისტემა ავტომატურად გამოთვლის მანძილს არჩეულ ბაზასა და კლიენტის ლოკაციას შორის. 
+                  ჯამურ ფასს დაემატება: <span className="text-white font-bold">მანძილი (კმ) × {localPricing.pricePerKm}₾</span>.
+                </p>
+                <div className="pt-2 flex items-center gap-2 text-[10px] text-indigo-300/60 font-bold italic">
+                  <CheckCircle className="w-3 h-3" />
+                  ავტომატურად აისახება ჩეკში და ვატსაპ შეტყობინებაში.
+                </div>
+              </div>
+            </div>
           </div>
         </Card>
 

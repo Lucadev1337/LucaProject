@@ -12,6 +12,8 @@
         "date": { "type": "string", "description": "Date of the booking (YYYY-MM-DD)." },
         "timeSlot": { "type": "string", "description": "Selected time slot (e.g., 09:00)." },
         "location": { "type": "string", "description": "Customer's location for the mobile service." },
+        "fuelFee": { "type": "number", "description": "Calculated fuel/distance fee." },
+        "distance": { "type": "number", "description": "Calculated distance in KM." },
         "status": { "type": "string", "enum": ["pending", "completed", "cancelled"], "description": "Current status of the booking." },
         "createdAt": { "type": "string", "format": "date-time", "description": "When the booking was created." },
         "uid": { "type": "string", "description": "Optional user ID if logged in, but public bookings might not have this." },
@@ -61,6 +63,15 @@
       "type": "object",
       "properties": {
         "price": { "type": "number", "description": "Price for the detailing service." },
+        "pricePerKm": { "type": "number", "description": "Cost per kilometer for the fuel fee." },
+        "baseLocation": {
+          "type": "object",
+          "properties": {
+            "lat": { "type": "number" },
+            "lng": { "type": "number" }
+          },
+          "description": "Base location coordinates for distance calculations."
+        },
         "salePercentage": { "type": "number", "description": "Sale percentage (e.g., 20 for 20% off)." },
         "isSaleActive": { "type": "boolean", "description": "Whether the sale is currently active." },
         "heroReviews": {

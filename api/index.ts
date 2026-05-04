@@ -242,12 +242,13 @@ app.post('/api/notify-booking', async (req, res) => {
           const pricing = pricingSnap.data();
           
           // 2. CUSTOMER CONFIRMATION
+          const fuelFeeLine = bookingData.fuelFee ? (lang === 'GE' ? `\n⛽ ადგილზე მოსვლის საფასური: ${bookingData.fuelFee}₾` : lang === 'RU' ? `\n⛽ Сбор за топливо: ${bookingData.fuelFee}₾` : `\n⛽ Fuel Fee: ${bookingData.fuelFee}₾`) : '';
           const promoLine = promoCode ? (lang === 'GE' ? `\n🎟 პრომო კოდი: ${promoCode}` : lang === 'RU' ? `\n🎟 Промокод: ${promoCode}` : `\n🎟 Promo Code: ${promoCode}`) : '';
           const customerMessage = lang === 'GE'
-            ? `✅ ჯავშანი დადასტურებულია!\n\n👤 კლიენტი: ${bookingData.customerName}\n🚗 მანქანა: ${bookingData.carModel || '-'}\n🛠 სერვისი: ${serviceName}${addonText}\n📅 თარიღი: ${bookingData.date}\n⏰ დრო: ${bookingData.timeSlot}\n📍 მისამართი: ${bookingData.location}\n💰 გადასახდელი თანხა: ${price}₾${promoLine}\n\nგმადლობთ, რომ გვირჩევთ!`
+            ? `✅ ჯავშანი დადასტურებულია!\n\n👤 კლიენტი: ${bookingData.customerName}\n🚗 მანქანა: ${bookingData.carModel || '-'}\n🛠 სერვისი: ${serviceName}${addonText}${fuelFeeLine}\n📅 თარიღი: ${bookingData.date}\n⏰ დრო: ${bookingData.timeSlot}\n📍 მისამართი: ${bookingData.location}\n💰 გადასახდელი თანხა: ${price}₾${promoLine}\n\nგმადლობთ, რომ გვირჩევთ!`
             : lang === 'RU'
-              ? `✅ Бронирование подтверждено!\n\n👤 Клиент: ${bookingData.customerName}\n🚗 Авто: ${bookingData.carModel || '-'}\n🛠 Услуга: ${serviceName}${addonText}\n📅 Дата: ${bookingData.date}\n⏰ Время: ${bookingData.timeSlot}\n📍 Адрес: ${bookingData.location}\n💰 Итоговая цена: ${price}₾${promoLine}\n\nСпасибо, что выбрали нас!`
-              : `✅ Booking Confirmed!\n\n👤 Client: ${bookingData.customerName}\n🚗 Car: ${bookingData.carModel || '-'}\n🛠 Service: ${serviceName}${addonText}\n📅 Date: ${bookingData.date}\n⏰ Time: ${bookingData.timeSlot}\n📍 Address: ${bookingData.location}\n💰 Total Price: ${price}₾${promoLine}\n\nThank you for choosing us!`;
+              ? `✅ Бронирование подтверждено!\n\n👤 Клиент: ${bookingData.customerName}\n🚗 Авто: ${bookingData.carModel || '-'}\n🛠 Услуга: ${serviceName}${addonText}${fuelFeeLine}\n📅 Дата: ${bookingData.date}\n⏰ Время: ${bookingData.timeSlot}\n📍 Адрес: ${bookingData.location}\n💰 Итоговая цена: ${price}₾${promoLine}\n\nСпасибо, что выбрали нас!`
+              : `✅ Booking Confirmed!\n\n👤 Client: ${bookingData.customerName}\n🚗 Car: ${bookingData.carModel || '-'}\n🛠 Service: ${serviceName}${addonText}${fuelFeeLine}\n📅 Date: ${bookingData.date}\n⏰ Time: ${bookingData.timeSlot}\n📍 Address: ${bookingData.location}\n💰 Total Price: ${price}₾${promoLine}\n\nThank you for choosing us!`;
 
           if (customerMethod === 'whatsapp' && bookingData.phone) {
             await sendMultiChannelHelper(pricing, bookingData.phone, customerMessage, 'whatsapp');
@@ -288,6 +289,15 @@ app.post('/api/notify-booking', async (req, res) => {
                   <span style="display: block; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: bold;">${lang === 'GE' ? 'მდებარეობა' : lang === 'RU' ? 'Местоположение' : 'Location'}</span>
                   <span style="font-size: 15px; color: #1e293b; font-weight: 500;">${bookingData.location}</span>
                 </div>
+
+                ${bookingData.fuelFee ? `
+                <div style="margin-bottom: 20px;">
+                  <span style="display: block; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: bold;">${lang === 'GE' ? 'საწვავის გადასახადი' : lang === 'RU' ? 'Сбор за топливо' : 'Fuel Fee'}</span>
+                  <span style="font-size: 15px; color: #1e293b; font-weight: 500;">
+                    ${bookingData.distance ? bookingData.distance.toFixed(1) : ''} KM = ${bookingData.fuelFee}₾
+                  </span>
+                </div>
+                ` : ''}
 
                 <div style="margin-top: 24px; padding-top: 24px; border-top: 2px dashed #e2e8f0;">
                    <div style="display: flex; justify-content: space-between; align-items: center;">

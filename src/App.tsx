@@ -869,6 +869,7 @@ interface Booking {
   promoCode?: string | null;
   discountAmount?: number;
   addons?: string[];
+  notes?: string;
 }
 
 interface Addon {
@@ -4755,7 +4756,6 @@ function ClientManager({ onBack, lang, bookings: allBookings, pricing }: { onBac
   const [isAddingClient, setIsAddingClient] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [editingClient, setEditingClient] = useState<Client | null>(null);
-  const [activeFilter, setActiveFilter] = useState<'all' | 'recent' | 'frequent'>('all');
 
   useEffect(() => {
     const q = query(collection(db, 'clients'), orderBy('updatedAt', 'desc'));
@@ -4775,19 +4775,6 @@ function ClientManager({ onBack, lang, bookings: allBookings, pricing }: { onBac
       c.email?.toLowerCase().includes(searchTerm.toLowerCase());
     
     if (!matchesSearch) return false;
-
-    const clientBookings = allBookings.filter(b => 
-      b.phone === c.phone || (c.email && b.email === c.email)
-    );
-
-    if (activeFilter === 'recent') {
-      const thirtyDaysAgo = subDays(new Date(), 30);
-      return clientBookings.some(b => parseISO(b.date) >= thirtyDaysAgo);
-    }
-
-    if (activeFilter === 'frequent') {
-      return clientBookings.length >= 3;
-    }
 
     return true;
   });
@@ -4849,35 +4836,6 @@ function ClientManager({ onBack, lang, bookings: allBookings, pricing }: { onBac
           <ArrowLeft className="w-4 h-4" /> უკან
         </Button>
         <div className="flex w-full md:w-auto gap-2">
-          <div className="flex bg-slate-900 border border-slate-800 rounded-xl p-1 gap-1">
-            <button 
-              onClick={() => setActiveFilter('all')}
-              className={cn(
-                "px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all",
-                activeFilter === 'all' ? "bg-slate-800 text-white shadow-sm" : "text-slate-500 hover:text-slate-300"
-              )}
-            >
-              ყველა
-            </button>
-            <button 
-              onClick={() => setActiveFilter('recent')}
-              className={cn(
-                "px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all",
-                activeFilter === 'recent' ? "bg-blue-600/20 text-blue-500 shadow-sm" : "text-slate-500 hover:text-slate-300"
-              )}
-            >
-              ბოლო (30დღე)
-            </button>
-            <button 
-              onClick={() => setActiveFilter('frequent')}
-              className={cn(
-                "px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all",
-                activeFilter === 'frequent' ? "bg-indigo-600/20 text-indigo-500 shadow-sm" : "text-slate-500 hover:text-slate-300"
-              )}
-            >
-              აქტიური
-            </button>
-          </div>
           <div className="relative flex-1 md:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
             <input 
@@ -4901,46 +4859,56 @@ function ClientManager({ onBack, lang, bookings: allBookings, pricing }: { onBac
               <tr className="border-b border-slate-800 bg-slate-950/50">
                 <th className="px-6 py-4 text-[10px] uppercase font-bold text-slate-500 tracking-wider">სახელი</th>
                 <th className="px-6 py-4 text-[10px] uppercase font-bold text-slate-500 tracking-wider">საკონტაქტო</th>
-                <th className="px-6 py-4 text-[10px] uppercase font-bold text-slate-500 tracking-wider">შექმნილია</th>
                 <th className="px-6 py-4 text-[10px] uppercase font-bold text-slate-500 tracking-wider text-right">მოქმედება</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
               {isLoading ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-10 text-center text-slate-500">იტვირთება...</td>
+                  <td colSpan={3} className="px-6 py-10 text-center text-slate-500">იტვირთება...</td>
                 </tr>
               ) : filteredClients.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-10 text-center text-slate-500">კლიენტები არ მოიძებნა</td>
+                  <td colSpan={3} className="px-6 py-10 text-center text-slate-500">კლიენტები არ მოიძებნა</td>
                 </tr>
               ) : (
-                filteredClients.map(client => (
-                  <tr 
-                    key={client.id} 
-                    className="hover:bg-slate-800/30 transition-colors cursor-pointer group"
-                    onClick={() => setSelectedClientId(client.id)}
-                  >
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-blue-600/10 text-blue-500 flex items-center justify-center font-bold text-sm">
-                          {client.fullName.charAt(0)}
+                filteredClients.map(client => {
+                  const clientBookings = allBookings.filter(b => 
+                    b.phone === client.phone || (client.email && b.email === client.email)
+                  );
+                  const uniqueCars = Array.from(new Set(clientBookings.map(b => b.carModel).filter(Boolean)));
+                  
+                  return (
+                    <tr 
+                      key={client.id} 
+                      className="hover:bg-slate-800/30 transition-colors cursor-pointer group"
+                      onClick={() => setSelectedClientId(client.id)}
+                    >
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-blue-600/10 text-blue-500 flex items-center justify-center font-bold text-sm">
+                            {client.fullName.charAt(0)}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-white text-sm">{client.fullName}</span>
+                              <span className="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded flex items-center gap-1">
+                                🚗 {uniqueCars.length}
+                              </span>
+                              <span className="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded flex items-center gap-1">
+                                🔢 {clientBookings.length}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                        <span className="font-bold text-white text-sm">{client.fullName}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-xs space-y-1">
-                        <div className="text-slate-300 flex items-center gap-2 font-mono"><Phone className="w-3 h-3 text-slate-500" /> {client.phone}</div>
-                        {client.email && <div className="text-slate-500 flex items-center gap-2 font-mono"><Mail className="w-3 h-3 text-slate-500" /> {client.email}</div>}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-xs text-slate-500">
-                        {client.createdAt?.seconds ? format(new Date(client.createdAt.seconds * 1000), 'dd.MM.yyyy') : '-'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-xs space-y-1">
+                          <div className="text-slate-300 flex items-center gap-2 font-mono"><Phone className="w-3 h-3 text-slate-500" /> {client.phone}</div>
+                          {client.email && <div className="text-slate-500 flex items-center gap-2 font-mono"><Mail className="w-3 h-3 text-slate-500" /> {client.email}</div>}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2" onClick={e => e.stopPropagation()}>
                         <button 
                           onClick={() => {
@@ -4960,9 +4928,10 @@ function ClientManager({ onBack, lang, bookings: allBookings, pricing }: { onBac
                       </div>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
+                );
+              })
+            )}
+          </tbody>
           </table>
         </div>
       </Card>
@@ -5037,6 +5006,7 @@ function ClientProfileView({ clientId, onBack, lang, allBookings, pricing }: { c
   const [isAddingCar, setIsAddingCar] = useState(false);
   const [isAddingBooking, setIsAddingBooking] = useState(false);
   const [editingCar, setEditingCar] = useState<Car | null>(null);
+  const [expandedBookingId, setExpandedBookingId] = useState<string | null>(null);
 
   useEffect(() => {
     const unsubClient = onSnapshot(doc(db, 'clients', clientId), (doc) => {
@@ -5307,38 +5277,114 @@ function ClientProfileView({ clientId, onBack, lang, allBookings, pricing }: { c
                       <span className="text-sm font-bold tracking-widest uppercase">ისტორია ცარიელია</span>
                     </div>
                   ) : (
-                    clientBookings.sort((a,b) => b.date.localeCompare(a.date)).map(booking => (
-                      <Card key={booking.id} className="bg-slate-900 border-slate-800 p-4 hover:border-slate-700 transition-all flex items-center justify-between group">
-                        <div className="flex items-center gap-4">
-                          <div className={cn(
-                            "w-1 h-10 rounded-full",
-                            booking.status === 'pending' ? "bg-yellow-500" : booking.status === 'completed' ? "bg-green-500" : "bg-red-500"
-                          )} />
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <p className="font-bold text-white text-sm">
-                                {booking.service === 'DetailingService' ? 'Exclusive Package' : booking.service}
-                              </p>
-                              {booking.carModel && (
-                                <span className="text-[10px] text-slate-500 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800">{booking.carModel}</span>
-                              )}
+                    clientBookings.sort((a,b) => b.date.localeCompare(a.date)).map(booking => {
+                      const isExpanded = expandedBookingId === booking.id;
+                      
+                      return (
+                        <Card 
+                          key={booking.id} 
+                          className={cn(
+                            "bg-slate-900 border-slate-800 hover:border-slate-700 transition-all cursor-pointer overflow-hidden group",
+                            isExpanded ? "border-blue-600/50 bg-slate-800/10 shadow-xl" : ""
+                          )}
+                          onClick={() => setExpandedBookingId(isExpanded ? null : booking.id)}
+                        >
+                          <div className="p-4 flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                              <div className={cn(
+                                "w-1 h-10 rounded-full",
+                                booking.status === 'pending' ? "bg-yellow-500" : booking.status === 'completed' ? "bg-green-500" : "bg-red-500"
+                              )} />
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <p className="font-bold text-white text-sm">
+                                    {booking.service === 'DetailingService' ? 'Exclusive Package' : booking.service}
+                                  </p>
+                                  {booking.carModel && (
+                                    <span className="text-[10px] text-slate-400 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800">{booking.carModel}</span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-slate-500 flex items-center gap-2 mt-0.5">
+                                  <Calendar className="w-3 h-3" /> {format(parseISO(booking.date), 'MMM dd, yyyy')} • {booking.timeSlot}
+                                </p>
+                              </div>
                             </div>
-                            <p className="text-xs text-slate-500 flex items-center gap-2 mt-0.5">
-                              <Calendar className="w-3 h-3" /> {format(parseISO(booking.date), 'MMM dd, yyyy')} • {booking.timeSlot}
-                            </p>
+                            <div className="flex items-center gap-4">
+                              <div className="text-right">
+                                <p className="font-black text-white text-sm">{booking.finalPrice}₾</p>
+                                <span className={cn(
+                                  "text-[9px] font-black uppercase px-2 py-0.5 rounded mt-1 inline-block",
+                                  booking.status === 'pending' ? "bg-yellow-500/10 text-yellow-500" : booking.status === 'completed' ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"
+                                )}>
+                                  {booking.status}
+                                </span>
+                              </div>
+                              <ChevronDown className={cn("w-4 h-4 text-slate-600 transition-transform", isExpanded ? "rotate-180 text-blue-500" : "")} />
+                            </div>
                           </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-black text-white text-sm">{booking.finalPrice}₾</p>
-                          <span className={cn(
-                            "text-[9px] font-black uppercase px-2 py-0.5 rounded mt-1 inline-block",
-                            booking.status === 'pending' ? "bg-yellow-500/10 text-yellow-500" : booking.status === 'completed' ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"
-                          )}>
-                            {booking.status}
-                          </span>
-                        </div>
-                      </Card>
-                    ))
+
+                          {isExpanded && (
+                            <motion.div 
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              className="border-t border-slate-800 bg-slate-950/30 p-5 space-y-4"
+                            >
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                <div>
+                                  <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block mb-1">მისამართი</label>
+                                  <p className="text-xs text-slate-300 flex items-center gap-2">
+                                    <MapPin className="w-3 h-3 text-blue-500" /> {booking.location}
+                                  </p>
+                                </div>
+                                <div>
+                                  <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block mb-1">საკონტაქტო</label>
+                                  <p className="text-xs text-slate-300">{booking.customerName}</p>
+                                  <p className="text-[10px] text-slate-500">{booking.phone}</p>
+                                </div>
+                                <div>
+                                  <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block mb-1">შექმნილია</label>
+                                  <p className="text-xs text-slate-500">
+                                    {booking.createdAt?.seconds ? format(new Date(booking.createdAt.seconds * 1000), 'MMM dd, HH:mm') : '-'}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="flex flex-wrap gap-4 pt-4 border-t border-slate-800/50">
+                                {booking.addons && booking.addons.length > 0 && (
+                                  <div>
+                                    <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block mb-1">დამატებები</label>
+                                    <div className="flex flex-wrap gap-1">
+                                      {booking.addons.map((a, i) => (
+                                        <span key={i} className="text-[9px] bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded capitalize">{a}</span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                                {booking.fuelFee && (
+                                  <div>
+                                    <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block mb-1">საწვავი</label>
+                                    <p className="text-xs text-indigo-400 font-bold">+{booking.fuelFee}₾ <span className="text-[10px] text-slate-600">({booking.distance?.toFixed(1)}KM)</span></p>
+                                  </div>
+                                )}
+                                {booking.promoCode && (
+                                  <div>
+                                    <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block mb-1">პრომო</label>
+                                    <p className="text-xs text-blue-400 font-bold">{booking.promoCode} (-{booking.discountAmount}₾)</p>
+                                  </div>
+                                )}
+                              </div>
+                              
+                              {booking.notes && (
+                                <div className="pt-4 border-t border-slate-800/50">
+                                  <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block mb-1">შენიშვნა</label>
+                                  <p className="text-xs text-slate-500 italic">"{booking.notes}"</p>
+                                </div>
+                              )}
+                            </motion.div>
+                          )}
+                        </Card>
+                      );
+                    })
                   )}
                 </div>
               </motion.div>

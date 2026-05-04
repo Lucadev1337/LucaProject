@@ -14,6 +14,7 @@
         "location": { "type": "string", "description": "Customer's location for the mobile service." },
         "fuelFee": { "type": "number", "description": "Calculated fuel/distance fee." },
         "distance": { "type": "number", "description": "Calculated distance in KM." },
+        "notes": { "type": "string", "description": "Optional notes for the booking." },
         "status": { "type": "string", "enum": ["pending", "completed", "cancelled"], "description": "Current status of the booking." },
         "createdAt": { "type": "string", "format": "date-time", "description": "When the booking was created." },
         "uid": { "type": "string", "description": "Optional user ID if logged in, but public bookings might not have this." },

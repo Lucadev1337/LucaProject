@@ -5075,52 +5075,89 @@ function Showcase({ onBack, lang }: { onBack: () => void, lang: Language }) {
 
 function GalleryCard({ item, lang }: { item: GalleryItem, lang: Language }) {
   const [activeImageIdx, setActiveImageIdx] = useState(0);
+  const [direction, setDirection] = useState(0);
+
+  const paginate = (newDirection: number) => {
+    setDirection(newDirection);
+    setActiveImageIdx((prev) => (prev + newDirection + item.images.length) % item.images.length);
+  };
+
+  const variants = {
+    enter: (direction: number) => ({
+      x: direction > 0 ? '100%' : direction < 0 ? '-100%' : 0,
+      opacity: 0
+    }),
+    center: {
+      zIndex: 1,
+      x: 0,
+      opacity: 1
+    },
+    exit: (direction: number) => ({
+      zIndex: 0,
+      x: direction < 0 ? '100%' : direction > 0 ? '-100%' : 0,
+      opacity: 0
+    })
+  };
 
   return (
     <Card className="bg-slate-900 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.7)] border-white/5 overflow-hidden rounded-[2.5rem] flex flex-col h-full group hover:border-blue-600/40 transition-all duration-700 aspect-[9/16] relative">
       <div className="absolute inset-0 z-0">
-        <AnimatePresence mode="wait">
+        <AnimatePresence initial={false} custom={direction}>
           <motion.img 
-            key={item.images[activeImageIdx]?.url}
-            initial={{ opacity: 0, scale: 1.1 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            key={activeImageIdx}
+            custom={direction}
+            variants={variants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{
+              x: { type: "spring", stiffness: 300, damping: 30 },
+              opacity: { duration: 0.2 }
+            }}
             src={item.images[activeImageIdx]?.url} 
             alt={item.carModel} 
-            className="w-full h-full object-cover" 
+            className="absolute inset-0 w-full h-full object-cover" 
           />
         </AnimatePresence>
         
         {item.images.length > 1 && (
-          <div className="absolute inset-0 z-20 flex">
+          <motion.div 
+            className="absolute inset-0 z-20 flex"
+            onPanEnd={(e, info) => {
+              if (info.offset.x > 50) {
+                paginate(-1);
+              } else if (info.offset.x < -50) {
+                paginate(1);
+              }
+            }}
+          >
             <div 
               className="w-1/2 h-full cursor-w-resize"
               onClick={(e) => {
                 e.stopPropagation();
-                setActiveImageIdx((prev) => (prev - 1 + item.images.length) % item.images.length);
+                paginate(-1);
               }}
             />
             <div 
               className="w-1/2 h-full cursor-e-resize"
               onClick={(e) => {
                 e.stopPropagation();
-                setActiveImageIdx((prev) => (prev + 1) % item.images.length);
+                paginate(1);
               }}
             />
             <div className="absolute inset-0 flex items-center justify-between px-2 pointer-events-none">
               <button 
-                className="w-8 h-8 rounded-full bg-slate-950/40 backdrop-blur-md border border-white/10 text-white flex items-center justify-center hover:bg-blue-600 transition-all active:scale-90 pointer-events-auto shadow-2xl"
+                className="w-8 h-8 rounded-full bg-slate-950/40 backdrop-blur-md border border-white/10 text-white flex items-center justify-center transition-all opacity-80"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
               <button 
-                className="w-8 h-8 rounded-full bg-slate-950/40 backdrop-blur-md border border-white/10 text-white flex items-center justify-center hover:bg-blue-600 transition-all active:scale-90 pointer-events-auto shadow-2xl"
+                className="w-8 h-8 rounded-full bg-slate-950/40 backdrop-blur-md border border-white/10 text-white flex items-center justify-center transition-all opacity-80"
               >
                 <ChevronRight className="w-5 h-5" />
               </button>
             </div>
-          </div>
+          </motion.div>
         )}
       </div>
       

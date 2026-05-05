@@ -41,6 +41,10 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
+    match /gallery/{itemId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
     match /clients/{phoneNumber} {
       allow get, create, update: if true;
       allow list, delete: if isAdmin();

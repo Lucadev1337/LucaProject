@@ -56,6 +56,7 @@ import {
   ChevronLeft,
   Check,
   Users,
+  Image,
   Smartphone,
   ChevronDown,
   PlusCircle,
@@ -197,7 +198,11 @@ const translations = {
       "ჰაერის არომატიზაცია"
     ],
     next: "შემდეგი",
-    howItWorks: "როგორ ვმუშაობთ",
+    showcase: "გალერეა",
+    beforeAfter: "ადრე და შემდეგ",
+    viewGallery: "გალერეის ნახვა",
+    showcaseTitle: "ნახეთ ჩვენი ნამუშევრები",
+    showcaseDesc: "ყოველ ავტომობილს ვუდგებით განსაკუთრებული ყურადღებით.",
     steps: [
       { title: "დაჯავშნა", desc: "აირჩიეთ სასურველი სერვისი და დრო ონლაინ." },
       { title: "მოვდივართ თქვენთან", desc: "ჩვენი გუნდი მოვა თქვენს მისამართზე საჭირო აღჭურვილობით." },
@@ -448,6 +453,11 @@ const translations = {
     ],
     next: "Next",
     howItWorks: "How it works",
+    showcase: "Gallery",
+    beforeAfter: "Before & After",
+    viewGallery: "View Gallery",
+    showcaseTitle: "Explore Our Work",
+    showcaseDesc: "We treat every vehicle with exceptional care and precision.",
     steps: [
       { title: "Booking", desc: "Choose your desired service and time online." },
       { title: "We come to you", desc: "Our team will come to your address with the necessary equipment." },
@@ -698,6 +708,11 @@ const translations = {
       ],
       next: "Далее",
       howItWorks: "Как это работает",
+      showcase: "Галерея",
+      beforeAfter: "До и После",
+      viewGallery: "Посмотреть галерею",
+      showcaseTitle: "Посмотрите наши работы",
+      showcaseDesc: "Мы относимся к каждому автомобилю с особой заботой.",
       steps: [
         { title: "Бронирование", desc: "Выберите услугу и время онлайн." },
         { title: "Приезжаем к вам", desc: "Наша команда приедет по вашему адресу со всем необходимым оборудованием." },
@@ -920,6 +935,20 @@ interface Car {
   licensePlate: string;
   color?: string;
   notes?: string;
+}
+
+interface GalleryImage {
+  url: string;
+  label?: string;
+}
+
+interface GalleryItem {
+  id: string;
+  title: string;
+  carModel?: string;
+  description?: string;
+  images: GalleryImage[];
+  createdAt: any;
 }
 
 interface PricingSettings {
@@ -1208,7 +1237,7 @@ const Card = ({ children, className, ...props }: { children: React.ReactNode, cl
 // --- Main App ---
 
 export default function App() {
-  const [view, setView] = useState<'public' | 'admin' | 'booking' | 'terms' | 'confirmation'>('public');
+  const [view, setView] = useState<'public' | 'admin' | 'booking' | 'terms' | 'confirmation' | 'showcase'>('public');
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [lang, setLang] = useState<Language>('GE');
@@ -1268,6 +1297,9 @@ export default function App() {
     if (viewParam === 'confirmation') {
       setView('confirmation');
       setIsLangSelected(true); // Don't block confirmation page with language selector
+    } else if (viewParam === 'showcase') {
+      setView('showcase');
+      setIsLangSelected(true);
     }
 
     // Fetch pricing
@@ -1427,7 +1459,16 @@ export default function App() {
                   </span>
                 </div>
                 
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
+                    {view === 'public' && (
+                      <button 
+                        onClick={() => setView('showcase')}
+                        className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:border-blue-600/50 transition-all font-bold text-xs uppercase tracking-widest"
+                      >
+                         <Smartphone className="w-3 h-3" />
+                         <span>{t.showcase}</span>
+                      </button>
+                    )}
                     {/* Language Switcher */}
                     <div className="flex items-center bg-slate-900/50 p-1 rounded-xl border border-slate-800 gap-1">
                       <button 
@@ -1520,6 +1561,7 @@ export default function App() {
                 onBookNow={() => {
                   setView('booking');
                 }} 
+                onViewGallery={() => setView('showcase')}
                 pricing={pricing} 
                 t={t} 
                 lang={lang} 
@@ -1540,6 +1582,8 @@ export default function App() {
               />
             ) : view === 'terms' ? (
               <TermsOfService key="terms" onBack={() => setView('public')} t={t} />
+            ) : view === 'showcase' ? (
+              <Showcase onBack={() => setView('public')} lang={lang} />
             ) : view === 'confirmation' ? (
               <ConfirmationPage key="confirmation" onBack={() => {
                 setView('public');
@@ -1642,7 +1686,7 @@ export default function App() {
 
 // --- Public Site ---
 
-function PublicSite({ onBookNow, pricing, t, lang, isLoading }: { onBookNow: (plan?: 'Basic' | 'Premium') => void, pricing: PricingSettings, t: any, lang: Language, isLoading?: boolean, key?: string }) {
+function PublicSite({ onBookNow, onViewGallery, pricing, t, lang, isLoading }: { onBookNow: (plan?: 'Basic' | 'Premium') => void, onViewGallery: () => void, pricing: PricingSettings, t: any, lang: Language, isLoading?: boolean, key?: string }) {
   const { scrollY } = useScroll();
   const y = useTransform(scrollY, [0, 500], [0, 150]);
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -1855,14 +1899,14 @@ function PublicSite({ onBookNow, pricing, t, lang, isLoading }: { onBookNow: (pl
                 {/* Navigation Arrows */}
                 <button 
                   onClick={prevSlide}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/10 text-white backdrop-blur-xl border border-white/20 opacity-0 group-hover:opacity-100 transition-all hover:bg-blue-600 hover:scale-110 active:scale-95 z-20"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-slate-950/40 text-white backdrop-blur-xl border border-white/10 opacity-100 transition-all hover:bg-blue-600 hover:scale-110 active:scale-95 z-20"
                   aria-label="Previous image"
                 >
                   <ChevronLeft className="w-6 h-6" />
                 </button>
                 <button 
                   onClick={nextSlide}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/10 text-white backdrop-blur-xl border border-white/20 opacity-0 group-hover:opacity-100 transition-all hover:bg-blue-600 hover:scale-110 active:scale-95 z-20"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-slate-950/40 text-white backdrop-blur-xl border border-white/10 opacity-100 transition-all hover:bg-blue-600 hover:scale-110 active:scale-95 z-20"
                   aria-label="Next image"
                 >
                   <ChevronRight className="w-6 h-6" />
@@ -1882,15 +1926,22 @@ function PublicSite({ onBookNow, pricing, t, lang, isLoading }: { onBookNow: (pl
                   ))}
                 </div>
 
-                <div className="absolute bottom-6 left-6 text-white pointer-events-none z-10">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-600/40">
-                      <Zap className="w-6 h-6" />
+                <div className="absolute bottom-6 left-6 z-30">
+                  <button 
+                    onClick={onViewGallery}
+                    className="flex items-center gap-3 group/gallery transition-all duration-500 hover:-translate-y-1 active:scale-95"
+                  >
+                    <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-600/40 group-hover:scale-110 group-hover:bg-blue-500 transition-all duration-500">
+                      <Image className="w-6 h-6" />
                     </div>
-                    <div>
-                      <p className="text-xs font-bold uppercase tracking-widest opacity-90">{t.lastResult}</p>
+                    <div className="bg-slate-950/60 backdrop-blur-xl px-5 py-3 rounded-2xl border border-white/10 group-hover:border-blue-500/50 group-hover:bg-slate-900/80 transition-all duration-500 flex flex-col items-start gap-0.5">
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-400 leading-none mb-1">{t.showcase}</span>
+                      <p className="text-xs font-bold text-white flex items-center gap-2">
+                        {t.viewGallery}
+                        <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+                      </p>
                     </div>
-                  </div>
+                  </button>
                 </div>
               </div>
             </div>
@@ -3824,7 +3875,7 @@ function TermsOfService({ onBack, t }: { onBack: () => void, t: any, key?: strin
 
 function AdminDashboard({ onBack, pricing, lang }: { onBack: () => void, pricing: PricingSettings, lang: Language, key?: string }) {
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [activeTab, setActiveTab] = useState<'bookings' | 'availability' | 'pricing' | 'reviews' | 'promo' | 'addons' | 'clients'>('bookings');
+  const [activeTab, setActiveTab] = useState<'bookings' | 'availability' | 'pricing' | 'reviews' | 'promo' | 'addons' | 'clients' | 'gallery'>('bookings');
   const [isLoading, setIsLoading] = useState(true);
   const [sortBy, setSortBy] = useState<'date' | 'createdAt'>('createdAt');
   const [filterStatus, setFilterStatus] = useState<'future' | 'completed' | 'all'>('future');
@@ -3998,6 +4049,15 @@ function AdminDashboard({ onBack, pricing, lang }: { onBack: () => void, pricing
                 )}
               >
                 ჯავშნები
+              </button>
+              <button 
+                onClick={() => setActiveTab('gallery')}
+                className={cn(
+                  "px-4 md:px-6 py-2 rounded-lg text-xs md:text-sm font-medium transition-all whitespace-nowrap",
+                  activeTab === 'gallery' ? "bg-blue-600 text-white shadow-md" : "text-slate-400 hover:bg-slate-800"
+                )}
+              >
+                გალერეა
               </button>
               <button 
                 onClick={() => setActiveTab('availability')}
@@ -4285,6 +4345,8 @@ function AdminDashboard({ onBack, pricing, lang }: { onBack: () => void, pricing
         <PromoCodeManager onBack={onBack} />
       ) : activeTab === 'addons' ? (
         <AddonManager onBack={onBack} lang={lang} />
+      ) : activeTab === 'gallery' ? (
+        <GalleryManager onBack={onBack} lang={lang} />
       ) : activeTab === 'clients' ? (
         <ClientManager onBack={onBack} lang={lang} bookings={bookings} pricing={pricing} />
       ) : (
@@ -4746,6 +4808,353 @@ function PricingManager({ pricing, onBack }: { pricing: PricingSettings, onBack:
         </Button>
       </div>
     </div>
+  );
+}
+
+function GalleryManager({ onBack, lang }: { onBack: () => void, lang: Language }) {
+  const [items, setItems] = useState<GalleryItem[]>([]);
+  const [isAdding, setIsAdding] = useState(false);
+  const [editingItem, setEditingItem] = useState<GalleryItem | null>(null);
+  const [newItem, setNewItem] = useState<Partial<GalleryItem>>({
+    title: '',
+    carModel: '',
+    description: '',
+    images: [{ url: '', label: 'Before' }, { url: '', label: 'After' }]
+  });
+
+  useEffect(() => {
+    const q = query(collection(db, 'gallery'), orderBy('createdAt', 'desc'));
+    const unsub = onSnapshot(q, (snap) => {
+      setItems(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as GalleryItem)));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'gallery');
+    });
+    return unsub;
+  }, []);
+
+  const handleSave = async () => {
+    if (!newItem.carModel || newItem.images?.some(img => !img.url)) {
+      alert('Please fill all required fields (Car Model and Image URLs)');
+      return;
+    }
+
+    try {
+      if (editingItem) {
+        await updateDoc(doc(db, 'gallery', editingItem.id), {
+          ...newItem,
+          updatedAt: serverTimestamp()
+        });
+      } else {
+        await addDoc(collection(db, 'gallery'), {
+          ...newItem,
+          title: newItem.carModel, // Use carModel as title for internal use
+          createdAt: serverTimestamp()
+        });
+      }
+      setIsAdding(false);
+      setEditingItem(null);
+      setNewItem({
+        title: '',
+        carModel: '',
+        description: '',
+        images: [{ url: '', label: 'Before' }, { url: '', label: 'After' }]
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, 'gallery');
+    }
+  };
+
+  const deleteItem = async (id: string) => {
+    if (!window.confirm('Are you sure?')) return;
+    try {
+      await deleteDoc(doc(db, 'gallery', id));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `gallery/${id}`);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-bold text-white">გალერეის მართვა</h2>
+        <Button onClick={() => setIsAdding(true)} className="bg-blue-600 hover:bg-blue-700">
+          <Plus className="w-4 h-4 mr-2" /> დამატება
+        </Button>
+      </div>
+
+      {isAdding && (
+        <Card className="bg-slate-900 border-slate-800 p-6 space-y-4">
+          <div className="grid grid-cols-1 gap-4">
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">ავტომობილის მოდელი</label>
+              <input 
+                placeholder="მაგ: BMW X5 M" 
+                value={newItem.carModel}
+                onChange={e => setNewItem({...newItem, carModel: e.target.value})}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white outline-none focus:border-blue-500 transition-all"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-4 pt-4 border-t border-slate-800">
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">სურათები (9:16 პორტრეტი)</h3>
+            {newItem.images?.map((img, idx) => (
+              <div key={idx} className="flex gap-2 items-center bg-slate-950 p-3 rounded-xl border border-slate-800">
+                <input 
+                  placeholder="სურათის URL" 
+                  value={img.url}
+                  onChange={e => {
+                    const imgs = [...(newItem.images || [])];
+                    imgs[idx].url = e.target.value;
+                    setNewItem({...newItem, images: imgs});
+                  }}
+                  className="flex-1 bg-transparent border-none text-white text-xs outline-none"
+                />
+                <input 
+                  placeholder="ლეიბლი" 
+                  value={img.label}
+                  onChange={e => {
+                    const imgs = [...(newItem.images || [])];
+                    imgs[idx].label = e.target.value;
+                    setNewItem({...newItem, images: imgs});
+                  }}
+                  className="w-24 bg-slate-900 border border-slate-800 rounded px-2 py-1 text-white text-[10px]"
+                />
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => {
+                    const imgs = newItem.images?.filter((_, i) => i !== idx);
+                    setNewItem({...newItem, images: imgs});
+                  }}
+                  className="text-red-500 hover:bg-red-500/10 h-8 w-8 p-0"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </Button>
+              </div>
+            ))}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setNewItem({...newItem, images: [...(newItem.images || []), { url: '', label: '' }]})}
+              className="border-slate-800 text-slate-500 hover:text-slate-300 w-full rounded-xl border-dashed py-4"
+            >
+              <PlusCircle className="w-4 h-4 mr-2" /> სურათის დამატება
+            </Button>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-4">
+            <Button variant="ghost" onClick={() => { setIsAdding(false); setEditingItem(null); }}>გაუქმება</Button>
+            <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700">შენახვა</Button>
+          </div>
+        </Card>
+      )}
+
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {items.map(item => (
+          <Card key={item.id} className="bg-slate-900 border-slate-800 overflow-hidden group aspect-[9/16] relative">
+            {item.images[0] && (
+              <img src={item.images[0].url} alt={item.carModel} className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity" />
+            )}
+            <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-slate-950 to-transparent">
+              <h3 className="font-bold text-white text-xs truncate">{item.carModel}</h3>
+              <p className="text-[8px] text-slate-500 uppercase font-black">{item.images.length} სურათი</p>
+            </div>
+            <div className="absolute top-2 right-2 flex gap-1 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+              <Button 
+                size="sm" 
+                variant="secondary" 
+                onClick={() => {
+                  setEditingItem(item);
+                  setNewItem(item);
+                  setIsAdding(true);
+                }}
+                className="h-7 w-7 p-0 bg-slate-900/90 backdrop-blur-sm border-white/5"
+              >
+                <Edit3 className="w-3 h-3" />
+              </Button>
+              <Button 
+                size="sm" 
+                variant="destructive" 
+                onClick={() => deleteItem(item.id)}
+                className="h-7 w-7 p-0 bg-red-900/90 backdrop-blur-sm border-white/5"
+              >
+                <Trash2 className="w-3 h-3" />
+              </Button>
+            </div>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Showcase({ onBack, lang }: { onBack: () => void, lang: Language }) {
+  const [items, setItems] = useState<GalleryItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const t = translations[lang];
+
+  useEffect(() => {
+    const q = query(collection(db, 'gallery'), orderBy('createdAt', 'desc'));
+    const unsub = onSnapshot(q, (snap) => {
+      setItems(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as GalleryItem)));
+      setIsLoading(false);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'gallery');
+    });
+    return unsub;
+  }, []);
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="min-h-screen bg-slate-950 pt-24 pb-12 px-4"
+    >
+      <div className="max-w-7xl mx-auto">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
+          <div className="flex-1">
+            <Button 
+              variant="ghost" 
+              onClick={onBack}
+              className="text-slate-500 hover:text-white mb-8 -ml-2 font-black uppercase tracking-widest text-[10px]"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" /> {translations[lang].backToHome}
+            </Button>
+            <div className="max-w-3xl">
+              <motion.h1 
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                className="text-4xl md:text-7xl font-black text-white mb-6 tracking-tighter leading-[0.9]"
+              >
+                {t.showcaseTitle}
+              </motion.h1>
+              <motion.p 
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.1 }}
+                className="text-slate-400 text-lg md:text-xl font-medium"
+              >
+                {t.showcaseDesc}
+              </motion.p>
+            </div>
+          </div>
+        </div>
+
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-32 gap-6">
+            <div className="w-16 h-16 border-4 border-blue-600/10 border-t-blue-600 rounded-full animate-spin"></div>
+            <span className="text-slate-600 font-black uppercase tracking-[0.2em] text-[10px]">იტვირთება...</span>
+          </div>
+        ) : items.length === 0 ? (
+          <div className="text-center py-32 bg-slate-900/30 rounded-[4rem] border border-white/5">
+            <div className="w-20 h-20 bg-slate-800 text-slate-700 rounded-3xl flex items-center justify-center mx-auto mb-6">
+              <Smartphone className="w-10 h-10" />
+            </div>
+            <p className="text-slate-600 font-black uppercase tracking-[0.2em] text-[10px]">გალერეა ცარიელია</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-10">
+            {items.map((item, idx) => (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.05, duration: 0.8 }}
+                className="h-full"
+              >
+                <GalleryCard item={item} lang={lang} />
+              </motion.div>
+            ))}
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+function GalleryCard({ item, lang }: { item: GalleryItem, lang: Language }) {
+  const [activeImageIdx, setActiveImageIdx] = useState(0);
+
+  return (
+    <Card className="bg-slate-900 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.7)] border-white/5 overflow-hidden rounded-[2.5rem] flex flex-col h-full group hover:border-blue-600/40 transition-all duration-700 aspect-[9/16] relative">
+      <div className="absolute inset-0 z-0">
+        <AnimatePresence mode="wait">
+          <motion.img 
+            key={item.images[activeImageIdx]?.url}
+            initial={{ opacity: 0, scale: 1.1 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            src={item.images[activeImageIdx]?.url} 
+            alt={item.carModel} 
+            className="w-full h-full object-cover" 
+          />
+        </AnimatePresence>
+        
+        {item.images.length > 1 && (
+          <div className="absolute inset-0 z-20 flex">
+            <div 
+              className="w-1/2 h-full cursor-w-resize"
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveImageIdx((prev) => (prev - 1 + item.images.length) % item.images.length);
+              }}
+            />
+            <div 
+              className="w-1/2 h-full cursor-e-resize"
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveImageIdx((prev) => (prev + 1) % item.images.length);
+              }}
+            />
+            <div className="absolute inset-0 flex items-center justify-between px-2 pointer-events-none">
+              <button 
+                className="w-8 h-8 rounded-full bg-slate-950/40 backdrop-blur-md border border-white/10 text-white flex items-center justify-center hover:bg-blue-600 transition-all active:scale-90 pointer-events-auto shadow-2xl"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <button 
+                className="w-8 h-8 rounded-full bg-slate-950/40 backdrop-blur-md border border-white/10 text-white flex items-center justify-center hover:bg-blue-600 transition-all active:scale-90 pointer-events-auto shadow-2xl"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+      
+      {/* Overlay Gradient */}
+      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent pointer-events-none" />
+
+      {/* Content */}
+      <div className="relative z-10 flex flex-col justify-between h-full p-8 md:p-10 pointer-events-none">
+        <div className="flex justify-between items-start">
+          {item.images[activeImageIdx]?.label && (
+            <div className="bg-blue-600 text-white px-5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-[0.15em] shadow-2xl backdrop-blur-md">
+              {item.images[activeImageIdx].label}
+            </div>
+          )}
+          <div className="px-4 py-1.5 bg-slate-950/60 backdrop-blur-md text-white border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-[0.2em]">
+            {item.carModel || 'Standard'}
+          </div>
+        </div>
+
+        <div className="space-y-6 w-full flex flex-col items-center">
+          <div className="flex justify-center items-center gap-1.5 w-full">
+            {item.images.map((_, idx) => (
+              <div 
+                key={idx}
+                className={cn(
+                  "h-1 rounded-full transition-all duration-500",
+                  activeImageIdx === idx ? "bg-blue-500 w-6" : "bg-white/20 w-1.5"
+                )}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    </Card>
   );
 }
 

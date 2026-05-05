@@ -128,6 +128,30 @@
         "notes": { "type": "string", "description": "Notes about the specific car." }
       },
       "required": ["brand", "model", "licensePlate"]
+    },
+    "GalleryItem": {
+      "title": "GalleryItem",
+      "description": "A showcase item with before/after photos of a detailing job.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "description": "Title of the showcase." },
+        "carModel": { "type": "string", "description": "Model of the car showcased." },
+        "description": { "type": "string", "description": "Short summary of the work done." },
+        "images": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "url": { "type": "string", "description": "URL of the image." },
+              "label": { "type": "string", "description": "Label for the image (e.g., 'Before', 'After')." }
+            },
+            "required": ["url"]
+          },
+          "description": "List of images for the showcase."
+        },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the showcase was added." }
+      },
+      "required": ["title", "images", "createdAt"]
     }
   },
   "firestore": {
@@ -166,6 +190,10 @@
     "/clients/{clientId}/cars/{carId}": {
       "schema": "Car",
       "description": "List of cars owned by a client."
+    },
+    "/gallery/{itemId}": {
+      "schema": "GalleryItem",
+      "description": "Collection of showcase items for the gallery."
     }
   }
 }

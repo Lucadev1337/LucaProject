@@ -200,7 +200,7 @@ const translations = {
     next: "შემდეგი",
     showcase: "გალერეა",
     beforeAfter: "ადრე და შემდეგ",
-    viewGallery: "გალერეის ნახვა",
+    viewGallery: "ნამუშევრების ნახვა",
     showcaseTitle: "ნახეთ ჩვენი ნამუშევრები",
     showcaseDesc: "ყოველ ავტომობილს ვუდგებით განსაკუთრებული ყურადღებით.",
     steps: [

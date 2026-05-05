@@ -51,6 +51,7 @@ import {
   Power,
   MessageCircle,
   Instagram,
+  Facebook,
   ArrowLeft,
   HelpCircle,
   ChevronLeft,
@@ -1303,6 +1304,9 @@ export default function App() {
     } else if (viewParam === 'services') {
       setView('services');
       setIsLangSelected(true);
+    } else if (viewParam === 'terms') {
+      setView('terms');
+      setIsLangSelected(true);
     }
 
     // Fetch pricing
@@ -1646,6 +1650,9 @@ export default function App() {
                 <div>
                   <h4 className="text-white font-semibold mb-3 text-sm">{t.socialMedia}</h4>
                   <div className="flex gap-4">
+                    <a href="https://www.facebook.com/people/Lucas-Auto-Spa/61574502372414/" target="_blank" rel="noopener noreferrer" className="w-8 h-8 bg-slate-800 rounded-lg flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all">
+                      <Facebook className="w-4 h-4" />
+                    </a>
                     <a href="https://www.instagram.com/lucasautospa.ge/" target="_blank" rel="noopener noreferrer" className="w-8 h-8 bg-slate-800 rounded-lg flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all">
                       <Instagram className="w-4 h-4" />
                     </a>
@@ -2215,41 +2222,60 @@ function PublicSite({ onBookNow, onViewGallery, onViewServices, pricing, t, lang
         </div>
       </section>
 
-      {/* Booking CTA Section */}
-      <section className="py-12 px-4 bg-slate-900">
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-slate-950 rounded-[2rem] p-8 md:p-12 text-center relative overflow-hidden border border-white/5">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-400/5 blur-[100px] -z-0" />
-            <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-400/5 blur-[100px] -z-0" />
+      {/* CTA Section */}
+      <section className="py-24 px-4 relative overflow-hidden">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.1)_0%,transparent_70%)] pointer-events-none" />
+        
+        <div className="max-w-5xl mx-auto relative z-10 text-center">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            className="p-12 md:p-20 rounded-[3.5rem] bg-slate-900/40 backdrop-blur-3xl border border-white/5 relative overflow-hidden shadow-2xl group"
+          >
+            {/* Background elements */}
+            <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 blur-[100px] rounded-full -translate-y-1/2 translate-x-1/2 group-hover:bg-blue-600/20 transition-all duration-700" />
+            <div className="absolute bottom-0 left-0 w-96 h-96 bg-indigo-600/10 blur-[100px] rounded-full translate-y-1/2 -translate-x-1/2" />
             
-            <div className="relative z-10">
-              <h2 className="text-2xl md:text-3xl font-black text-white mb-4">{t.readyForNew}<span className="text-blue-400">{t.readyForNewSpan}</span></h2>
-              <p className="text-slate-400 text-sm mb-8 max-w-xl mx-auto">
+            <div className="relative z-10 max-w-2xl mx-auto">
+              <div className="w-20 h-20 bg-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-10 shadow-2xl shadow-blue-600/40 rotate-3 group-hover:rotate-6 transition-transform duration-500">
+                <Zap className="w-10 h-10 text-white" />
+              </div>
+              
+              <h2 className="text-3xl md:text-6xl font-black text-white mb-8 tracking-tighter leading-[0.95]">
+                {t.readyForNew}
+                <br />
+                <span className="text-blue-400">{t.readyForNewSpan}</span>
+              </h2>
+              
+              <p className="text-slate-400 text-lg md:text-xl font-medium mb-12">
                 {t.ctaDesc}
               </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-lg mx-auto">
-                <Button size="lg" className="w-full sm:w-auto rounded-xl shadow-2xl shadow-blue-400/20 bg-blue-400 hover:bg-blue-300 text-slate-950 h-12 text-sm font-black px-8" onClick={() => scrollToBooking()}>
+              
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
+                <Button 
+                  size="lg" 
+                  onClick={() => scrollToBooking()}
+                  className="w-full sm:w-auto h-16 px-12 rounded-[2rem] bg-blue-600 hover:bg-blue-500 text-white font-black uppercase tracking-widest text-xs shadow-2xl shadow-blue-600/30 hover:-translate-y-1 transition-all"
+                >
                   {t.bookNow}
                 </Button>
-                <a 
-                  href="tel:+995579129698"
-                  className="w-full sm:w-auto inline-flex items-center justify-center rounded-xl border border-green-500/30 bg-green-500/10 backdrop-blur-md text-green-400 hover:bg-green-500/20 px-8 h-12 text-sm font-black transition-all" 
+                <button 
+                  onClick={onViewGallery}
+                  className="flex items-center gap-3 text-slate-400 hover:text-white transition-colors font-black uppercase tracking-widest text-xs group/link"
                 >
-                  <Phone className="mr-2 w-4 h-4" /> {t.bookPhone}
-                </a>
-              </div>
-              <div className="mt-8 flex flex-wrap justify-center gap-6 opacity-40">
-                <div className="flex items-center gap-2 text-white">
-                  <Star className="w-3.5 h-3.5" />
-                  <span className="font-black uppercase tracking-widest text-[9px]">{t.fiveStar}</span>
-                </div>
-                <div className="flex items-center gap-2 text-white">
-                  <Zap className="w-3.5 h-3.5" />
-                  <span className="font-black uppercase tracking-widest text-[9px]">{t.mobile}</span>
-                </div>
+                  {t.viewGallery}
+                  <ArrowRight className="w-5 h-5 group-hover/link:translate-x-1 transition-transform" />
+                </button>
               </div>
             </div>
-          </div>
+            
+            {/* Aesthetic Borders */}
+            <div className="absolute top-6 left-6 w-3 h-3 border-t-2 border-l-2 border-white/20 rounded-tl-sm" />
+            <div className="absolute top-6 right-6 w-3 h-3 border-t-2 border-r-2 border-white/20 rounded-tr-sm" />
+            <div className="absolute bottom-6 left-6 w-3 h-3 border-b-2 border-l-2 border-white/20 rounded-bl-sm" />
+            <div className="absolute bottom-6 right-6 w-3 h-3 border-b-2 border-r-2 border-white/20 rounded-br-sm" />
+          </motion.div>
         </div>
       </section>
 
@@ -5057,9 +5083,9 @@ function ServicesPage({ onBack, lang, setView }: { onBack: () => void, lang: Lan
                 className="text-slate-400 text-lg md:text-xl font-medium"
               >
                 {lang === 'GE' 
-                  ? 'გააუმჯობესეთ თქვენი ავტომობილის მოვლის გამოცდილება ჩვენი სპეციალიზებული დანამატებით.' 
+                  ? 'მეტი ვიდრე სტანდარტული წმენდა — დამატებითი სერვისები, რომლებიც აუმჯობესებს შედეგს და ქმნის იდეალურად სუფთა და კომფორტულ სალონს.' 
                   : lang === 'RU' 
-                  ? 'Улучшите качество обслуживания вашего автомобиля с помощью наших специализированных дополнений.' 
+                  ? 'Улучшите интерьер своего автомобиля с помощью наших специальных дополнительных услуг.' 
                   : 'Enhance your vehicle care experience with our specialized add-ons.'}
               </motion.p>
             </div>

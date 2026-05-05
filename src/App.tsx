@@ -1237,7 +1237,7 @@ const Card = ({ children, className, ...props }: { children: React.ReactNode, cl
 // --- Main App ---
 
 export default function App() {
-  const [view, setView] = useState<'public' | 'admin' | 'booking' | 'terms' | 'confirmation' | 'showcase'>('public');
+  const [view, setView] = useState<'public' | 'admin' | 'booking' | 'terms' | 'confirmation' | 'showcase' | 'services'>('public');
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [lang, setLang] = useState<Language>('GE');
@@ -1299,6 +1299,9 @@ export default function App() {
       setIsLangSelected(true); // Don't block confirmation page with language selector
     } else if (viewParam === 'showcase') {
       setView('showcase');
+      setIsLangSelected(true);
+    } else if (viewParam === 'services') {
+      setView('services');
       setIsLangSelected(true);
     }
 
@@ -1461,13 +1464,15 @@ export default function App() {
                 
                 <div className="flex items-center gap-2">
                     {view === 'public' && (
-                      <button 
-                        onClick={() => setView('showcase')}
-                        className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:border-blue-600/50 transition-all font-bold text-xs uppercase tracking-widest"
-                      >
-                         <Smartphone className="w-3 h-3" />
-                         <span>{t.showcase}</span>
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button 
+                          onClick={() => setView('showcase')}
+                          className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:border-blue-600/50 transition-all font-bold text-xs uppercase tracking-widest"
+                        >
+                           <Smartphone className="w-3 h-3" />
+                           <span>{t.showcase}</span>
+                        </button>
+                      </div>
                     )}
                     {/* Language Switcher */}
                     <div className="flex items-center bg-slate-900/50 p-1 rounded-xl border border-slate-800 gap-1">
@@ -1562,6 +1567,7 @@ export default function App() {
                   setView('booking');
                 }} 
                 onViewGallery={() => setView('showcase')}
+                onViewServices={() => setView('services')}
                 pricing={pricing} 
                 t={t} 
                 lang={lang} 
@@ -1584,6 +1590,8 @@ export default function App() {
               <TermsOfService key="terms" onBack={() => setView('public')} t={t} />
             ) : view === 'showcase' ? (
               <Showcase onBack={() => setView('public')} lang={lang} />
+            ) : view === 'services' ? (
+              <ServicesPage onBack={() => setView('public')} lang={lang} setView={setView} />
             ) : view === 'confirmation' ? (
               <ConfirmationPage key="confirmation" onBack={() => {
                 setView('public');
@@ -1686,7 +1694,7 @@ export default function App() {
 
 // --- Public Site ---
 
-function PublicSite({ onBookNow, onViewGallery, pricing, t, lang, isLoading }: { onBookNow: (plan?: 'Basic' | 'Premium') => void, onViewGallery: () => void, pricing: PricingSettings, t: any, lang: Language, isLoading?: boolean, key?: string }) {
+function PublicSite({ onBookNow, onViewGallery, onViewServices, pricing, t, lang, isLoading }: { onBookNow: (plan?: 'Basic' | 'Premium') => void, onViewGallery: () => void, onViewServices: () => void, pricing: PricingSettings, t: any, lang: Language, isLoading?: boolean, key?: string }) {
   const { scrollY } = useScroll();
   const y = useTransform(scrollY, [0, 500], [0, 150]);
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -2128,6 +2136,19 @@ function PublicSite({ onBookNow, onViewGallery, pricing, t, lang, isLoading }: {
                       </motion.div>
                     );
                   })}
+                </div>
+                <div className="flex justify-center mt-10">
+                  <Button 
+                    variant="ghost"
+                    className="group flex items-center gap-3 text-slate-500 hover:text-white transition-all duration-500 font-black uppercase tracking-widest text-[10px]"
+                    onClick={() => {
+                      onViewServices();
+                      window.history.pushState(null, '', '/?view=services');
+                    }}
+                  >
+                    <span>{getLangValue(lang, 'ყველა დამატებითი სერვისის ნახვა', 'View All Detailed Services', 'Посмотреть все доп. услуги')}</span>
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </Button>
                 </div>
               </motion.div>
             )}
@@ -4986,6 +5007,123 @@ function GalleryManager({ onBack, lang }: { onBack: () => void, lang: Language }
         ))}
       </div>
     </div>
+  );
+}
+
+function ServicesPage({ onBack, lang, setView }: { onBack: () => void, lang: Language, setView: (v: string) => void }) {
+  const [addons, setAddons] = useState<Addon[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const t = translations[lang];
+
+  useEffect(() => {
+    const q = query(collection(db, 'addons'), where('active', '==', true));
+    const unsub = onSnapshot(q, (snap) => {
+      setAddons(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Addon)));
+      setIsLoading(false);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'addons');
+    });
+    return unsub;
+  }, []);
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="min-h-screen bg-slate-950 pt-24 pb-12 px-4"
+    >
+      <div className="max-w-7xl mx-auto">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
+          <div className="flex-1">
+            <Button 
+              variant="ghost" 
+              onClick={onBack}
+              className="text-slate-500 hover:text-white mb-8 -ml-2 font-black uppercase tracking-widest text-[10px]"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" /> {translations[lang].backToHome}
+            </Button>
+            <div className="max-w-3xl">
+              <motion.h1 
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                className="text-4xl md:text-7xl font-black text-white mb-6 tracking-tighter leading-[0.9]"
+              >
+                {lang === 'GE' ? 'დამატებითი სერვისები' : lang === 'RU' ? 'Дополнительные услуги' : 'Additional Services'}
+              </motion.h1>
+              <motion.p 
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.1 }}
+                className="text-slate-400 text-lg md:text-xl font-medium"
+              >
+                {lang === 'GE' 
+                  ? 'გააუმჯობესეთ თქვენი ავტომობილის მოვლის გამოცდილება ჩვენი სპეციალიზებული დანამატებით.' 
+                  : lang === 'RU' 
+                  ? 'Улучшите качество обслуживания вашего автомобиля с помощью наших специализированных дополнений.' 
+                  : 'Enhance your vehicle care experience with our specialized add-ons.'}
+              </motion.p>
+            </div>
+          </div>
+        </div>
+
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-32 gap-6">
+            <div className="w-16 h-16 border-4 border-blue-600/10 border-t-blue-600 rounded-full animate-spin"></div>
+            <span className="text-slate-600 font-black uppercase tracking-[0.2em] text-[10px]">იტვირთება...</span>
+          </div>
+        ) : addons.length === 0 ? (
+          <div className="text-center py-32 bg-slate-900/30 rounded-[4rem] border border-white/5">
+            <div className="w-20 h-20 bg-slate-800 text-slate-700 rounded-3xl flex items-center justify-center mx-auto mb-6">
+              <Plus className="w-10 h-10" />
+            </div>
+            <p className="text-slate-600 font-black uppercase tracking-[0.2em] text-[10px]">სერვისები არ მოიძებნა</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+            {addons.map((addon, idx) => (
+              <motion.div
+                key={addon.id}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.05, duration: 0.8 }}
+              >
+                <Card className="bg-slate-900 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.7)] border-white/5 overflow-hidden rounded-[2.5rem] flex flex-col h-full group hover:border-blue-600/40 transition-all duration-700 p-8 md:p-10 relative">
+                  <div className="absolute top-8 right-8">
+                    <div className="bg-blue-600/10 text-blue-500 px-4 py-1.5 rounded-xl text-xl font-black tracking-tight border border-blue-500/10">
+                      {addon.price} ₾
+                    </div>
+                  </div>
+                  
+                  <div className="mb-6">
+                    <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-blue-400 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-600/20 mb-6">
+                      <Zap className="w-7 h-7 text-white" />
+                    </div>
+                    <h3 className="text-2xl font-black text-white mb-4 leading-tight">
+                      {lang === 'GE' ? addon.nameGE : lang === 'RU' ? addon.nameRU : addon.nameEN}
+                    </h3>
+                    <p className="text-slate-400 text-sm leading-relaxed font-medium">
+                      {lang === 'GE' ? addon.descriptionGE : lang === 'RU' ? addon.descriptionRU : addon.descriptionEN}
+                    </p>
+                  </div>
+
+                  <div className="mt-auto pt-8 border-t border-white/5">
+                    <Button 
+                      className="w-full bg-slate-950 text-white border border-white/10 hover:bg-blue-600 hover:border-blue-500 transition-all duration-500 h-14 rounded-2xl font-black uppercase tracking-widest text-[10px]"
+                      onClick={() => {
+                        setView('booking');
+                        window.history.pushState(null, '', '/?view=booking');
+                      }}
+                    >
+                      {translations[lang].bookNow}
+                    </Button>
+                  </div>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+        )}
+      </div>
+    </motion.div>
   );
 }
 

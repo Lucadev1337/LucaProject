@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Component } from 'react';
+import React, { useState, useEffect, Component, useRef } from 'react';
 import { 
   collection, 
   addDoc, 
@@ -68,7 +68,23 @@ import {
   Filter,
   Info
 } from 'lucide-react';
-import { format, addDays, subDays, startOfToday, isSameDay, parseISO, isToday, startOfMonth, endOfMonth } from 'date-fns';
+import { 
+  format, 
+  addDays, 
+  subDays, 
+  startOfToday, 
+  isSameDay, 
+  parseISO, 
+  isToday, 
+  startOfMonth, 
+  endOfMonth,
+  eachDayOfInterval,
+  startOfWeek,
+  endOfWeek,
+  addMonths,
+  subMonths,
+  isSameMonth
+} from 'date-fns';
 import { ka, ru } from 'date-fns/locale';
 import { cn } from './lib/utils';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
@@ -183,6 +199,8 @@ const translations = {
     errorPersonalInfo: "გთხოვთ შეავსოთ საკონტაქტო ინფორმაცია",
     errorTerms: "გთხოვთ დაეთანხმოთ წესებსა და პირობებს",
     cancel: "გაუქმება",
+    available: "ხელმისაწვდომი",
+    days: ["კვი", "ორშ", "სამ", "ოთხ", "ხუთ", "პარ", "შაბ"],
     termsTitle: "წესები და პირობები",
     bestValue: "საუკეთესო ფასი",
     secure: "უსაფრთხო",
@@ -437,6 +455,8 @@ const translations = {
     errorPersonalInfo: "Please fill in your contact information",
     errorTerms: "Please agree to the terms and conditions",
     cancel: "Cancel",
+    available: "Available",
+    days: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
     termsTitle: "Terms & Conditions",
     bestValue: "Best Value",
     secure: "Secure",
@@ -692,6 +712,8 @@ const translations = {
       errorPersonalInfo: "Пожалуйста, заполните контактную информацию",
       errorTerms: "Пожалуйста, согласитесь с правилами и условиями",
       cancel: "Отмена",
+      available: "Доступно",
+      days: ["Вск", "Пнд", "Втр", "Срд", "Чтв", "Птн", "Суб"],
       termsTitle: "Правила и условия",
       bestValue: "Лучшая цена",
       secure: "Безопасно",
@@ -1238,7 +1260,7 @@ const Card = ({ children, className, ...props }: { children: React.ReactNode, cl
 // --- Main App ---
 
 export default function App() {
-  const [view, setView] = useState<'public' | 'admin' | 'booking' | 'terms' | 'confirmation' | 'showcase' | 'services'>('public');
+  const [view, setView] = useState<'public' | 'admin' | 'booking' | 'terms' | 'confirmation' | 'showcase' | 'services' | 'check'>('public');
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [lang, setLang] = useState<Language>('GE');
@@ -1306,6 +1328,9 @@ export default function App() {
       setIsLangSelected(true);
     } else if (viewParam === 'terms') {
       setView('terms');
+      setIsLangSelected(true);
+    } else if (viewParam === 'check') {
+      setView('check');
       setIsLangSelected(true);
     }
 
@@ -1596,6 +1621,8 @@ export default function App() {
               <Showcase onBack={() => setView('public')} lang={lang} />
             ) : view === 'services' ? (
               <ServicesPage onBack={() => setView('public')} lang={lang} setView={setView} />
+            ) : view === 'check' ? (
+              <CheckAvailabilityPage onBack={() => setView('public')} lang={lang} setView={setView} />
             ) : view === 'confirmation' ? (
               <ConfirmationPage key="confirmation" onBack={() => {
                 setView('public');
@@ -1614,8 +1641,8 @@ export default function App() {
           </AnimatePresence>
         </main>
 
-        {/* Footer - Hidden on booking page */}
-        {view !== 'booking' && (
+        {/* Footer - Hidden on booking/check page */}
+        {view !== 'booking' && view !== 'check' && (
           <footer className="bg-slate-900 text-slate-400 py-8 px-4 border-t border-slate-800">
             <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12">
               <div>
@@ -2411,6 +2438,9 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms, onSuccess }: { onB
           
           // Filter out past slots if it's today
           let activeSlots = [...slots];
+          const isTooFar = d > addDays(startOfToday(), 31);
+          const isPast = d < startOfToday();
+
           if (isToday(d)) {
             activeSlots = activeSlots.filter(slot => {
                const [hours, minutes] = slot.split(':').map(Number);
@@ -2419,7 +2449,7 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms, onSuccess }: { onB
             });
           }
 
-          if (booked.includes(dStr) || activeSlots.length === 0) {
+          if (booked.includes(dStr) || activeSlots.length === 0 || isTooFar || isPast) {
             unavail.push(dStr);
           }
         });
@@ -5033,6 +5063,272 @@ function GalleryManager({ onBack, lang }: { onBack: () => void, lang: Language }
         ))}
       </div>
     </div>
+  );
+}
+
+function CheckAvailabilityPage({ onBack, lang, setView }: { onBack: () => void, lang: Language, setView: (v: string) => void }) {
+  const [selectedDate, setSelectedDate] = useState<Date>(startOfToday());
+  const [currentMonth, setCurrentMonth] = useState<Date>(startOfMonth(new Date()));
+  const [availability, setAvailability] = useState<Availability[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const hoursRef = useRef<HTMLDivElement>(null);
+  const t = translations[lang];
+
+  useEffect(() => {
+    const unsubAvail = onSnapshot(collection(db, 'availability'), (snap) => {
+      setAvailability(snap.docs.map(doc => doc.data() as Availability));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'availability');
+    });
+
+    const unsubBookings = onSnapshot(collection(db, 'bookings'), (snap) => {
+      setBookings(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Booking)));
+      setIsLoading(false);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'bookings');
+    });
+
+    return () => {
+      unsubAvail();
+      unsubBookings();
+    };
+  }, []);
+
+  const getAvailableSlots = (date: Date) => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    const dayAvailability = availability.find(a => a.date === dateStr);
+    
+    // If no availability is defined for this specific day, it's not bookable
+    if (!dayAvailability || !dayAvailability.slots || dayAvailability.slots.length === 0) return [];
+
+    // Filter out cancelled or rejected bookings
+    const dayBookings = bookings.filter(b => b.date === dateStr && b.status !== 'cancelled' && b.status !== 'rejected');
+    
+    // If there is ANY active booking on this day, the whole day is unavailable (1 booking per day limit)
+    if (dayBookings.length > 0) return [];
+
+    // Also filter for time (if today)
+    let finalSlots = [...dayAvailability.slots];
+    if (isToday(date)) {
+      const now = new Date();
+      const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
+      finalSlots = finalSlots.filter(slot => {
+        const [hours, minutes] = slot.split(':').map(Number);
+        const slotDate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), hours, minutes);
+        return slotDate > oneHourFromNow;
+      });
+    }
+
+    return finalSlots;
+  };
+
+  const slots = getAvailableSlots(selectedDate);
+  const locale = getDateLocale(lang);
+
+  const monthStart = startOfMonth(currentMonth);
+  const monthEnd = endOfMonth(monthStart);
+  const startDate = startOfWeek(monthStart);
+  const endDate = endOfWeek(monthEnd);
+
+  const calendarDays = eachDayOfInterval({
+    start: startDate,
+    end: endDate,
+  });
+
+  const nextMonth = () => {
+    const nextMonthDate = addMonths(currentMonth, 1);
+    if (nextMonthDate <= addDays(startOfToday(), 31)) {
+      setCurrentMonth(nextMonthDate);
+    }
+  };
+  const prevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
+
+  const handleDateSelect = (date: Date) => {
+    setSelectedDate(date);
+    // Smooth scroll to hours section on mobile
+    if (window.innerWidth < 1024) {
+      setTimeout(() => {
+        hoursRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+  };
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="min-h-screen bg-slate-950 pt-24 pb-12 px-4"
+    >
+      <div className="max-w-4xl mx-auto">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
+           <div className="flex items-center gap-3">
+             <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center">
+               <Calendar className="w-5 h-5 text-white" />
+             </div>
+             <div>
+               <h1 className="text-xl font-black text-white uppercase tracking-tighter">
+                 {getLangValue(lang, 'ხელმისაწვდომობის შემოწმება', 'Check Availability', 'Проверка доступности')}
+               </h1>
+             </div>
+           </div>
+           <Button variant="ghost" size="sm" onClick={onBack} className="text-[10px] font-black uppercase tracking-widest px-0">
+             <ArrowLeft className="w-3 h-3 mr-2" /> {t.backToHome}
+           </Button>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <Card className="p-6 bg-slate-900/50 border-white/5 rounded-[2rem]">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-sm font-black text-white uppercase tracking-widest">{t.chooseDate}</h2>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={prevMonth}
+                  className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 transition-colors"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <span className="text-[10px] font-black uppercase tracking-widest text-white min-w-[100px] text-center">
+                  {format(currentMonth, 'MMMM yyyy', { locale })}
+                </span>
+                <button 
+                  onClick={nextMonth}
+                  disabled={addMonths(currentMonth, 1) > addDays(startOfToday(), 31)}
+                  className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 transition-colors disabled:opacity-20 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-7 gap-1.5 sm:gap-2.5 mb-4">
+              {t.days.map((d, i) => (
+                <div key={`${d}-${i}`} className="text-center text-[10px] font-black text-slate-500 uppercase tracking-widest pb-2">
+                  {d}
+                </div>
+              ))}
+              {calendarDays.map((date, i) => {
+                const isSelected = isSameDay(date, selectedDate);
+                const isPast = date < startOfToday();
+                const isTooFar = date > addDays(startOfToday(), 31);
+                const availableSlots = getAvailableSlots(date);
+                const isAvail = availableSlots.length > 0 && !isPast && !isTooFar;
+                const isCurrentMonth = isSameMonth(date, monthStart);
+                const dateStr = format(date, 'yyyy-MM-dd');
+                const hasBooking = bookings.some(b => b.date === dateStr && b.status !== 'cancelled' && b.status !== 'rejected');
+                
+                return (
+                  <button
+                    key={date.toString()}
+                    onClick={() => isAvail && handleDateSelect(date)}
+                    disabled={!isAvail && !isSelected}
+                    className={cn(
+                      "aspect-square rounded-2xl flex flex-col items-center justify-center transition-all duration-300 relative group overflow-hidden border",
+                      isSelected 
+                        ? "bg-blue-600 border-blue-400 text-white shadow-2xl shadow-blue-600/40 scale-105 z-10" 
+                        : isAvail 
+                          ? "bg-slate-900/40 border-blue-500/20 text-slate-200 hover:border-blue-500/60 hover:bg-slate-800/80 hover:shadow-lg hover:shadow-blue-500/10 cursor-pointer" 
+                          : hasBooking
+                            ? "bg-red-500/5 border-red-500/10 text-slate-600 cursor-not-allowed opacity-40"
+                            : "bg-slate-950/40 border-white/5 text-slate-700 cursor-not-allowed",
+                      (!isCurrentMonth || isTooFar) && !isSelected && "opacity-20"
+                    )}
+                  >
+                    <span className={cn(
+                      "text-xs font-black transition-all duration-300",
+                      isSelected && "scale-110",
+                      isAvail && !isSelected && "text-blue-400 group-hover:scale-110"
+                    )}>
+                      {format(date, 'd')}
+                    </span>
+                    
+                    {isAvail && !isSelected && (
+                      <div className="absolute top-1.5 right-1.5">
+                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
+                      </div>
+                    )}
+
+                    {/* Booking indicator */}
+                    {hasBooking && !isSelected && (
+                      <div className="absolute top-1.5 right-1.5">
+                        <div className="w-1 h-1 bg-red-500/50 rounded-full" />
+                      </div>
+                    )}
+
+                    {!isAvail && !isPast && !isTooFar && isCurrentMonth && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
+                         <div className="w-full h-px bg-red-500/20 -rotate-45" />
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="mt-6 flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-slate-500">
+               <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full" />
+                  <span>{t.available}</span>
+               </div>
+            </div>
+          </Card>
+
+          <Card ref={hoursRef} className="bg-slate-900 border-white/5 rounded-[2rem] flex flex-col h-full relative overflow-hidden transition-all duration-500">
+             <div className="p-8">
+                <div className="flex items-center justify-between mb-8">
+                  <div>
+                    <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">{format(selectedDate, 'EEEE', { locale })}</p>
+                    <h3 className="text-2xl font-black text-white tracking-tight">{format(selectedDate, 'd MMMM', { locale })}</h3>
+                  </div>
+                  <div className="w-12 h-12 bg-slate-800 rounded-2xl flex items-center justify-center text-slate-600">
+                    <Clock className="w-6 h-6" />
+                  </div>
+                </div>
+
+                {isLoading ? (
+                  <div className="flex flex-col items-center justify-center py-12 gap-4">
+                    <div className="w-8 h-8 border-2 border-blue-600/20 border-t-blue-600 rounded-full animate-spin"></div>
+                  </div>
+                ) : slots.length === 0 ? (
+                  <div className="text-center py-12 bg-slate-950/40 rounded-[2rem] border border-white/5">
+                    <History className="w-10 h-10 text-slate-800 mx-auto mb-4" />
+                    <p className="text-slate-600 font-extrabold uppercase tracking-widest text-[10px]">{t.noTimes}</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 sm:grid-cols-2 gap-2 sm:gap-3 mb-8">
+                    {slots.map(slot => (
+                      <div 
+                        key={slot}
+                        className="bg-slate-950 border border-white/5 py-3 sm:py-4 rounded-xl sm:rounded-2xl text-center text-white font-black tracking-widest text-[10px] sm:text-xs"
+                      >
+                        {slot}
+                      </div>
+                    ))}
+                  </div>
+                )}
+             </div>
+
+             <div className="mt-auto p-8 bg-blue-600/5 border-t border-white/5 flex flex-col gap-4">
+                <p className="text-center text-slate-400 text-xs font-medium px-4">
+                  {getLangValue(lang, 'მოგეწონათ რომელიმე დრო? დაჯავშნეთ ახლავე!', 'Found a slot you like? Book it now!', 'Нашли подходящее время? Забронируйте сейчас!')}
+                </p>
+                <Button 
+                  className="w-full h-14 rounded-2xl bg-blue-600 text-white font-black uppercase tracking-widest text-[10px] shadow-xl shadow-blue-600/20"
+                  onClick={() => {
+                    setView('booking');
+                    window.history.pushState(null, '', '/?view=booking');
+                  }}
+                >
+                   {t.bookNow}
+                </Button>
+             </div>
+          </Card>
+        </div>
+
+        <div className="mt-12 flex justify-center opacity-30 grayscale pointer-events-none">
+           <img src={logo} alt="Luca's AutoSpa" className="h-10 w-auto" />
+        </div>
+      </div>
+    </motion.div>
   );
 }
 

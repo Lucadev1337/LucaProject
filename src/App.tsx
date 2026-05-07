@@ -5070,7 +5070,7 @@ function CheckAvailabilityPage({ onBack, lang, setView }: { onBack: () => void, 
   const [selectedDate, setSelectedDate] = useState<Date>(startOfToday());
   const [currentMonth, setCurrentMonth] = useState<Date>(startOfMonth(new Date()));
   const [availability, setAvailability] = useState<Availability[]>([]);
-  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [takenSlots, setTakenSlots] = useState<{ date: string }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const hoursRef = useRef<HTMLDivElement>(null);
   const t = translations[lang];
@@ -5082,16 +5082,20 @@ function CheckAvailabilityPage({ onBack, lang, setView }: { onBack: () => void, 
       handleFirestoreError(error, OperationType.LIST, 'availability');
     });
 
-    const unsubBookings = onSnapshot(collection(db, 'bookings'), (snap) => {
-      setBookings(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Booking)));
+    const unsubTaken = onSnapshot(collection(db, 'taken_slots'), (snap) => {
+      setTakenSlots(snap.docs.map(doc => {
+        const id = doc.id; // Format: YYYY-MM-DD_HH:mm
+        const date = id.split('_')[0];
+        return { date };
+      }));
       setIsLoading(false);
     }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'bookings');
+      handleFirestoreError(error, OperationType.LIST, 'taken_slots');
     });
 
     return () => {
       unsubAvail();
-      unsubBookings();
+      unsubTaken();
     };
   }, []);
 
@@ -5102,11 +5106,9 @@ function CheckAvailabilityPage({ onBack, lang, setView }: { onBack: () => void, 
     // If no availability is defined for this specific day, it's not bookable
     if (!dayAvailability || !dayAvailability.slots || dayAvailability.slots.length === 0) return [];
 
-    // Filter out cancelled or rejected bookings
-    const dayBookings = bookings.filter(b => b.date === dateStr && b.status !== 'cancelled' && b.status !== 'rejected');
-    
-    // If there is ANY active booking on this day, the whole day is unavailable (1 booking per day limit)
-    if (dayBookings.length > 0) return [];
+    // If there is ANY entry in taken_slots for this day, the whole day is unavailable (1 booking per day limit)
+    const isDayTaken = takenSlots.some(s => s.date === dateStr);
+    if (isDayTaken) return [];
 
     // Also filter for time (if today)
     let finalSlots = [...dayAvailability.slots];
@@ -5215,7 +5217,7 @@ function CheckAvailabilityPage({ onBack, lang, setView }: { onBack: () => void, 
                 const isAvail = availableSlots.length > 0 && !isPast && !isTooFar;
                 const isCurrentMonth = isSameMonth(date, monthStart);
                 const dateStr = format(date, 'yyyy-MM-dd');
-                const hasBooking = bookings.some(b => b.date === dateStr && b.status !== 'cancelled' && b.status !== 'rejected');
+                const hasBooking = takenSlots.some(s => s.date === dateStr);
                 
                 return (
                   <button

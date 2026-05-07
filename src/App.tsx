@@ -167,6 +167,7 @@ const translations = {
     backToHome: "მთავარ გვერდზე დაბრუნება",
     searchAddress: "ჩაწერეთ მისამართი...",
     search: "ძებნა",
+    useEnteredAddress: "ამ მისამართის გამოყენება",
     clickMap: "დააკლიკეთ რუკაზე ზუსტი ადგილის ასარჩევად",
     sendCode: "კოდის გაგზავნა",
     verification: "ვერიფიკაცია",
@@ -423,6 +424,7 @@ const translations = {
     backToHome: "Back to Home",
     searchAddress: "Enter address...",
     search: "Search",
+    useEnteredAddress: "Use entered address",
     clickMap: "Click on the map to select exact location",
     sendCode: "Send Code",
     verification: "Verification",
@@ -680,6 +682,7 @@ const translations = {
       backToHome: "Вернуться на главную",
       searchAddress: "Введите адрес...",
       search: "Поиск",
+      useEnteredAddress: "Использовать введенный адрес",
       clickMap: "Кликните на карту, чтобы выбрать точное местопололожение",
       sendCode: "Отправить код",
       verification: "Верификация",
@@ -1111,6 +1114,7 @@ function MapPicker({ onLocationSelect, initialLocation, initialLat, initialLng, 
   const [address, setAddress] = useState(initialLocation || '');
   const [searchQuery, setSearchQuery] = useState(initialLocation || '');
   const [isSearching, setIsSearching] = useState(false);
+  const [searchFailed, setSearchFailed] = useState(false);
   const [mapCenter, setMapCenter] = useState<[number, number]>(initialLat && initialLng ? [initialLat, initialLng] : TBILISI_CENTER);
   const [zoom, setZoom] = useState(initialLat && initialLng ? 16 : 13);
 
@@ -1139,8 +1143,9 @@ function MapPicker({ onLocationSelect, initialLocation, initialLat, initialLng, 
   const handleSearch = async () => {
     if (!searchQuery) return;
     setIsSearching(true);
+    setSearchFailed(false);
     try {
-      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1`);
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=5`);
       const data = await response.json();
       if (data && data.length > 0) {
         const { lat, lon, display_name } = data[0];
@@ -1150,10 +1155,14 @@ function MapPicker({ onLocationSelect, initialLocation, initialLat, initialLng, 
         setMapCenter([newLat, newLon]);
         setZoom(17);
         setAddress(display_name);
+        setSearchQuery(display_name); // Sync display name back to search query
         onLocationSelect(display_name, newLat, newLon);
+      } else {
+        setSearchFailed(true);
       }
     } catch (error) {
       console.error('Search failed', error);
+      setSearchFailed(true);
     } finally {
       setIsSearching(false);
     }
@@ -1162,26 +1171,34 @@ function MapPicker({ onLocationSelect, initialLocation, initialLat, initialLng, 
   return (
     <div className="space-y-4">
       <div className="relative">
-        <div className="relative flex gap-2">
-          <div className="relative flex-1">
-            <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-            <input
-              type="text"
-              placeholder={t.searchAddress}
-              className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 pl-12 focus:border-blue-600 outline-none transition-colors text-white"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            />
+        <div className="relative flex flex-col gap-2">
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+              <input
+                type="text"
+                placeholder={t.searchAddress}
+                className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 pl-12 focus:border-blue-600 outline-none transition-colors text-white"
+                value={searchQuery}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setSearchQuery(val);
+                  setSearchFailed(false);
+                  // Real-time update to parent so "Next" is enabled immediately
+                  onLocationSelect(val);
+                }}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              />
+            </div>
+            
+            <Button 
+              onClick={handleSearch} 
+              disabled={isSearching}
+              className="rounded-2xl px-4"
+            >
+              {isSearching ? '...' : t.search}
+            </Button>
           </div>
-          
-          <Button 
-            onClick={handleSearch} 
-            disabled={isSearching}
-            className="rounded-2xl px-4"
-          >
-            {isSearching ? '...' : t.search}
-          </Button>
         </div>
       </div>
       <div className="h-[300px] w-full rounded-3xl overflow-hidden relative z-0">
@@ -2807,17 +2824,26 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms, onSuccess }: { onB
       }
 
       setIsSubmitting(true);
-      const bookingRef = await addDoc(collection(db, 'bookings'), {
-          ...bookingData,
-          status: 'pending',
-          promoCode: appliedPromo?.code || null,
-          discountAmount: appliedPromo ? appliedPromo.discount : 0,
-          addons: selectedAddonIds,
-          finalPrice: getPrice(),
-          verificationMethod: sessionVerificationMethod,
-          customerEmail: bookingData.email || null,
-          createdAt: serverTimestamp()
-        });
+      
+      // Sanitize booking data to remove undefined fields
+      const sanitizedBookingData = Object.entries({
+        ...bookingData,
+        status: 'pending',
+        promoCode: appliedPromo?.code || null,
+        discountAmount: appliedPromo ? appliedPromo.discount : 0,
+        addons: selectedAddonIds,
+        finalPrice: getPrice(),
+        verificationMethod: sessionVerificationMethod,
+        customerEmail: bookingData.email || null,
+        createdAt: serverTimestamp()
+      }).reduce((acc, [key, value]) => {
+        if (value !== undefined) {
+          acc[key] = value;
+        }
+        return acc;
+      }, {} as any);
+
+      const bookingRef = await addDoc(collection(db, 'bookings'), sanitizedBookingData);
         
         // --- AUTO SYNC CLIENT ---
         try {
@@ -3063,7 +3089,7 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms, onSuccess }: { onB
                         key={date.toISOString()}
                         disabled={isUnavailable}
                         onClick={() => {
-                          setBookingData({ ...bookingData, date: dateStr, timeSlot: undefined });
+                          setBookingData({ ...bookingData, date: dateStr, timeSlot: '' });
                           track('Date Selected', { date: dateStr });
                         }}
                         className={cn(
@@ -3219,7 +3245,14 @@ function BookingPage({ onBack, pricing, t, lang, onViewTerms, onSuccess }: { onB
                             );
                             fuelFee = Math.round(distance * pricing.pricePerKm);
                           }
-                          setBookingData({ ...bookingData, location: address, lat, lng, fuelFee, distance });
+                          setBookingData({ 
+                            ...bookingData, 
+                            location: address, 
+                            lat: lat ?? null, 
+                            lng: lng ?? null, 
+                            fuelFee, 
+                            distance 
+                          });
                         }}
                         t={t}
                       />

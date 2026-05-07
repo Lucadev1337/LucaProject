@@ -1307,6 +1307,52 @@ export default function App() {
       }
     });
 
+    // --- Auto-Cleanup Logic ---
+    const runCleanup = async () => {
+      // Avoid running cleanup if not admin or already run today
+      const u = auth.currentUser;
+      if (!u || u.email?.toLowerCase() !== 'luca.mergell@gmail.com') return;
+
+      const lastCleanup = sessionStorage.getItem('last_cleanup_date');
+      const todayStr = format(new Date(), 'yyyy-MM-dd');
+      if (lastCleanup === todayStr) return;
+
+      try {
+        const oneWeekAgo = subDays(new Date(), 7);
+        const thresholdDateStr = format(oneWeekAgo, 'yyyy-MM-dd');
+        
+        // 1. Availability Cleanup (Keys are YYYY-MM-DD)
+        const availabilitySnap = await getDocs(collection(db, 'availability'));
+        const expiredAvail = availabilitySnap.docs.filter(d => d.id < thresholdDateStr);
+        
+        for (const docRef of expiredAvail) {
+          await deleteDoc(doc(db, 'availability', docRef.id));
+        }
+
+        // 2. Taken Slots Cleanup (Keys are YYYY-MM-DD_HH:mm)
+        const takenSlotsSnap = await getDocs(collection(db, 'taken_slots'));
+        const expiredSlots = takenSlotsSnap.docs.filter(d => {
+          const slotDate = d.id.split('_')[0];
+          return slotDate < thresholdDateStr;
+        });
+
+        for (const docRef of expiredSlots) {
+          await deleteDoc(doc(db, 'taken_slots', docRef.id));
+        }
+
+        if (expiredAvail.length > 0 || expiredSlots.length > 0) {
+          console.log(`[Auto-Cleanup] Permanently deleted ${expiredAvail.length} availability records and ${expiredSlots.length} taken slots from more than 1 week ago. Booking information was NOT affected.`);
+        }
+        
+        sessionStorage.setItem('last_cleanup_date', todayStr);
+      } catch (error) {
+        console.error("[Auto-Cleanup] Error:", error);
+      }
+    };
+
+    // Run cleanup on a slight delay to ensure auth is settled
+    setTimeout(runCleanup, 3000);
+
     // Check if language is already selected in localStorage
     const savedLang = localStorage.getItem('preferredLang') as Language;
     if (savedLang && (savedLang === 'GE' || savedLang === 'EN' || savedLang === 'RU')) {

@@ -16,21 +16,21 @@ service cloud.firestore {
       allow update: if isAdmin() || (
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['verificationMethod', 'customerEmail'])
       );
-      allow read, delete, list: if isAdmin();
+      allow list, delete: if isAdmin();
     }
     match /availability/{date} {
-      allow read: if true;
+      allow get, list: if true;
       allow write: if isAdmin();
     }
     match /taken_slots/{slotId} {
-      allow read, create, update: if true;
+      allow get, list, create, update: if true;
       allow delete: if isAdmin();
     }
     match /verification_codes/{email} {
-      allow read, write: if true;
+      allow get, list, create, update, delete: if true;
     }
     match /settings/pricing {
-      allow read: if true;
+      allow get, list: if true;
       allow write: if isAdmin();
     }
     match /promo_codes/{code} {
@@ -38,18 +38,18 @@ service cloud.firestore {
       allow list, create, update, delete: if isAdmin();
     }
     match /addons/{addonId} {
-      allow read: if true;
+      allow get, list: if true;
       allow write: if isAdmin();
     }
     match /gallery/{itemId} {
-      allow read: if true;
+      allow get, list: if true;
       allow write: if isAdmin();
     }
     match /clients/{phoneNumber} {
       allow get, create, update: if true;
       allow list, delete: if isAdmin();
       match /cars/{carId} {
-        allow read, write: if true;
+        allow get, list, create, update, delete: if true;
       }
     }
   }
